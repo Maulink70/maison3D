@@ -88,7 +88,7 @@ Outil pour Mauro et sa compagne Tamara, afin de préparer le réaménagement ré
 Pièces : rez = salon, cuisine, chambre, salle de bain ; étage = chambre, salle de douche avec WC, dressing. À confirmer avec Mauro au moment de faire le menu « Aller à ».
 
 ### Meubles et objets de décoration (même traitement pour les deux)
-- Déplacer, tourner, masquer, recolorer, choisir une **matière** (bois, tissu, métal…).
+- Déplacer, **tourner par pas de 90° ou librement** (poignée de rotation continue, affichage de l'angle en degrés, saisie possible d'un angle exact), masquer, recolorer, choisir une **matière** (bois, tissu, métal…).
 - **Modifier les dimensions** d'un meuble en saisissant des mesures exactes.
 - **Remplacer** un meuble par un autre au même endroit.
 - Ajouter depuis quatre sources :
@@ -99,6 +99,7 @@ Pièces : rez = salon, cuisine, chambre, salle de bain ; étage = chambre, salle
 
 ### Vues et calques
 - Vue maquette, visite à la première personne, **plan 2D vu de dessus par niveau**.
+- **Masquer un niveau** : pouvoir cacher l'étage (et tout niveau supérieur s'il y en a un jour) pour voir le rez par le haut, dans toute vue. Le prototype le fait déjà par un plan de coupe (`REZ_CUT`) ; la cible est un vrai interrupteur par niveau (afficher / masquer), en plus de la coupe.
 - **Calques** activables dans toute vue : cotes, hauteurs, noms des pièces.
 - Vitres transparentes (remplacer la texture « nuages » de SketchUp), murs pleins vus de l'extérieur (faces simples côté extérieur à doubler), **lumière du jour réglable** (matin, midi, soir).
 
@@ -109,6 +110,7 @@ En PDF ou image : plan 2D par niveau avec cotes ; n'importe quelle vue 3D à l'�
 But : voir la pièce **en vrai** avec le nouveau meuble, en complément de la 3D qui sert à la mesure.
 - Mauro fournit de **vraies photos** de chaque pièce (galerie par pièce, stockée avec le projet).
 - Dans l'éditeur, on place le meuble, on cale la caméra 3D sur l'angle de la vraie photo, puis bouton **« Rendu réaliste »**.
+- **Mode « Image »**, distinct de l'édition 3D : on modifie la photo, pas la maquette. Dans ce mode, un **trombone ou un bouton « Ajouter un objet »** permet d'importer une image prise sur Internet (fichier, ou collage depuis le presse-papiers), de saisir ses dimensions, et de lancer directement le processus de rendu décrit ci-dessus (placement approximatif sur la photo, confirmation, appel kie.ai). Résultat dans l'historique de la pièce et dans Familia, comme les autres rendus.
 - Le site envoie à kie.ai : la vraie photo de la pièce, la photo du meuble (site marchand), la capture 3D qui montre l'emplacement et l'échelle, et un prompt du type « insère ce meuble à cet endroit, à cette taille, sans changer le reste ». Modèle : `nano-banana-pro`, qui accepte plusieurs images de référence.
 - **Toujours demander confirmation avant chaque rendu** (chaque appel consomme des crédits kie.ai).
 - **Historique des rendus** conservé : pour chaque pièce, on fait défiler les rendus précédents avec une petite flèche, rien n'est écrasé.
@@ -122,15 +124,25 @@ But : voir la pièce **en vrai** avec le nouveau meuble, en complément de la 3D
 - Le `localStorage` actuel (clé `diolly3d-v1`) sera remplacé par cette synchronisation ; il peut rester comme cache hors ligne.
 
 ### Hébergement
-Vercel, relié à GitHub, adresse `maison3d.vercel.app`. Dépôt privé. Site statique, rien à compiler.
+Vercel, relié à GitHub : projet « maison3d » (`prj_xamwNtiD0YBKAkVO3DebYhOWMu8y`), production **https://maison3d.vercel.app**, redéployé automatiquement à chaque push sur `main`. Dépôt privé. Site statique, rien à compiler (preset « Other », pas de build). **Vercel limite à 100 déploiements par 24 h** : regrouper les pushes, un par lot testé, jamais pour « voir si ça marche ». Vérifier les déploiements avec le connecteur Vercel.
+
+### Environnement Claude Code (cloud « Maulink »)
+- Variables d'environnement : `N8N_API_KEY` (clé API n8n « Claude », tous droits, en-tête `X-N8N-API-KEY`) et `N8N_BASE_URL` (`https://n8n.srv1123557.hstgr.cloud`). Appeler l'API REST n8n (`/api/v1/…`) par curl ; le connecteur MCP n8n ne sert qu'à lancer des workflows explicitement exposés (aucun aujourd'hui) et ne permet ni de créer ni de modifier.
+- Secret réseau `Claude kie` injecté par le proxy pour `api.kie.ai` et `kieai.redpandaai.co`.
+- Domaines autorisés : n8n, kie.ai, Vercel (`*.vercel.app`), Familia, CDN (jsdelivr, cdnjs, unpkg), Google Fonts, Airtable, Sketchfab, Poly Haven, GitHub. Si un domaine manque : l'ajouter dans l'environnement Maulink, puis **ouvrir une nouvelle session** (le réglage ne s'applique pas aux sessions déjà ouvertes).
+- Au début de chaque session, tester les accès réseau utiles par curl avant d'annoncer quoi que ce soit.
 
 ### Ordre de construction (livrer et faire valider étape par étape)
-1. **Navigation et rendu** : modes séparés, Aller à, toucher au sol, vitesse, portes, vitres, murs, calques, plan 2D, impression, lumière.
+1. **Navigation et rendu** : modes séparés, Aller à, toucher au sol, vitesse, portes, rotation libre des meubles, masquage par niveau, vitres, murs, calques, plan 2D, impression, lumière.
 2. **Comptes et synchronisation** : workflows n8n + base Airtable « Maison3D », variantes nommées.
 3. **Catalogue** : banques 3D, formes simples, import GLB, panneau photo, dimensions, matières, remplacement.
-4. **Rendu réaliste kie.ai** : galerie de vraies photos par pièce, bouton de rendu, historique, insertion dans Familia.
+4. **Rendu réaliste kie.ai** : galerie de vraies photos par pièce, bouton de rendu, mode « Image » avec ajout d'un objet par trombone, historique, insertion dans Familia.
 
 À prévoir du côté de Mauro : une base Airtable « Maison3D » (à décrire précisément avant de la créer), quelques workflows n8n (Claude Code peut les créer, n8n étant connecté), un compte Sketchfab gratuit, et ses vraies photos des pièces.
+
+## État du projet (à mettre à jour par Claude Code à la fin de chaque livraison, avant le push)
+
+- 8 octobre 2026 : cahier des charges validé, site prototype déployé sur https://maison3d.vercel.app, environnement Claude Code configuré. **Aucune étape commencée.** Prochaine action : plan détaillé de l'étape 1, à faire valider par Mauro.
 
 ## Problèmes connus
 
