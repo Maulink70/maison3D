@@ -1,0 +1,13 @@
+{
+  "name": "maison3d-outils",
+  "private": true,
+  "type": "module",
+  "description": "Outils de conversion du modèle SketchUp vers le GLB du site",
+  "dependencies": {
+    "@gltf-transform/cli": "4.5.1",
+    "@gltf-transform/core": "4.5.1",
+    "@gltf-transform/extensions": "4.5.1",
+    "meshoptimizer": "1.2.0",
+    "obj2gltf": "3.2.0"
+  }
+}

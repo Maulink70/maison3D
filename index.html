@@ -1,0 +1,430 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Appartement Diolly 3D</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+[hidden]{display:none!important}
+body{margin:0}
+/* Layout: plein écran 3D, barre d'outils flottante en haut, panneau mobilier à droite (feuille en bas sur téléphone) */
+:root{
+  --bg:#e9ecee; --scene:#dfe3e6; --panel:#ffffff; --ink:#1c2227; --muted:#5b6670;
+  --line:#d3d9de; --accent:#2c5a86; --accent-soft:#e1eaf3; --danger:#a33a2c;
+  --font-ui:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --font-data:"IBM Plex Mono",ui-monospace,"Cascadia Mono",Consolas,monospace;
+  --r:10px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#14181b; --scene:#1b2024; --panel:#1f2529; --ink:#e5e9ec; --muted:#98a3ac;
+  --line:#2f373d; --accent:#82b2df; --accent-soft:#233444; --danger:#e48a7c; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#14181b; --scene:#1b2024; --panel:#1f2529; --ink:#e5e9ec; --muted:#98a3ac;
+  --line:#2f373d; --accent:#82b2df; --accent-soft:#233444; --danger:#e48a7c; color-scheme:dark}
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--font-ui);font-size:14px;overflow:hidden}
+#app{position:fixed;inset:env(safe-area-inset-top,0px) 0 env(safe-area-inset-bottom,0px) 0}
+#c{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;outline:none}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+.bar{position:absolute;top:12px;left:16px;right:16px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;pointer-events:none}
+.bar>*{pointer-events:auto}
+.brand{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:6px 12px;display:flex;flex-direction:column;line-height:1.2}
+.brand strong{font-weight:600;font-size:15px}
+.brand span{font-family:var(--font-data);font-size:11px;color:var(--muted);letter-spacing:.02em}
+.seg{display:flex;background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:3px;gap:2px}
+.seg button{border:0;background:transparent;padding:6px 11px;border-radius:7px;font-weight:500;color:var(--muted)}
+.seg button[aria-pressed="true"]{background:var(--accent-soft);color:var(--accent)}
+.seg button:disabled{opacity:.35;cursor:default}
+.spacer{flex:1}
+.btn{border:1px solid var(--line);background:var(--panel);border-radius:var(--r);padding:8px 12px;font-weight:500}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--panel)}
+.btn.danger{color:var(--danger)}
+
+#panel{position:absolute;top:76px;right:16px;bottom:16px;width:300px;max-width:calc(100% - 32px);background:var(--panel);border:1px solid var(--line);border-radius:12px;display:flex;flex-direction:column;overflow:hidden}
+#panel[hidden]{display:none!important}
+.sec{padding:14px 16px;border-bottom:1px solid var(--line)}
+.sec h2{margin:0 0 2px;font-size:16px;font-weight:600;text-wrap:balance}
+.eyebrow{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:500}
+.dims{font-family:var(--font-data);font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums;margin:4px 0 12px}
+.tools{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.tools .wide{grid-column:1 / -1}
+.colorrow{display:flex;align-items:center;gap:8px;grid-column:1 / -1;border:1px solid var(--line);border-radius:var(--r);padding:4px 8px 4px 12px}
+.colorrow label{flex:1;font-weight:500}
+.colorrow input{width:40px;height:30px;border:0;background:none;padding:0}
+.list{overflow:auto;flex:1;padding:6px 8px 12px}
+.group-title{padding:12px 8px 4px}
+.row{display:flex;align-items:center;gap:6px;border-radius:8px}
+.row:hover{background:var(--accent-soft)}
+.row .name{flex:1;min-width:0;text-align:left;border:0;background:none;padding:7px 8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row .lvl{font-family:var(--font-data);font-size:11px;color:var(--muted)}
+.row .eye{border:0;background:none;padding:6px 8px;color:var(--muted);font-size:12px}
+.row.off .name{color:var(--muted);text-decoration:line-through}
+.row.sel{background:var(--accent-soft)}
+.row.sel .name{color:var(--accent);font-weight:600}
+.foot{padding:10px 16px;border-top:1px solid var(--line);display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.foot small{color:var(--muted);flex:1;min-width:120px}
+
+#hint{position:absolute;left:16px;bottom:16px;max-width:min(460px,calc(100% - 352px));background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:8px 12px;color:var(--muted);font-size:12.5px;line-height:1.45}
+#pad{position:absolute;left:16px;bottom:72px;display:grid;grid-template-columns:repeat(3,52px);grid-template-rows:repeat(2,52px);gap:6px;user-select:none;-webkit-user-select:none}
+#pad button{border:1px solid var(--line);background:var(--panel);border-radius:12px;font-size:18px;touch-action:none}
+#pad button.active{background:var(--accent-soft);color:var(--accent)}
+#pad .up{grid-area:1/2}
+#pad [data-k="left"]{grid-area:2/1}
+#pad [data-k="back"]{grid-area:2/2}
+#pad [data-k="right"]{grid-area:2/3}
+#loading{position:absolute;inset:0;display:grid;place-items:center;background:var(--bg)}
+#loading div{display:flex;flex-direction:column;gap:10px;align-items:center;color:var(--muted)}
+#loading .meter{width:220px;height:4px;background:var(--line);border-radius:2px;overflow:hidden}
+#loading .meter i{display:block;height:100%;width:0;background:var(--accent);transition:width .2s}
+#loading .num{font-family:var(--font-data);font-variant-numeric:tabular-nums}
+
+@media (max-width:760px){
+  .brand span{display:none}
+  .bar{top:8px;left:12px;right:12px;gap:6px}
+  .seg button{padding:6px 9px}
+  #panel{top:auto;left:0;right:0;bottom:0;width:auto;max-width:none;max-height:55%;border-radius:14px 14px 0 0;border-left:0;border-right:0;border-bottom:0;padding-bottom:env(safe-area-inset-bottom,0px)}
+  #hint{display:none}
+  #pad{bottom:16px}
+  body.sheet-open #pad{display:none}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+</head>
+<body>
+<div id="app">
+  <canvas id="c" tabindex="0" aria-label="Vue 3D de l'appartement"></canvas>
+
+  <header class="bar">
+    <div class="brand"><strong>Appartement Diolly</strong><span>2 niveaux · échelle 1:1 en mètres</span></div>
+    <div class="seg" role="group" aria-label="Mode de vue">
+      <button id="m-orbit" aria-pressed="true">Maquette</button>
+      <button id="m-walk" aria-pressed="false">Visite</button>
+    </div>
+    <div class="seg" role="group" aria-label="Niveau">
+      <button id="l-all" aria-pressed="true">Tout</button>
+      <button id="l-rez" aria-pressed="false">Rez</button>
+      <button id="l-etage" aria-pressed="false">Étage</button>
+    </div>
+    <span class="spacer"></span>
+    <button class="btn" id="toggle-panel" aria-expanded="true">Meubles</button>
+  </header>
+
+  <aside id="panel" aria-label="Mobilier">
+    <section class="sec" id="sel" hidden>
+      <div class="eyebrow" id="sel-cat">Mobilier</div>
+      <h2 id="sel-name">—</h2>
+      <div class="dims" id="sel-dims"></div>
+      <div class="tools">
+        <button class="btn primary wide" id="t-move">Déplacer</button>
+        <button class="btn" id="t-rotl">↺ Tourner 90°</button>
+        <button class="btn" id="t-rotr">↻ Tourner 90°</button>
+        <div class="colorrow"><label for="t-color">Couleur</label><input type="color" id="t-color" value="#ffffff"><button class="btn" id="t-color-clear">Origine</button></div>
+        <button class="btn" id="t-hide">Masquer</button>
+        <button class="btn" id="t-reset">Remettre en place</button>
+        <button class="btn wide" id="t-close">Désélectionner</button>
+      </div>
+    </section>
+    <div class="list" id="list"></div>
+    <div class="foot">
+      <small id="save-state">Les changements restent dans ce navigateur.</small>
+      <button class="btn danger" id="reset-all">Tout réinitialiser</button>
+    </div>
+  </aside>
+
+  <div id="pad" hidden aria-label="Déplacement">
+    <button class="up" data-k="fwd" aria-label="Avancer">▲</button>
+    <button data-k="left" aria-label="Aller à gauche">◀</button>
+    <button data-k="back" aria-label="Reculer">▼</button>
+    <button data-k="right" aria-label="Aller à droite">▶</button>
+  </div>
+  <div id="hint"></div>
+  <div id="loading"><div><span>Chargement de la maquette…</span><span class="meter"><i id="bar"></i></span><span class="num" id="pct">0 %</span></div></div>
+</div>
+
+<script type="importmap">
+{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/"}}
+</script>
+<script type="module">
+import * as THREE from 'three';
+import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
+import {TransformControls} from 'three/addons/controls/TransformControls.js';
+import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
+import {MeshoptDecoder} from 'three/addons/libs/meshopt_decoder.module.js';
+
+const $=id=>document.getElementById(id);
+const ETAGE_FLOOR=2.74, REZ_CUT=2.33, ROOF_CUT=5.15, EYE=1.6;
+
+// Noms lisibles et catégories (fixe = non modifiable)
+const META={
+  structure_rez:{l:'Structure rez',c:'fixe'}, structure_etage:{l:'Structure étage',c:'fixe'},
+  'rez__escalier':{l:'Escalier',c:'fixe'}, 'rez__cloison':{l:'Cloison escalier',c:'fixe'},
+  'rez__canape_salon#1':{l:'Canapé d’angle',c:'meuble'}, 'rez__tapis_salon':{l:'Tapis du salon',c:'meuble'},
+  'rez__meuble_salon':{l:'Meuble bas (rouge)',c:'meuble'}, 'rez__salon':{l:'Meuble salon (haut)',c:'meuble'},
+  'rez__Bar_cuisine':{l:'Bar de cuisine',c:'meuble'}, 'rez__armoire':{l:'Étagère sous l’escalier',c:'meuble'},
+  'rez__armoire_chambre_a_coucher':{l:'Armoire chambre',c:'meuble'}, 'rez__Baignoire':{l:'Baignoire',c:'meuble'},
+  'rez__Cherry':{l:'Cerise décorative',c:'meuble'}, 'rez__element_mural':{l:'Élément mural',c:'meuble'},
+  'rez__store_fenetre':{l:'Store',c:'ouverture'},
+  'etage__lit_chambre_etage':{l:'Lit',c:'meuble'}, 'etage__bureau_chambre_etage':{l:'Bureau',c:'meuble'},
+  'etage__wc':{l:'WC',c:'meuble'}, 'etage__bouton_wc_douche':{l:'Plaque WC',c:'meuble'},
+  'etage__Douche_etage':{l:'Douche',c:'meuble'}, 'etage__barre_linge_douche':{l:'Porte-linge',c:'meuble'},
+  'rez__porte_interieure_88x218':{l:'Porte 88×218',c:'ouverture'}, 'rez__porte_interieure_88x218_2':{l:'Porte 88×218 (2)',c:'ouverture'},
+  'rez__porte_interieure_98_(80)':{l:'Porte 80',c:'ouverture'}, 'rez__baie_vitree':{l:'Baie vitrée',c:'ouverture'},
+  'rez__Fenetre_salon_haute':{l:'Fenêtre haute salon',c:'ouverture'}, 'rez__fenetre_salon_grande':{l:'Grande fenêtre salon',c:'ouverture'},
+  'rez__fenetre_chambre_coucher':{l:'Fenêtre chambre',c:'ouverture'}, 'rez__Fenetre_salle_de_bain':{l:'Fenêtre salle de bain',c:'ouverture'},
+  'etage__porte_dressing':{l:'Porte dressing',c:'ouverture'}, 'etage__porte_chambre_etage':{l:'Porte chambre',c:'ouverture'},
+  'etage__porte_douche_etage':{l:'Porte salle de douche',c:'ouverture'}, 'etage__Fenetre_chambre_etage':{l:'Fenêtre chambre',c:'ouverture'},
+  'etage__fenetre_douche_etage':{l:'Fenêtre douche',c:'ouverture'}, 'etage__Velux':{l:'Velux',c:'ouverture'}, 'etage__Velux_2':{l:'Velux (2)',c:'ouverture'}
+};
+const CAT_LABEL={meuble:'Mobilier',ouverture:'Portes et fenêtres'};
+
+// ---------- Scène ----------
+const canvas=$('c');
+const renderer=new THREE.WebGLRenderer({canvas,antialias:true});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio,1.75));
+const scene=new THREE.Scene();
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function applyTheme(){scene.background=new THREE.Color(css('--scene')||'#dfe3e6');}
+applyTheme();
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change',applyTheme);
+new MutationObserver(applyTheme).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+
+scene.add(new THREE.HemisphereLight(0xffffff,0x9a958c,2.1));
+const sun=new THREE.DirectionalLight(0xffffff,1.3); sun.position.set(30,40,10); scene.add(sun);
+const fill=new THREE.DirectionalLight(0xffffff,0.5); fill.position.set(-20,15,-30); scene.add(fill);
+
+const camera=new THREE.PerspectiveCamera(50,1,0.05,300);
+const CENTER=new THREE.Vector3(15.4,1.4,-21.1);
+const orbit=new OrbitControls(camera,canvas);
+orbit.target.copy(CENTER); orbit.enableDamping=true; orbit.maxDistance=60; orbit.minDistance=2;
+orbit.maxPolarAngle=Math.PI*0.495;
+camera.position.set(CENTER.x+11,14,CENTER.z+13);
+
+const tc=new TransformControls(camera,canvas);
+tc.setMode('translate'); tc.showY=false; tc.setSize(0.9);
+scene.add(tc.getHelper?tc.getHelper():tc);
+tc.addEventListener('dragging-changed',e=>{orbit.enabled=!e.value&&mode==='orbit'; gizmoDrag=e.value; if(!e.value) save();});
+tc.addEventListener('objectChange',()=>{ if(selBox) selBox.update(); });
+
+let mode='orbit', level='all', gizmoDrag=false, model=null;
+const items={}; let selected=null, selBox=null;
+const colliders=[], floors=[];
+
+function resize(){const r=canvas.getBoundingClientRect();renderer.setSize(r.width,r.height,false);camera.aspect=r.width/r.height;camera.updateProjectionMatrix();}
+window.addEventListener('resize',resize); resize();
+
+// ---------- Chargement ----------
+function showErr(err){ console.error(err); $('pct').textContent='Le modèle n’a pas pu être chargé ('+(err&&err.message?err.message:String(err))+'). Rechargez la page.'; }
+const loader=new GLTFLoader(); loader.setMeshoptDecoder(MeshoptDecoder);
+new Promise((res,rej)=>loader.load('appartement.glb',res,e=>{
+  if(e.total){const p=Math.round(e.loaded/e.total*100);$('bar').style.width=p+'%';$('pct').textContent=p+' %';}
+},rej)).then(gltf=>{
+  const root=gltf.scene; model=root; scene.add(root); root.updateMatrixWorld(true);
+  const solid=new THREE.MeshBasicMaterial({side:THREE.DoubleSide});
+  for(const child of [...root.children]){
+    const meta=META[child.name]||{l:child.name,c:'fixe'};
+    if(meta.c==='fixe'){
+      child.traverse(o=>{ if(!o.isMesh) return;
+        const m=new THREE.Mesh(o.geometry,solid); m.matrixAutoUpdate=false; m.matrixWorld.copy(o.matrixWorld);
+        floors.push(m); if(child.name!=='rez__escalier') colliders.push(m); });
+      continue;
+    }
+    const box=new THREE.Box3().setFromObject(child), c=box.getCenter(new THREE.Vector3());
+    const g=new THREE.Group(); g.name=child.name; g.position.set(c.x,box.min.y,c.z); root.add(g); g.attach(child);
+    const it={g,meta,name:child.name,size:box.getSize(new THREE.Vector3()),lvl:child.name.startsWith('etage')?'Étage':'Rez',
+      home:g.position.clone(),hidden:false,color:null,mats:[]};
+    child.traverse(o=>{ if(o.isMesh){ o.userData.item=child.name; it.mats.push(o); } });
+    items[child.name]=it;
+  }
+  restore(); buildList(); setMode('orbit'); setLevel('all');
+  $('loading').hidden=true;
+}).catch(showErr);
+
+// ---------- Niveaux et modes ----------
+function setLevel(l){
+  level=l; for(const k of ['all','rez','etage']) $('l-'+k).setAttribute('aria-pressed',String(k===l));
+  if(mode==='walk'){ enterWalk(l==='etage'?'etage':'rez'); return; }
+  const cut=l==='rez'?REZ_CUT:l==='etage'?ROOF_CUT:null;
+  renderer.clippingPlanes=cut?[new THREE.Plane(new THREE.Vector3(0,-1,0),cut)]:[];
+  if(l==='all'){ orbit.target.copy(CENTER); camera.position.set(CENTER.x+11,14,CENTER.z+13); }
+  else { const y=l==='rez'?0.4:ETAGE_FLOOR+0.4; orbit.target.set(CENTER.x,y,CENTER.z); camera.position.set(CENTER.x+3,y+15,CENTER.z+6); }
+  orbit.update();
+}
+function setMode(m){
+  mode=m; $('m-orbit').setAttribute('aria-pressed',String(m==='orbit')); $('m-walk').setAttribute('aria-pressed',String(m==='walk'));
+  $('l-all').disabled=m==='walk'; $('pad').hidden=m!=='walk';
+  orbit.enabled=m==='orbit';
+  $('hint').textContent=m==='orbit'
+    ?'Glisser pour tourner autour, molette ou pincement pour zoomer, clic droit ou deux doigts pour décaler. Touchez un meuble pour le modifier.'
+    :'Glisser pour regarder autour. Avancez avec les flèches, ZQSD ou les boutons. L’escalier se monte en marchant dessus. Touchez un meuble pour le modifier.';
+  if(m==='walk') enterWalk(level==='etage'?'etage':'rez');
+  else setLevel(level==='all'||!level?'all':level);
+}
+$('m-orbit').onclick=()=>setMode('orbit'); $('m-walk').onclick=()=>{ if(level==='all') level='rez'; setMode('walk'); };
+$('l-all').onclick=()=>setLevel('all'); $('l-rez').onclick=()=>setLevel('rez'); $('l-etage').onclick=()=>setLevel('etage');
+
+// ---------- Visite à la première personne ----------
+let yaw=Math.PI, pitch=0, groundY=0; const keys={fwd:0,back:0,left:0,right:0};
+function enterWalk(floor){
+  for(const k of ['all','rez','etage']) $('l-'+k).setAttribute('aria-pressed',String(k===floor));
+  level=floor; renderer.clippingPlanes=[];
+  if(floor==='etage'){ groundY=ETAGE_FLOOR; camera.position.set(15.2,groundY+EYE,-24.4); yaw=-Math.PI/2; }
+  else { groundY=0; camera.position.set(17.1,EYE,-21.6); yaw=Math.PI*0.9; }
+  pitch=-0.05; camera.rotation.set(pitch,yaw,0,'YXZ');
+}
+const rc=new THREE.Raycaster(), down=new THREE.Vector3(0,-1,0);
+function walk(dt){
+  const f=keys.fwd-keys.back, s=keys.right-keys.left;
+  if(f||s){
+    const fw=new THREE.Vector3(-Math.sin(yaw),0,-Math.cos(yaw)), rt=new THREE.Vector3(Math.cos(yaw),0,-Math.sin(yaw));
+    const mv=fw.multiplyScalar(f).add(rt.multiplyScalar(s)).normalize().multiplyScalar(1.5*dt);
+    const tryMove=v=>{ const len=v.length(); if(!len) return false;
+      rc.set(new THREE.Vector3(camera.position.x,groundY+1.0,camera.position.z),v.clone().normalize()); rc.far=len+0.28;
+      if(rc.intersectObjects(colliders,false).length) return false; camera.position.add(v); return true; };
+    if(!tryMove(mv)){ tryMove(new THREE.Vector3(mv.x,0,0)) || tryMove(new THREE.Vector3(0,0,mv.z)); }
+  }
+  rc.set(new THREE.Vector3(camera.position.x,groundY+0.75,camera.position.z),down); rc.far=4;
+  const h=rc.intersectObjects(floors,false)[0];
+  if(h) groundY+= (h.point.y-groundY)*Math.min(1,dt*10);
+  camera.position.y=groundY+EYE;
+  camera.rotation.set(pitch,yaw,0,'YXZ');
+}
+const KEYMAP={KeyW:'fwd',ArrowUp:'fwd',KeyS:'back',ArrowDown:'back',KeyA:'left',ArrowLeft:'left',KeyD:'right',ArrowRight:'right'};
+addEventListener('keydown',e=>{ if(mode!=='walk'||e.target.tagName==='INPUT') return; const k=KEYMAP[e.code]; if(k){keys[k]=1;e.preventDefault();} });
+addEventListener('keyup',e=>{ const k=KEYMAP[e.code]; if(k) keys[k]=0; });
+addEventListener('blur',()=>{for(const k in keys) keys[k]=0;});
+for(const b of document.querySelectorAll('#pad button')){
+  const k=b.dataset.k;
+  const on=e=>{e.preventDefault();keys[k]=1;b.classList.add('active');b.setPointerCapture?.(e.pointerId);};
+  const off=()=>{keys[k]=0;b.classList.remove('active');};
+  b.addEventListener('pointerdown',on); b.addEventListener('pointerup',off); b.addEventListener('pointercancel',off); b.addEventListener('lostpointercapture',off);
+}
+
+// ---------- Pointeur : regarder + sélectionner ----------
+let pd=null;
+canvas.addEventListener('pointerdown',e=>{ pd={x:e.clientX,y:e.clientY,lx:e.clientX,ly:e.clientY,t:performance.now(),id:e.pointerId}; });
+canvas.addEventListener('pointermove',e=>{
+  if(!pd||pd.id!==e.pointerId||mode!=='walk'||gizmoDrag) return;
+  yaw-=(e.clientX-pd.lx)*0.005; pitch-=(e.clientY-pd.ly)*0.005; pitch=Math.max(-1.3,Math.min(1.3,pitch));
+  pd.lx=e.clientX; pd.ly=e.clientY;
+});
+canvas.addEventListener('pointerup',e=>{
+  if(!pd) return; const moved=Math.hypot(e.clientX-pd.x,e.clientY-pd.y), dt=performance.now()-pd.t; pd=null;
+  if(moved<6&&dt<600&&!gizmoDrag) pick(e);
+});
+function pick(e){
+  const r=canvas.getBoundingClientRect();
+  const p=new THREE.Vector2((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1);
+  rc.setFromCamera(p,camera); rc.far=Infinity;
+  const cut=renderer.clippingPlanes[0]?renderer.clippingPlanes[0].constant:Infinity;
+  if(!model) return;
+  const hits=rc.intersectObjects([model],true).filter(h=>h.point.y<cut&&visibleChain(h.object));
+  const h=hits[0]; const name=h&&h.object.userData.item;
+  if(name&&!items[name].hidden) select(name); else select(null);
+}
+function visibleChain(o){ while(o){ if(!o.visible) return false; o=o.parent;} return true; }
+
+// ---------- Sélection et outils ----------
+function fmt(v){return v.toFixed(2).replace('.',',');}
+function select(name){
+  if(selBox){scene.remove(selBox);selBox=null;} tc.detach();
+  selected=name?items[name]:null;
+  $('sel').hidden=!selected;
+  for(const r of document.querySelectorAll('.row')) r.classList.toggle('sel',r.dataset.n===name);
+  if(!selected) return;
+  const it=selected;
+  $('sel-cat').textContent=CAT_LABEL[it.meta.c]+' · '+it.lvl;
+  $('sel-name').textContent=it.meta.l;
+  $('sel-dims').textContent='L '+fmt(it.size.x)+' × P '+fmt(it.size.z)+' × H '+fmt(it.size.y)+' m';
+  $('t-color').value=it.color||'#ffffff';
+  $('t-hide').textContent=it.hidden?'Afficher':'Masquer';
+  selBox=new THREE.BoxHelper(it.g,new THREE.Color(css('--accent')||'#2c5a86')); scene.add(selBox);
+  $('t-move').textContent='Déplacer'; $('t-move').classList.add('primary');
+  openSheet(true);
+  document.querySelector('.row.sel')?.scrollIntoView({block:'nearest'});
+}
+$('t-move').onclick=()=>{ if(!selected) return;
+  if(tc.object){ tc.detach(); $('t-move').textContent='Déplacer'; }
+  else { tc.attach(selected.g); $('t-move').textContent='Terminer le déplacement'; }
+};
+const rot=d=>{ if(!selected) return; selected.g.rotation.y+=d*Math.PI/2; selBox&&selBox.update(); save(); };
+$('t-rotl').onclick=()=>rot(1); $('t-rotr').onclick=()=>rot(-1);
+$('t-color').oninput=e=>{ if(!selected) return; paint(selected,e.target.value); save(); };
+$('t-color-clear').onclick=()=>{ if(!selected) return; paint(selected,null); $('t-color').value='#ffffff'; save(); };
+$('t-hide').onclick=()=>{ if(!selected) return; const it=selected; setHidden(it,!it.hidden); select(null); save(); };
+$('t-reset').onclick=()=>{ if(!selected) return; resetItem(selected); selBox&&selBox.update(); save(); };
+$('t-close').onclick=()=>select(null);
+
+function paint(it,hex){
+  it.color=hex;
+  for(const m of it.mats){
+    if(!m.userData.orig){ m.userData.orig=m.material; m.material=m.material.clone(); }
+    if(hex){ m.material.color.set(hex); } else { m.material.color.copy(m.userData.orig.color); }
+  }
+}
+function setHidden(it,h){ it.hidden=h; it.g.visible=!h; const row=document.querySelector('.row[data-n="'+CSS.escape(it.name)+'"]'); if(row){row.classList.toggle('off',h); row.querySelector('.eye').textContent=h?'Afficher':'Masquer';} }
+function resetItem(it){ it.g.position.copy(it.home); it.g.rotation.set(0,0,0); paint(it,null); setHidden(it,false); }
+
+// ---------- Liste ----------
+function buildList(){
+  const box=$('list'); box.innerHTML='';
+  for(const cat of ['meuble','ouverture']){
+    const t=document.createElement('div'); t.className='eyebrow group-title'; t.textContent=CAT_LABEL[cat]; box.appendChild(t);
+    const its=Object.values(items).filter(i=>i.meta.c===cat).sort((a,b)=>a.lvl.localeCompare(b.lvl,'fr')*-1||a.meta.l.localeCompare(b.meta.l,'fr'));
+    for(const it of its){
+      const row=document.createElement('div'); row.className='row'+(it.hidden?' off':''); row.dataset.n=it.name;
+      const b=document.createElement('button'); b.className='name'; b.textContent=it.meta.l; b.onclick=()=>{ if(it.hidden) setHidden(it,false); select(it.name); save(); };
+      const lv=document.createElement('span'); lv.className='lvl'; lv.textContent=it.lvl;
+      const eye=document.createElement('button'); eye.className='eye'; eye.textContent=it.hidden?'Afficher':'Masquer';
+      eye.setAttribute('aria-label',(it.hidden?'Afficher ':'Masquer ')+it.meta.l);
+      eye.onclick=()=>{ setHidden(it,!it.hidden); if(selected===it&&it.hidden) select(null); save(); };
+      row.append(b,lv,eye); box.appendChild(row);
+    }
+  }
+}
+
+// ---------- Panneau ----------
+const mq=matchMedia('(max-width:760px)');
+function openSheet(open){ $('panel').hidden=!open; $('toggle-panel').setAttribute('aria-expanded',String(open)); document.body.classList.toggle('sheet-open',open&&mq.matches); }
+$('toggle-panel').onclick=()=>openSheet($('panel').hidden);
+if(mq.matches) openSheet(false);
+
+// ---------- Sauvegarde locale ----------
+const KEY='diolly3d-v1';
+function save(){
+  const d={}; for(const it of Object.values(items)){
+    const moved=!it.g.position.equals(it.home)||it.g.rotation.y!==0;
+    if(moved||it.hidden||it.color) d[it.name]={x:it.g.position.x,z:it.g.position.z,r:it.g.rotation.y,h:it.hidden,c:it.color};
+  }
+  try{ localStorage.setItem(KEY,JSON.stringify(d)); $('save-state').textContent='Enregistré dans ce navigateur.'; }
+  catch{ $('save-state').textContent='Ce navigateur ne garde pas les changements.'; }
+}
+function restore(){
+  let d={}; try{ d=JSON.parse(localStorage.getItem(KEY)||'{}'); }catch{}
+  for(const [n,v] of Object.entries(d)){ const it=items[n]; if(!it) continue;
+    it.g.position.x=v.x; it.g.position.z=v.z; it.g.rotation.y=v.r||0; if(v.c) paint(it,v.c); if(v.h){it.hidden=true;it.g.visible=false;} }
+}
+let armed=false;
+$('reset-all').onclick=()=>{
+  if(!armed){ armed=true; $('reset-all').textContent='Confirmer la réinitialisation'; setTimeout(()=>{armed=false;$('reset-all').textContent='Tout réinitialiser';},4000); return; }
+  armed=false; $('reset-all').textContent='Tout réinitialiser';
+  select(null); for(const it of Object.values(items)) resetItem(it); buildList();
+  try{localStorage.removeItem(KEY);}catch{} $('save-state').textContent='Disposition d’origine rétablie.';
+};
+
+// ---------- Boucle ----------
+const clock=new THREE.Clock();
+renderer.setAnimationLoop(()=>{
+  const dt=Math.min(clock.getDelta(),0.1);
+  if(mode==='walk') walk(dt); else orbit.update();
+  if(selBox&&tc.object) selBox.update();
+  renderer.render(scene,camera);
+});
+</script>
+</body>
+</html>
