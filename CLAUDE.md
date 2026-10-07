@@ -1,6 +1,6 @@
 # Maison3D — visite 3D de l'appartement de Mauro
 
-Site web statique qui affiche l'appartement (modélisé dans SketchUp) en 3D : vue maquette, visite à la première personne, et réaménagement du mobilier (déplacer, tourner, recolorer, masquer).
+Site web qui affiche l'appartement (modélisé dans SketchUp) en 3D : vue maquette, visite à la première personne, et réaménagement du mobilier. L'état actuel est un prototype (déplacer, tourner, recolorer, masquer, sauvegarde locale). La cible complète est décrite dans « Cahier des charges » plus bas.
 
 ## Règles de travail avec Mauro (à respecter strictement)
 
@@ -76,13 +76,63 @@ Pour un test automatisé sans écran : Playwright + Chromium avec `--use-gl=angl
 
 - Un prototype a d'abord été publié comme artefact claude.ai. Là-bas, les `.glb` ne sont pas servis et les URI `data:` sont bloquées par la CSP. Le modèle y était donc découpé en JSON + `geometrie.txt` (base64) + textures `.webp`, et reconstruit en GLB dans la page. **Ce contournement n'est pas nécessaire ici** : le dépôt utilise le GLB directement.
 
-## Problèmes connus et idées (à discuter avec Mauro avant de faire)
+## Cahier des charges (validé par Mauro le 7 octobre 2026)
 
-1. Menu « Aller à » (Salon, Cuisine, Chambre, Salle de bain, Chambre étage, Douche, Dressing) pour se téléporter dans une pièce en mode Visite.
-2. Toucher le sol pour s'y déplacer en mode Visite.
-3. Portes qui s'ouvrent au toucher ; aujourd'hui on traverse les portes et les meubles (seuls les murs bloquent).
-4. Vitres : la texture « nuages » de SketchUp donne des vitres floues. Remplacer par un matériau verre transparent.
-5. Certaines faces SketchUp n'ont qu'un côté : les murs extérieurs disparaissent vus du dehors (effet maison de poupée, pratique en maquette).
-6. Catalogue de meubles à ajouter (fichiers GLB de meubles, par exemple sous licence CC0).
-7. Déploiement : Vercel, Netlify ou GitHub Pages (site statique, rien à compiler). Mauro a des comptes Vercel et Netlify connectés.
-8. Noms incertains : `rez__element_mural` (ancien `Groupe#5`, 0,29 × 2,40 × 1,24 m contre un mur), `rez__salon` (0,69 × 2,40 × 2,07 m), `rez__cloison` (ancien `Groupe#1`). À faire confirmer par Mauro.
+### Objectif
+Outil pour Mauro et sa compagne Tamara, afin de préparer le réaménagement réel de l'appartement : essayer des meubles, vérifier des dimensions, imprimer des plans, visualiser le résultat en photo réaliste. Ce n'est pas un site de présentation publique.
+
+### Deux modes strictement séparés
+- **Visite** : on regarde et on se déplace, **rien n'est modifiable**. Menu « Aller à » par pièce, déplacement au choix par toucher au sol ou en marchant, **vitesse de déplacement réglable**, portes qui s'ouvrent.
+- **Éditer l'appartement** : tout ce qui touche aux meubles, objets et rendus.
+
+Pièces : rez = salon, cuisine, chambre, salle de bain ; étage = chambre, salle de douche avec WC, dressing. À confirmer avec Mauro au moment de faire le menu « Aller à ».
+
+### Meubles et objets de décoration (même traitement pour les deux)
+- Déplacer, tourner, masquer, recolorer, choisir une **matière** (bois, tissu, métal…).
+- **Modifier les dimensions** d'un meuble en saisissant des mesures exactes.
+- **Remplacer** un meuble par un autre au même endroit.
+- Ajouter depuis quatre sources :
+  1. **Catalogue** de banques 3D gratuites via API (Sketchfab, Poly Haven…).
+  2. **Formes simples paramétrables** : boîte, table, étagère, avec dimensions saisies.
+  3. **Import manuel** d'un fichier 3D (GLB) que Mauro a téléchargé lui-même.
+  4. **Panneau photo** : photo d'un meuble prise sur un site marchand + dimensions saisies → boîte aux bonnes mesures avec la photo plaquée sur la face avant et la couleur dominante sur les autres faces. Suffit pour juger encombrement et allure. Pas de conversion photo → vrai objet 3D (trop lourd à créer soi-même ; service externe seulement si un jour le panneau photo ne suffit plus).
+
+### Vues et calques
+- Vue maquette, visite à la première personne, **plan 2D vu de dessus par niveau**.
+- **Calques** activables dans toute vue : cotes, hauteurs, noms des pièces.
+- Vitres transparentes (remplacer la texture « nuages » de SketchUp), murs pleins vus de l'extérieur (faces simples côté extérieur à doubler), **lumière du jour réglable** (matin, midi, soir).
+
+### Impression
+En PDF ou image : plan 2D par niveau avec cotes ; n'importe quelle vue 3D à l'écran avec ses calques actifs ; fiche d'un meuble (dimensions, couleur, matière, position).
+
+### Rendu réaliste par kie.ai (Nano Banana Pro)
+But : voir la pièce **en vrai** avec le nouveau meuble, en complément de la 3D qui sert à la mesure.
+- Mauro fournit de **vraies photos** de chaque pièce (galerie par pièce, stockée avec le projet).
+- Dans l'éditeur, on place le meuble, on cale la caméra 3D sur l'angle de la vraie photo, puis bouton **« Rendu réaliste »**.
+- Le site envoie à kie.ai : la vraie photo de la pièce, la photo du meuble (site marchand), la capture 3D qui montre l'emplacement et l'échelle, et un prompt du type « insère ce meuble à cet endroit, à cette taille, sans changer le reste ». Modèle : `nano-banana-pro`, qui accepte plusieurs images de référence.
+- **Toujours demander confirmation avant chaque rendu** (chaque appel consomme des crédits kie.ai).
+- **Historique des rendus** conservé : pour chaque pièce, on fait défiler les rendus précédents avec une petite flèche, rien n'est écrasé.
+- Chaque rendu est aussi **inséré automatiquement dans la galerie « Familia »** (un autre projet de Mauro ; son emplacement et son API sont à lui demander au moment de faire cette étape, ils ne sont pas documentés ici).
+- L'appel kie.ai passe par n8n (voir ci-dessous), jamais directement depuis la page. Le skill `kie-ai-media` de Mauro documente l'API (commande `market`, modèle `nano-banana-pro`, envoi des images par `upload`).
+
+### Comptes et données
+- **Un compte par personne** (Mauro, Tamara).
+- Aménagements **synchronisés** entre PC et tablette, avec **plusieurs variantes nommées** (« Actuel », « Projet 1 »…).
+- Stockage dans **Airtable**, derrière **n8n** sur le VPS Hostinger de Mauro (`srv1123557.hstgr.cloud`). Le site ne parle qu'à n8n (webhooks). n8n vérifie l'utilisateur, puis lit et écrit dans Airtable. Les clés d'API (Airtable, Sketchfab, kie.ai) restent dans n8n, **jamais dans la page**.
+- Le `localStorage` actuel (clé `diolly3d-v1`) sera remplacé par cette synchronisation ; il peut rester comme cache hors ligne.
+
+### Hébergement
+Vercel, relié à GitHub, adresse `maison3d.vercel.app`. Dépôt privé. Site statique, rien à compiler.
+
+### Ordre de construction (livrer et faire valider étape par étape)
+1. **Navigation et rendu** : modes séparés, Aller à, toucher au sol, vitesse, portes, vitres, murs, calques, plan 2D, impression, lumière.
+2. **Comptes et synchronisation** : workflows n8n + base Airtable « Maison3D », variantes nommées.
+3. **Catalogue** : banques 3D, formes simples, import GLB, panneau photo, dimensions, matières, remplacement.
+4. **Rendu réaliste kie.ai** : galerie de vraies photos par pièce, bouton de rendu, historique, insertion dans Familia.
+
+À prévoir du côté de Mauro : une base Airtable « Maison3D » (à décrire précisément avant de la créer), quelques workflows n8n (Claude Code peut les créer, n8n étant connecté), un compte Sketchfab gratuit, et ses vraies photos des pièces.
+
+## Problèmes connus
+
+- Aujourd'hui on traverse les portes et les meubles ; seuls les murs bloquent.
+- Noms incertains dans le modèle : `rez__element_mural` (ancien `Groupe#5`, 0,29 × 2,40 × 1,24 m contre un mur), `rez__salon` (0,69 × 2,40 × 2,07 m), `rez__cloison` (ancien `Groupe#1`). À faire confirmer par Mauro.
