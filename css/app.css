@@ -95,3 +95,8 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
 #charge{position:absolute;top:72px;left:50%;transform:translateX(-50%);background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:6px 14px;font-size:12.5px;color:var(--muted);white-space:nowrap;pointer-events:none}
 #charge .num{font-family:var(--font-data);font-variant-numeric:tabular-nums;color:var(--ink)}
 .list .attente{padding:12px 8px;color:var(--muted)}
+.filtres{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:10px 12px 4px;border-top:1px solid var(--line)}
+.filtres .seg{flex:none}
+.filtres input[type=search]{flex:1;min-width:140px;font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:var(--r);padding:7px 10px}
+.filtres input[type=search]:focus{outline:2px solid var(--accent);outline-offset:-1px}
+.list mark{background:var(--accent-soft);color:inherit;border-radius:3px}

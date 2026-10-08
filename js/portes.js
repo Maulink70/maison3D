@@ -4,13 +4,17 @@
 import * as THREE from 'three';
 import {app} from './app.js';
 import {ETAGE_FLOOR as F, EYE} from './config.js';
-import {MAT, boite, fusionner} from './formes.js';
+import {MAT, boite, fusionner, uvMonde} from './formes.js';
+import {ENTREE} from './corrections.js';
 
 // axe 'x' : mur à x constant (plan), battant de a0 à a1 en z ; axe 'z' : mur à z constant, battant en x.
 // charniere : extrémité du battant côté charnière ; sens : côté (+1 / -1 sur la normale du mur) vers lequel il s'ouvre.
 // cadre : 'modele' (cadre du modèle gardé), 'neuf' (cadre reconstruit, épaisseur du mur), 'aucun' (déjà construit)
-// auto:false : pas d'ouverture à l'approche (le réduit, ouvert, barrerait l'entrée), seulement en la touchant
+// auto:false : pas d'ouverture à l'approche (le réduit, ouvert, barrerait l'entrée ; portes donnant dehors), seulement
+// en la touchant. ext : porte donnant dehors, une barrière invisible empêche de sortir. vitree : ouvrant vitré
 export const PORTES=[
+  {nom:'rez__porte_entree',              axe:'z', plan:-21.08,  a0:11.66,   a1:12.56,   charniere:11.66,   sens:-1, y0:0, h:2.10, mat:'sombre', cadre:'aucun', auto:false, ext:true},   // porte d'entrée : vers l'intérieur
+  {nom:'rez__element_mural',             axe:'x', plan:19.47,   a0:-23.86,  a1:-22.826, charniere:-23.86,  sens:-1, y0:0.02, h:2.08, cadre:'vitree', vitree:true, auto:false, ext:true},   // porte-fenêtre cuisine : vers le four
   {nom:'rez__porte_interieure_88x218',   axe:'x', plan:13.038,  a0:-25.889, a1:-25.189, charniere:-25.189, sens:-1, y0:0, h:2.09, bois:true,  cadre:'modele'},  // salle de bain
   {nom:'rez__porte_interieure_88x218_2', axe:'x', plan:13.038,  a0:-23.453, a1:-22.753, charniere:-22.753, sens:-1, y0:0, h:2.09, bois:true,  cadre:'modele'},  // WC / buanderie
   {nom:'rez__porte_interieure_98_(80)',  axe:'z', plan:-24.968, a0:13.263,  a1:14.063,  charniere:13.263,  sens:-1, y0:0, h:2.09, bois:true,  cadre:'modele'},  // chambre
@@ -21,6 +25,17 @@ export const PORTES=[
 ];
 const OUVERT=1.53;                       // ≈ 88°
 const blancPorte=new THREE.MeshStandardMaterial({color:0xf2f0ed,roughness:0.45});
+const profil=new THREE.MeshStandardMaterial({color:0xe4e2dd,roughness:0.4});
+const verre=new THREE.MeshStandardMaterial({color:0xdcebf0,transparent:true,opacity:0.16,roughness:0.05,side:THREE.DoubleSide,depthWrite:false});
+
+// Porte-fenêtre de la cuisine (le modèle n'a que des faces plates collées au mur) : dormant en bois dans
+// l'épaisseur du mur (montants, imposte jusqu'au plafond), seuil alu
+function dormantVitree(g,matBois){
+  const x0=19.438, x1=19.638, m=matBois||MAT.chene;
+  const piece=(y0,y1,z0,z1,mat)=>{ const b=boite(g,x0,x1,y0,y1,z0,z1,mat);       // veinage du bois à l'échelle
+    if(mat.map){ b.geometry.translate(b.position.x,b.position.y,b.position.z); b.position.set(0,0,0); uvMonde(b.geometry); } };
+  piece(0,2.40,-23.963,-23.86,m); piece(0,2.40,-22.826,-22.723,m); piece(2.10,2.40,-23.86,-22.826,m); piece(0,0.02,-23.86,-22.826,MAT.inox);
+}
 
 // Cadre blanc reconstruit (étage) : montants et traverse dans l'épaisseur du mur, chambranles des deux côtés
 function cadreNeuf(g,d){
@@ -33,16 +48,27 @@ function cadreNeuf(g,d){
 
 // Battant (4 cm) et poignées à béquille des deux côtés, construits autour de la charnière
 function battant(d,matBois){
-  const w=Math.abs(d.a1-d.a0), dir=Math.sign((d.a0+d.a1)/2-d.charniere), mat=d.bois&&matBois?matBois:blancPorte;
+  const w=Math.abs(d.a1-d.a0), dir=Math.sign((d.a0+d.a1)/2-d.charniere);
+  const mat=d.mat==='sombre'?MAT.porteSombre:d.bois&&matBois?matBois:blancPorte;
   const pivot=new THREE.Group(); pivot.name=d.nom+'__pivot';
   if(d.axe==='x') pivot.position.set(d.plan,d.y0,d.charniere); else pivot.position.set(d.charniere,d.y0,d.plan);
-  const geo=d.axe==='x'?new THREE.BoxGeometry(0.04,d.h,w):new THREE.BoxGeometry(w,d.h,0.04);
-  const feuille=new THREE.Mesh(geo,mat); feuille.position.set(d.axe==='x'?0:dir*w/2,d.h/2,d.axe==='x'?dir*w/2:0); pivot.add(feuille);
-  const a=dir*(w-0.07), l0=Math.min(a,a-dir*0.12), l1=Math.max(a,a-dir*0.12);   // poignée près du bord libre, à 1 m
-  for(const s of [-1,1]){                                        // rosace + béquille dirigée vers la charnière, des deux côtés
-    const n0=Math.min(s*0.02,s*0.03), n1=Math.max(s*0.02,s*0.03), b0=Math.min(s*0.03,s*0.065), b1=Math.max(s*0.03,s*0.065);
-    if(d.axe==='x'){ boite(pivot,n0,n1,0.91,1.09,a-0.02,a+0.02,MAT.chrome); boite(pivot,b0,b1,0.985,1.005,l0,l1,MAT.chrome); }
-    else { boite(pivot,a-0.02,a+0.02,0.91,1.09,n0,n1,MAT.chrome); boite(pivot,l0,l1,0.985,1.005,b0,b1,MAT.chrome); }
+  // pièce du battant : a le long du mur (depuis la charnière), y en hauteur, e dans l'épaisseur
+  const piece=(a0,a1,y0,y1,e0,e1,m)=>d.axe==='x'?boite(pivot,e0,e1,y0,y1,Math.min(a0,a1),Math.max(a0,a1),m):boite(pivot,Math.min(a0,a1),Math.max(a0,a1),y0,y1,e0,e1,m);
+  let feuille;
+  if(d.vitree){                                                  // ouvrant vitré : profilés de 6,5 cm et vitre
+    const r=0.065; feuille=piece(0,dir*w,0,d.h,-0.004,0.004,verre); feuille.userData.fusion=false; feuille.userData.vitre=true;
+    piece(0,dir*r,0,d.h,-0.03,0.03,profil); piece(dir*(w-r),dir*w,0,d.h,-0.03,0.03,profil);
+    piece(dir*r,dir*(w-r),0,0.09,-0.03,0.03,profil); piece(dir*r,dir*(w-r),d.h-r,d.h,-0.03,0.03,profil);
+    const s=d.sens, a=dir*(w-0.035);                               // poignée (crémone) côté pièce, près du bord libre
+    piece(a-0.012,a+0.012,1.0,1.16,Math.min(s*0.03,s*0.045),Math.max(s*0.03,s*0.045),MAT.chrome);
+    piece(a-0.01,a+0.01,0.94,1.08,Math.min(s*0.045,s*0.065),Math.max(s*0.045,s*0.065),MAT.chrome);
+  } else {
+    feuille=piece(0,dir*w,0,d.h,-0.02,0.02,mat); feuille.userData.fusion=false;
+    const a=dir*(w-0.07), l0=Math.min(a,a-dir*0.12), l1=Math.max(a,a-dir*0.12);   // poignée près du bord libre, à 1 m
+    for(const s of [-1,1]){                                        // rosace + béquille dirigée vers la charnière, des deux côtés
+      const n0=Math.min(s*0.02,s*0.03), n1=Math.max(s*0.02,s*0.03), b0=Math.min(s*0.03,s*0.065), b1=Math.max(s*0.03,s*0.065);
+      piece(a-0.02,a+0.02,0.91,1.09,n0,n1,MAT.chrome); piece(l0,l1,0.985,1.005,b0,b1,MAT.chrome);
+    }
   }
   const ouvert=d.axe==='x'?d.sens*dir*OUVERT:-d.sens*dir*OUVERT;
   return {pivot,feuille,ouvert};
@@ -56,12 +82,14 @@ export function installerPortes(root){
     const node=root.getObjectByName(d.nom); if(!node) continue;
     let matBois=null; const vieux=[];
     node.traverse(o=>{ if(!o.isMesh) return;
-      if(o.material.name==='Material_13') matBois=o.material;
+      if(o.material.name==='Material_13'||o.material.name==='Material_303') matBois=o.material;
       const s=new THREE.Box3().setFromObject(o).getSize(new THREE.Vector3()), large=Math.max(s.x,s.z);
       const cadre=d.cadre==='modele'&&s.y>2.15&&large>0.85;          // le cadre du modèle (sans le battant) est gardé
       if(d.cadre!=='aucun'&&!cadre) vieux.push(o); });
     for(const o of vieux) o.removeFromParent();
     const g=new THREE.Group(); if(d.cadre==='neuf') fusionner(cadreNeuf(g,d)||g);
+    if(d.cadre==='vitree'){ dormantVitree(g,matBois); fusionner(g); }
+    if(d.ext) barriere(d);
     const {pivot,feuille,ouvert}=battant(d,matBois); fusionner(pivot); g.add(pivot);   // poignées et chambranles fusionnés : moins d'appels de dessin
     node.updateMatrixWorld(true); node.attach(g);
     const centre=new THREE.Vector3(d.axe==='x'?d.plan:(d.a0+d.a1)/2,d.y0+1,d.axe==='x'?(d.a0+d.a1)/2:d.plan);
@@ -71,19 +99,27 @@ export function installerPortes(root){
   }
 }
 
+// Porte donnant dehors : on ne sort pas de l'appartement (bloc invisible dans la moitié extérieure du mur)
+function barriere(d){
+  const b=d.vitree?new THREE.Box3(new THREE.Vector3(19.56,0,-23.86),new THREE.Vector3(19.62,2.1,-22.826))
+    :new THREE.Box3(new THREE.Vector3(ENTREE.x0,0,-20.98),new THREE.Vector3(ENTREE.x1,ENTREE.h,-20.93));
+  const s=b.getSize(new THREE.Vector3()), m=new THREE.Mesh(new THREE.BoxGeometry(s.x,s.y,s.z),new THREE.MeshBasicMaterial({side:THREE.DoubleSide}));
+  b.getCenter(m.position); m.updateMatrixWorld(true); app.colliders.push(m);
+}
+
 const v=new THREE.Vector3();
 function visible(o){ while(o){ if(!o.visible) return false; o=o.parent; } return true; }
 export function centrePorte(p){ return v.copy(p.centreLocal).applyMatrix4(p.node.matrixWorld); }
 
 // Ouverture automatique à l'approche (1re personne), fermeture au-delà de 2 m ; un geste manuel est respecté
-// tant qu'on reste à moins de 3 m ; « Tout ouvrir » suspend l'automatisme. La porte du réduit ne s'ouvre qu'à la main
+// tant qu'on reste à moins de 3 m (ou de la distance d'où on l'a fait, plus 1,5 m) ; « Tout ouvrir » suspend l'automatisme. La porte du réduit ne s'ouvre qu'à la main
 export function majPortes(dt){
   const cam=app.camera.position, pied=cam.y-EYE;
   for(const p of app.portes){
     if(!visible(p.pivot)) continue;
     if(app.mode==='walk'&&!app.toutOuvert){
       const c=centrePorte(p), dist=Math.hypot(cam.x-c.x,cam.z-c.z), memeNiveau=Math.abs(pied-p.def.y0)<1.2;
-      if(p.manuel){ if(dist>3||!memeNiveau) p.manuel=false; }
+      if(p.manuel){ if(dist>Math.max(3,p.distManuel+1.5)||!memeNiveau) p.manuel=false; }
       else if(memeNiveau&&dist<1.3&&p.def.auto!==false) p.cible=true;
       else if(dist>2||!memeNiveau) p.cible=false;
     }
@@ -91,7 +127,10 @@ export function majPortes(dt){
     if(p.angle!==but){ p.angle+=Math.max(-pas,Math.min(pas,but-p.angle)); p.pivot.rotation.y=p.angle; }
   }
 }
-export function basculerPorte(p){ p.cible=!p.cible; p.manuel=true; }
+// Geste manuel : respecté tant qu'on ne s'éloigne pas de plus de 1,5 m par rapport à l'endroit d'où l'on a touché la porte
+// (au moins 3 m), même si on l'a touchée de loin
+export function basculerPorte(p){ const c=centrePorte(p), cam=app.camera.position;
+  p.cible=!p.cible; p.manuel=true; p.distManuel=Math.hypot(cam.x-c.x,cam.z-c.z); }
 export function toutOuvrir(oui){ app.toutOuvert=oui; for(const p of app.portes){ p.cible=oui; p.manuel=false; } }
 export function porteDe(nom){ return app.portes.find(p=>p.nom===nom); }
 export function obstaclesPortes(){ return app.battants.filter(visible); }

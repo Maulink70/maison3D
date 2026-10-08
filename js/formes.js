@@ -42,6 +42,13 @@ export function lignes(parent,a0,a1,y0,y1,plan,pas,axe='z'){
   const l=new THREE.LineSegments(g,TRAIT); l.raycast=()=>{}; l.userData.fusion=true; parent.add(l); return l;
 }
 export function groupe(nom){ const g=new THREE.Group(); g.name=nom; return g; }
+// Coordonnées de texture en mètres (motif de « taille » m) : une texture de bois ou de carrelage garde son échelle
+export function uvMonde(geo,taille=0.6){
+  const p=geo.attributes.position, n=geo.attributes.normal, uv=geo.attributes.uv;
+  for(let i=0;i<p.count;i++){ const [x,y,z]=[p.getX(i),p.getY(i),p.getZ(i)];
+    if(Math.abs(n.getY(i))>0.5) uv.setXY(i,x/taille,z/taille); else if(Math.abs(n.getZ(i))>0.5) uv.setXY(i,x/taille,y/taille); else uv.setXY(i,z/taille,y/taille); }
+  uv.needsUpdate=true; return geo;
+}
 
 // Plante stylisée : pot + feuilles en lames rayonnantes (hauteur totale h)
 export function plante(parent,x,y0,z,{pot=0.12,hPot=0.2,h=0.7,feuilles=14,matPot=MAT.potBordeaux,lame=0.035}={}){

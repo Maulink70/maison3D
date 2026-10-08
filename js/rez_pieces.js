@@ -1,6 +1,7 @@
 // Entrée, chambre et salle de bain du rez, d'après les photos de Mauro
 import * as THREE from 'three';
 import {MAT, boite, cylindre, sphere, groupe, lignes, copier} from './formes.js';
+import {ENTREE} from './corrections.js';
 
 // ---------- Entrée ----------
 // Commode en érable contre le mur du WC (face z = -22,58), façade vers l'entrée : 2 petits tiroirs + 4 grands
@@ -13,12 +14,15 @@ function commode(){
   for(const [x,z] of [[x0+0.04,z0+0.04],[x1-0.04,z0+0.04],[x0+0.04,z1-0.06],[x1-0.04,z1-0.06]]) boite(g,x-0.02,x+0.02,0,0.04,z-0.02,z+0.02,MAT.erable);
   return g;
 }
-// Porte d'entrée brun foncé à cadre blanc, sur le mur z = -21,11 (non ouvrable : le mur du modèle est plein)
+// Porte d'entrée brun foncé, ouvrable vers l'entrée (battant dans portes.js ; le mur est percé dans corrections.js) :
+// dormant blanc dans l'épaisseur du mur, chambranles des deux côtés, seuil en pierre
 function porteEntree(){
-  const g=groupe('rez__porte_entree');
-  boite(g,11.60,12.62,0,2.16,-21.122,-21.11,MAT.blanc);
-  boite(g,11.66,12.56,0,2.10,-21.135,-21.122,MAT.porteSombre);
-  boite(g,12.43,12.47,1.03,1.07,-21.16,-21.135,MAT.chrome); boite(g,12.33,12.47,1.04,1.06,-21.18,-21.16,MAT.chrome);
+  const g=groupe('rez__porte_entree'), {x0,x1,h,zInt,zExt}=ENTREE;
+  boite(g,x0,x0+0.04,0,h,zInt,zExt,MAT.blanc); boite(g,x1-0.04,x1,0,h,zInt,zExt,MAT.blanc); boite(g,x0,x1,h-0.04,h,zInt,zExt,MAT.blanc);
+  for(const [a,b] of [[zInt-0.012,zInt],[zExt,zExt+0.012]]){
+    boite(g,x0-0.06,x0,0,h+0.06,a,b,MAT.blanc); boite(g,x1,x1+0.06,0,h+0.06,a,b,MAT.blanc); boite(g,x0-0.06,x1+0.06,h,h+0.06,a,b,MAT.blanc);
+  }
+  boite(g,x0+0.04,x1-0.04,0,0.012,zInt,zExt,MAT.pierre);
   return g;
 }
 // Porte blanche du réduit sous l'escalier, à côté de la porte d'entrée : chambranle ici, battant ouvrable dans portes.js

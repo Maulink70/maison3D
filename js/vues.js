@@ -6,6 +6,7 @@ import {ETAGE_FLOOR, REZ_CUT, ROOF_CUT, ETAGE_CUT} from './config.js';
 import {enterWalk} from './visite.js';
 import {select, openSheet, petitEcran} from './edition.js';
 import {toutOuvrir} from './portes.js';
+import {creerCiel} from './ciel.js';
 
 const UI='maison3d-ui';
 function memoriser(){ try{ localStorage.setItem(UI,JSON.stringify({edition:app.edition,vue:app.mode,niveau:app.level})); }catch{} }
@@ -13,7 +14,7 @@ export function prefs(){ try{ return JSON.parse(localStorage.getItem(UI)||'{}')|
 
 const AIDE={
   vo:'Visite : glisser pour tourner autour, molette ou pincement pour zoomer, deux doigts pour décaler. Touchez une porte pour l’ouvrir ou la fermer. Pour modifier un meuble, passez en « Éditer ».',
-  vw:'Visite : glisser pour regarder, flèches, ZQSD ou boutons pour marcher. Touchez le sol pour y aller, appui long pour vous y téléporter. Les portes s’ouvrent à votre approche ; touchez-les pour les ouvrir ou les fermer.',
+  vw:'Visite : glisser pour regarder, flèches, ZQSD ou boutons pour marcher. Touchez le sol pour y aller, appui long pour vous y téléporter. Molette ou pincement : zoom. Les portes s’ouvrent à votre approche ; touchez-les pour les ouvrir ou les fermer.',
   eo:'Éditer : touchez un meuble pour le déplacer, le tourner, changer sa couleur ou le masquer. Glisser pour tourner autour.',
   ew:'Éditer en 1re personne : touchez un meuble pour le modifier. Touchez le sol pour y aller, appui long pour vous y téléporter.'
 };
@@ -44,6 +45,9 @@ export function setMode(m){
   app.mode=m; $('m-orbit').setAttribute('aria-pressed',String(m==='orbit')); $('m-walk').setAttribute('aria-pressed',String(m==='walk'));
   $('l-all').disabled=m==='walk'; $('pad').hidden=m!=='walk';
   app.orbit.enabled=m==='orbit';
+  // 1re personne : ciel et sol dehors, champ de vision propre (zoom par molette ou pincement)
+  (app.ciel||creerCiel()).visible=m==='walk';
+  app.camera.fov=m==='walk'?(app.fovVisite||60):50; app.camera.updateProjectionMatrix();
   if(m==='walk') enterWalk(app.level==='etage'?'etage':'rez');
   else setLevel(app.level==='all'||!app.level?'all':app.level);
   majAide(); memoriser();

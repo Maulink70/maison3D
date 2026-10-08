@@ -14,10 +14,22 @@ initVues(); initVisite(); initEdition(); initSauvegarde();
 const marque=new THREE.Mesh(new THREE.RingGeometry(0.16,0.25,40),new THREE.MeshBasicMaterial({color:new THREE.Color(css('--accent')||'#2c5a86'),transparent:true,opacity:0.9,depthTest:false,side:THREE.DoubleSide}));
 marque.rotation.x=-Math.PI/2; marque.renderOrder=10; marque.visible=false; marque.raycast=()=>{}; app.scene.add(marque);
 
+// Zoom en 1re personne : molette (PC) ou pincement à deux doigts (tablette) ; on change le champ de vision
+// (35° à 100°), on ne bouge pas : zoomer en arrière montre plus de la pièce
+const {canvas}=app;
+function champ(fov){ app.camera.fov=THREE.MathUtils.clamp(fov,35,100); app.camera.updateProjectionMatrix(); app.fovVisite=app.camera.fov; }
+canvas.addEventListener('wheel',e=>{ if(app.mode!=='walk') return; e.preventDefault(); champ(app.camera.fov*Math.exp(e.deltaY*0.0012)); },{passive:false});
+const doigts=new Map(); let pince=null;
+const ecart=()=>{ const [a,b]=[...doigts.values()]; return Math.hypot(a.x-b.x,a.y-b.y); };
+canvas.addEventListener('pointerdown',e=>{ doigts.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  if(doigts.size===2&&app.mode==='walk') pince={d:ecart(),fov:app.camera.fov}; });
+canvas.addEventListener('pointermove',e=>{ if(!doigts.has(e.pointerId)) return; doigts.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  if(pince&&doigts.size===2) champ(pince.fov*pince.d/Math.max(20,ecart())); });
+for(const t of ['pointerup','pointercancel']) canvas.addEventListener(t,e=>{ doigts.delete(e.pointerId); if(doigts.size<2) pince=null; });
+
 // Pointeur : glisser = regarder (1re personne) ; toucher bref = porte, sol ou meuble selon le mode ;
 // appui long sur le sol (1re personne) = téléportation au relâcher
 let pd=null;
-const {canvas}=app;
 const fin=()=>{ if(pd) clearTimeout(pd.minuterie); marque.visible=false; pd=null; };
 canvas.addEventListener('contextmenu',e=>e.preventDefault());
 canvas.addEventListener('pointerdown',e=>{

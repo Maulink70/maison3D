@@ -14,6 +14,7 @@ import {construirePieces} from './rez_pieces.js';
 import {plafondsPin, solDouche, murAubergine, ouvrirPorteDouche, carrelerDouche} from './etage_structure.js';
 import {construireEtage} from './etage_pieces.js';
 import {installerPortes} from './portes.js';
+import {corrigerStructure, retirerPanneauxSurVitres, seuilBaie} from './corrections.js';
 
 const loader=new GLTFLoader(); loader.setMeshoptDecoder(MeshoptDecoder);
 function charger(url,progres){
@@ -61,11 +62,12 @@ function gardeCorps(){
 
 function installerStructure(root){
   root.traverse(o=>{ if(o.isMesh&&o.material.name===SOL_WC) carrelerSol(o); });
+  const corrections=corrigerStructure(root);   // sols, seuil de la baie, mur percé pour la porte d'entrée (audit)
   ouvrirPorteDouche(root); carrelerDouche(root); corrigerVitres(root); doublerFaces(root); app.model.add(root);
   // escalier en vraies marches (réduit dessous), muret rampant, cloison du réduit : d'après les photos
   const esc=root.getObjectByName('rez__escalier'), clo=root.getObjectByName('rez__cloison');
   if(esc) remplacerEscalier(esc,root); if(clo) remplacerCloison(clo,root);
-  root.add(fusionner(cloisonReduit()),solDouche());
+  root.add(fusionner(cloisonReduit()),solDouche(),corrections);
   for(const child of [...root.children]) ajouterFixe(child,child.name!=='rez__escalier');
   root.add(gardeCorps(),toitSud(),fusionner(decorEntree()),plafondsPin(),fusionner(murAubergine()));
 }
@@ -87,7 +89,7 @@ function teinter(root){
 }
 
 function installerMobilier(root){
-  corrigerVitres(root); teinter(root);
+  corrigerVitres(root); retirerPanneauxSurVitres(root); teinter(root); seuilBaie(root);
   app.model.add(root); root.updateMatrixWorld(true);
   const etagere=root.getObjectByName('rez__armoire'); if(etagere) remplacerEtagere(etagere,root);
   for(const n of [...construireBuanderie(root),...construireCuisine(),...construireSalon(),...construirePieces(root),...construireEtage(root)]) root.add(fusionner(n));

@@ -67,17 +67,30 @@ export function paint(it,hex){
 export function setHidden(it,h){ it.hidden=h; it.g.visible=!h; const row=document.querySelector('.row[data-n="'+CSS.escape(it.name)+'"]'); if(row){row.classList.toggle('off',h); row.querySelector('.eye').textContent=h?'Afficher':'Masquer';} }
 export function resetItem(it){ it.g.position.copy(it.home); it.g.rotation.set(0,0,0); paint(it,null); setHidden(it,false); }
 
-// Liste rangée par étage (celui où l'on se trouve d'abord), puis mobilier / portes et fenêtres, par ordre alphabétique
+// Liste rangée par étage (celui où l'on se trouve d'abord), puis mobilier / portes et fenêtres, par ordre alphabétique.
+// Filtres : niveau (Tout / Rez / Étage) et recherche sur le nom (sans tenir compte des accents ni des majuscules).
+// Reconstruite au chargement, au changement d'étage et à chaque ajout ou retrait de meuble (évènement « meubles »).
+const filtre={niveau:'tout',texte:''};
+const sansAccent=t=>t.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
 export function buildList(){
   const box=$('list'); box.innerHTML='';
-  const niveaux=app.level==='etage'?['Étage','Rez']:['Rez','Étage'];
+  const ordre=app.level==='etage'?['Étage','Rez']:['Rez','Étage'];
+  const niveaux=filtre.niveau==='rez'?['Rez']:filtre.niveau==='etage'?['Étage']:ordre;
+  const cherche=sansAccent(filtre.texte.trim());
+  let total=0;
   for(const lvl of niveaux){
-    const t=document.createElement('div'); t.className='level-title'; t.textContent=lvl; box.appendChild(t);
+    const blocs=[];
     for(const cat of ['meuble','ouverture']){
-      const its=Object.values(app.items).filter(i=>i.lvl===lvl&&i.meta.c===cat).sort((a,b)=>a.meta.l.localeCompare(b.meta.l,'fr'));
-      if(!its.length) continue;
+      const its=Object.values(app.items).filter(i=>i.lvl===lvl&&i.meta.c===cat&&(!cherche||sansAccent(i.meta.l).includes(cherche)))
+        .sort((a,b)=>a.meta.l.localeCompare(b.meta.l,'fr'));
+      if(its.length) blocs.push([cat,its]);
+    }
+    if(!blocs.length) continue;
+    const t=document.createElement('div'); t.className='level-title'; t.textContent=lvl; box.appendChild(t);
+    for(const [cat,its] of blocs){
       const c=document.createElement('div'); c.className='eyebrow group-title'; c.textContent=CAT_LABEL[cat]; box.appendChild(c);
       for(const it of its){
+        total++;
         const row=document.createElement('div'); row.className='row'+(it.hidden?' off':'')+(app.selected===it?' sel':''); row.dataset.n=it.name;
         const b=document.createElement('button'); b.className='name'; b.textContent=it.meta.l; b.onclick=()=>{ if(it.hidden) setHidden(it,false); select(it.name); save(); };
         const eye=document.createElement('button'); eye.className='eye'; eye.textContent=it.hidden?'Afficher':'Masquer';
@@ -87,7 +100,9 @@ export function buildList(){
       }
     }
   }
+  if(!total){ const v=document.createElement('div'); v.className='attente'; v.textContent=cherche?'Aucun meuble ne correspond à « '+filtre.texte.trim()+' ».':'Aucun meuble.'; box.appendChild(v); }
 }
+function filtrerNiveau(n){ filtre.niveau=n; for(const k of ['tout','rez','etage']) $('f-'+k).setAttribute('aria-pressed',String(k===n)); buildList(); }
 
 // Panneau (feuille en bas sur téléphone)
 const mq=matchMedia('(max-width:760px)');
@@ -115,5 +130,8 @@ export function initEdition(){
   $('t-close').onclick=()=>select(null);
   $('toggle-panel').onclick=()=>openSheet($('panel').hidden);
   addEventListener('niveau',()=>{ if(app.mobilierPret) buildList(); });
+  addEventListener('meubles',()=>{ if(app.mobilierPret) buildList(); });
+  for(const k of ['tout','rez','etage']) $('f-'+k).onclick=()=>filtrerNiveau(k);
+  $('f-texte').oninput=e=>{ filtre.texte=e.target.value; if(app.mobilierPret) buildList(); };
   if(mq.matches) openSheet(false);
 }

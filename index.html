@@ -51,6 +51,14 @@
         <button class="btn wide" id="t-close">Désélectionner</button>
       </div>
     </section>
+    <div class="filtres">
+      <div class="seg" role="group" aria-label="Niveaux affichés dans la liste">
+        <button id="f-tout" aria-pressed="true">Tout</button>
+        <button id="f-rez" aria-pressed="false">Rez</button>
+        <button id="f-etage" aria-pressed="false">Étage</button>
+      </div>
+      <input type="search" id="f-texte" placeholder="Rechercher un meuble…" aria-label="Rechercher un meuble" autocomplete="off">
+    </div>
     <div class="list" id="list"><div class="attente">Chargement des meubles…</div></div>
     <div class="foot">
       <small id="save-state">Les changements restent dans ce navigateur.</small>
