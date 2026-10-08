@@ -71,12 +71,12 @@ function globeWC(){ const g=groupe('rez__plafonnier_wc'); cylindre(g,12.25,2.36,
 // Lit 180 × 200, tête de lit et cadre en tissu bleu, linge bleu clair (d'après Mauro), contre le mur nord (sous la pente du toit)
 function lit(){
   const g=groupe('rez__lit'), x0=16.48, x1=18.43, zT=-27.80;
-  boite(g,x0,x1,0.10,1.00,zT,zT+0.10,MAT.tissuBleu);                      // tête de lit
-  boite(g,x0,x1,0.12,0.40,zT+0.10,zT+2.15,MAT.tissuBleu);                 // cadre
+  boite(g,x0,x1,0.10,1.00,zT,zT+0.10,MAT.tissuBeige);                     // tête de lit
+  boite(g,x0,x1,0.12,0.40,zT+0.10,zT+2.15,MAT.tissuBeige);                // cadre
   for(const [x,z] of [[x0+0.05,zT+0.15],[x1-0.05,zT+0.15],[x0+0.05,zT+2.10],[x1-0.05,zT+2.10]]) boite(g,x-0.03,x+0.03,0,0.12,z-0.03,z+0.03,MAT.sombre);
-  boite(g,x0+0.075,x1-0.075,0.40,0.58,zT+0.12,zT+2.12,MAT.lingeBleu);     // matelas 180 × 200
-  boite(g,x0+0.05,x1-0.05,0.56,0.62,zT+0.55,zT+2.14,MAT.lingeBleu);       // couette
-  for(const c of [0.25,0.71]) boite(g,x0+c*(x1-x0)-0.33,x0+c*(x1-x0)+0.33,0.58,0.71,zT+0.14,zT+0.52,MAT.lingeBleu);
+  boite(g,x0+0.075,x1-0.075,0.40,0.58,zT+0.12,zT+2.12,MAT.lingeMarine);     // matelas 180 × 200
+  boite(g,x0+0.05,x1-0.05,0.56,0.62,zT+0.55,zT+2.14,MAT.lingeMarine);       // couette
+  for(const c of [0.25,0.71]) boite(g,x0+c*(x1-x0)-0.33,x0+c*(x1-x0)+0.33,0.58,0.71,zT+0.14,zT+0.52,MAT.lingeMarine);
   return g;
 }
 function chevet(nom,x){

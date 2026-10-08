@@ -158,6 +158,12 @@ function etagereChambre(){
   boite(g,x0,x0+e,F,F+h,z0,z1,M.hetre);
   for(const z of [z0,z1-e]) boite(g,x0,x1,F,F+h,z,z+e,M.hetre);
   for(const y of [0,0.35,0.70,1.05,h-e]) boite(g,x0,x1,F+y,F+y+e,z0+e,z1-e,M.hetre);
+  // porte vitrée devant les deux rangées du bas (précisé par Mauro) : cadre en hêtre, vitre, bouton chromé
+  const yb=F+0.005, yh=F+0.715, c=0.045;
+  for(const [a,b] of [[z0,z0+c],[z1-c,z1]]) boite(g,x1,x1+e,yb,yh,a,b,M.hetre);
+  for(const [a,b] of [[yb,yb+c],[yh-c,yh]]) boite(g,x1,x1+e,a,b,z0+c,z1-c,M.hetre);
+  boite(g,x1+0.008,x1+0.012,yb+c,yh-c,z0+c,z1-c,MAT.verre);
+  sphere(g,x1+e+0.012,F+0.36,z1-0.075,0.012,MAT.chrome,10);
   return g;
 }
 // Écran et tour d'ordinateur sur le bureau noir (plateau du modèle à 0,77 m)

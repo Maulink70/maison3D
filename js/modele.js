@@ -95,7 +95,7 @@ const TEINTES={'rez__meuble_salon':{Material_15:0x6f1f2b,       // buffet : roug
 // Matières du modèle remplacées par une texture dessinée (questionnaire des textures) : [motif, couleur]
 const MATIERES={'rez__canape_salon#1':{Material_309:['cuir',0x4a121b],   // base bordeaux foncé
     Material_310:['cuir',0x4a121b], Material_311:['cuir',0xe8d8ad]},    // assise, coussins crème : tout en cuir
-  'rez__tapis_salon':{Material_361:['tapis',0xf3f0ea], Material_362:['tapis',0xf3f0ea]}};   // tapis blanc, poil mi-long
+  'rez__tapis_salon':{Material_361:['tapis',0xf3f0ea], Material_362:['tapis',0xf3f0ea]}};   // tapis blanc, poils longs
 function teinter(root){
   for(const [nom,t] of Object.entries(TEINTES)){ const n=root.getObjectByName(nom); if(!n) continue;
     n.traverse(o=>{ if(o.isMesh&&t[o.material.name]!==undefined){ o.material=o.material.clone(); o.material.color.set(t[o.material.name]); } }); }
@@ -107,6 +107,7 @@ function installerMobilier(root){
   const etagere=root.getObjectByName('rez__armoire'); if(etagere) remplacerEtagere(etagere,root);
   for(const n of [...construireBuanderie(root),...construireCuisine(),...construireSalon(),...construirePieces(root),...construireEtage(root)]) root.add(fusionner(n));
   installerPortes(root);
+  const tapis=root.getObjectByName('rez__tapis_salon'); if(tapis) tapis.scale.y=1.75;   // poils longs : 3,5 cm d'épaisseur au lieu de 2
   habillerModele(root,MATIERES); habillerConstruits(root); poserCoordonnees(root);
   for(const child of [...root.children]){
     const meta=META[child.name]||{l:child.name,c:'fixe'};

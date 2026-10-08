@@ -28,11 +28,11 @@ function tableBasse(){
 // Grande plante près de la baie, côté porte coulissante : aloe vera dans un gros pot blanc (précisé par Mauro),
 // rosette de feuilles charnues bleu-vert, les extérieures longues et couchées, celles du cœur courtes et dressées
 function grandePlante(){
-  const g=groupe('rez__grande_plante'), x=14.95, z=-14.97, hPot=0.42, n=17;
+  const g=groupe('rez__grande_plante'), x=14.95, z=-15.12, hPot=0.42, n=17;
   cylindre(g,x,0,hPot,z,0.19,MAT.potBlanc,0.23,28);
   cylindre(g,x,hPot-0.04,hPot-0.02,z,0.215,MAT.terre,0.215,28);
   for(let i=0;i<n;i++){
-    const t=i/(n-1), az=i*2.399, inc=0.9-0.75*t, long=0.6-0.12*t, larg=0.085-0.03*t, r=0.06*(1-t);
+    const t=i/(n-1), az=i*2.399, inc=0.9-0.75*t, long=1.3*(0.6-0.12*t), larg=1.3*(0.085-0.03*t), r=0.06*(1-t);   // 30 % plus grande (Mauro)
     feuilleAloe(g,x+Math.sin(az)*r,hPot-0.03,z+Math.cos(az)*r,az,inc,long,larg,i%4?MAT.aloe:MAT.aloeClair);
   }
   return g;

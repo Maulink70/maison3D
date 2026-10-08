@@ -43,13 +43,15 @@ const MOTIFS={
   tissu:{taille:0.10, dessin(){ const a=graine(11), f=fbm(N,3,a,8), fils=32;
     const v=(x,y)=>{ const u=(x/N*fils)%1, w=(y/N*fils)%1, trame=Math.abs(Math.sin(u*Math.PI)), chaine=Math.abs(Math.sin(w*Math.PI)); return ((x/N*fils|0)+(y/N*fils|0))%2?trame:chaine; };
     return {map:toile(N,(x,y)=>gris(0.86+0.1*v(x,y)+0.05*f[y*N+x])), bump:toile(N,(x,y)=>gris(v(x,y)))}; }, bumpScale:0.8},
-  // tapis à poils mi-longs : mèches courtes en tous sens, peu contrastées, ombrées par plaques (poils couchés
-  // dans des sens différents). Mèches tracées directement dans un tableau de pixels (le canevas serait bien plus lent)
-  tapis:{taille:0.30, dessin(){ const a=graine(5), f=fbm(N,3,a,4), poil=new Float32Array(N*N).fill(0.9);
-    for(let i=0;i<9000;i++){ const px=a()*N, py=a()*N, ang=a()*Math.PI*2, l=2+a()*4, g=(218+a()*34)/255, dx=Math.cos(ang), dy=Math.sin(ang);
-      for(let t=0;t<=l;t+=0.5){ const X=((Math.round(px+dx*t)%N)+N)%N, Y=((Math.round(py+dy*t)%N)+N)%N; poil[Y*N+X]=g; } }
-    const v=(x,y)=>{ const i=y*N+x; return poil[i]*(0.93+0.07*f[i]); };
-    return {map:toile(N,(x,y)=>gris(v(x,y))), bump:toile(N,(x,y)=>gris(v(x,y)))}; }, bumpScale:1.4},
+  // tapis à poils longs (précisé par Mauro) : mèches de 2 à 5 cm couchées en tous sens, racine plus sombre que la pointe,
+  // regroupées en touffes ombrées. Mèches tracées directement dans un tableau de pixels (le canevas serait bien plus lent)
+  tapis:{taille:0.36, dessin(){ const a=graine(5), f=fbm(N,3,a,4), touffes=fbm(N,2,a,12), poil=new Float32Array(N*N).fill(0.78);
+    for(let i=0;i<7000;i++){ const px=a()*N, py=a()*N, ang=a()*Math.PI*2, l=14+a()*22, courbe=(a()-0.5)*0.06, g=0.86+a()*0.12, w=a()<0.5?1:2;
+      let x=px, y=py, an=ang;
+      for(let t=0;t<=l;t+=0.6){ an+=courbe; x+=Math.cos(an)*0.6; y+=Math.sin(an)*0.6; const v=g*(0.86+0.14*t/l);
+        for(let k=0;k<w;k++){ const X=((Math.round(x+k*Math.sin(an))%N)+N)%N, Y=((Math.round(y-k*Math.cos(an))%N)+N)%N; poil[Y*N+X]=v; } } }
+    const v=(x,y)=>{ const i=y*N+x; return poil[i]*(0.9+0.1*f[i])*(0.94+0.06*touffes[i]); };
+    return {map:toile(N,(x,y)=>gris(Math.min(1,v(x,y)*1.08))), bump:toile(N,(x,y)=>gris(v(x,y)))}; }, bumpScale:2.2},
   // bois : fil droit, cernes fins et sombres légèrement ondulés, stries le long du fil
   bois:{taille:0.80, dessin(){ const a=graine(3), f=fbm(N,3,a,2), fin=fbm(N,2,a,32), stries=new Float32Array(N).map(()=>a());
     const v=(x,y)=>{ const i=y*N+x, k=y/N*18+(f[i]-0.5)*1.4, cerne=Math.exp(-Math.abs(Math.sin(k*Math.PI))*9);
@@ -105,7 +107,7 @@ export function poserCoordonnees(racine){
 
 // Matériaux des éléments construits en code (nom du matériau → motif), d'après le questionnaire des textures
 const PAR_NOM={cuir:'cuir', cuirClair:'cuir', etage_cuirNoir:'cuir',
-  tissuBleu:'tissu', lingeBleu:'tissu', drap:'tissu', tissuBeige:'tissu', etage_gris:'tissu', etage_tissuNoir:'tissu',
+  tissuBleu:'tissu', lingeBleu:'tissu', lingeMarine:'tissu', drap:'tissu', tissuBeige:'tissu', etage_gris:'tissu', etage_tissuNoir:'tissu',
   boisCuisine:'bois', chene:'bois', erable:'bois', boisBrunClair:'bois', etage_hetre:'bois',
   pierre:'pierre', inox:'inox'};
 export function habillerConstruits(racine){
