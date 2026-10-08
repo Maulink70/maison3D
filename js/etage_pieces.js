@@ -8,8 +8,10 @@ const std=(color,o={})=>new THREE.MeshStandardMaterial({color,roughness:0.5,...o
 const M={
   hetre:std(0xd5a46e,{roughness:0.6}), laque:std(0xf4f3f0,{roughness:0.18}), aubergine:std(0x3b2232,{roughness:0.25}),
   cuirNoir:std(0x1d1d1f,{roughness:0.45}), gris:std(0x4b4f55,{roughness:0.9}), metalGris:std(0x9a9ea3,{metalness:0.3,roughness:0.35}),
-  miroir:std(0xdfe6ea,{roughness:0.05}), rougeAssise:std(0x8c2333,{roughness:0.6})
+  miroir:std(0xdfe6ea,{roughness:0.05}), rougeAssise:std(0x8c2333,{roughness:0.6}), tissuNoir:std(0x1d1d1f,{roughness:0.9}),
+  boitier:new THREE.MeshStandardMaterial({color:0xb9c6cf,roughness:0.05,transparent:true,opacity:0.35,depthWrite:false})
 };
+for(const [k,m] of Object.entries(M)) m.name='etage_'+k;
 function texture(dessin,l=256,h=256){
   const c=document.createElement('canvas'); c.width=l; c.height=h; dessin(c.getContext('2d'),l,h);
   const t=new THREE.CanvasTexture(c); t.colorSpace=THREE.SRGBColorSpace; return t;
@@ -57,7 +59,7 @@ function armoireMezzanine(){
 // Fauteuil relax en cuir noir sur pied pivotant, devant l'armoire, tourné vers le sud-ouest
 function fauteuil(){
   const g=groupe('etage__fauteuil_mezzanine'), p=pivot(g,15.95,-24.45,-Math.PI/4);
-  cylindre(p,0,F,F+0.04,0,0.30,MAT.sombre); cylindre(p,0,F+0.04,F+0.30,0,0.04,MAT.chrome);
+  cylindre(p,0,F,F+0.04,0,0.30,MAT.chrome); cylindre(p,0,F+0.04,F+0.30,0,0.04,MAT.chrome);   // pied en métal
   boite(p,-0.33,0.33,F+0.30,F+0.50,-0.30,0.34,M.cuirNoir);
   for(const s of [-1,1]) boite(p,s>0?0.31:-0.43,s>0?0.43:-0.31,F+0.30,F+0.64,-0.32,0.22,M.cuirNoir);
   const dos=boite(p,-0.33,0.33,F+0.48,F+1.12,-0.44,-0.24,M.cuirNoir); dos.rotation.x=-0.22;
@@ -67,7 +69,7 @@ function fauteuil(){
 // Commode blanche laquée contre le mur ouest : une porte et une colonne de cinq tiroirs
 function commodeMezzanine(){
   const g=groupe('etage__commode_mezzanine'), x0=14.10, x1=14.55, z0=-24.55, z1=-23.55, h=0.90, zm=-24.05;
-  boite(g,x0,x1-0.018,F+0.02,F+h,z0,z1,M.laque); boite(g,x0,x1,F,F+0.02,z0+0.02,z1-0.02,MAT.plinthe);
+  boite(g,x0,x1-0.018,F+0.02,F+h,z0,z1,M.laque); boite(g,x0,x1,F,F+0.02,z0+0.02,z1-0.02,M.laque);   // socle blanc
   boite(g,x1-0.018,x1,F+0.03,F+h-0.01,zm+0.003,z1-0.004,M.laque,true); poignee(g,x1,x1+0.02,F+0.45,F+0.65,zm+0.05,zm+0.065);
   for(let k=0;k<5;k++){ const a=F+0.03+k*0.172, b=a+0.172;
     boite(g,x1-0.018,x1,a+0.003,b-0.003,z0+0.004,zm-0.003,M.laque,true); poignee(g,x1,x1+0.02,b-0.05,b-0.035,(z0+zm)/2-0.08,(z0+zm)/2+0.08); }
@@ -139,7 +141,7 @@ function litChambre(){
 }
 function chevetChambre(){
   const g=groupe('etage__chevet_chambre');
-  boite(g,16.85,17.33,F,F+0.45,-26.55,-26.15,MAT.sombre,true);
+  boite(g,16.85,17.33,F,F+0.45,-26.55,-26.15,MAT.boisBrunClair,true);   // mélaminé brun clair
   return g;
 }
 // Climatiseur mobile blanc dans l'angle nord-est, grille en façade et sur le dessus
@@ -163,7 +165,8 @@ function ordinateurChambre(){
   const g=groupe('etage__ordinateur_chambre'), y=F+0.77, zc=-23.69;
   boite(g,19.08,19.26,y,y+0.01,zc-0.12,zc+0.12,MAT.noir); boite(g,19.15,19.18,y+0.01,y+0.14,zc-0.03,zc+0.03,MAT.noir);
   boite(g,19.10,19.14,y+0.10,y+0.46,zc-0.31,zc+0.31,MAT.noir); boite(g,19.099,19.10,y+0.115,y+0.445,zc-0.295,zc+0.295,MAT.verreNoir);
-  boite(g,18.86,19.30,y,y+0.48,-23.20,-22.98,MAT.noir,true);
+  boite(g,18.86,19.30,y,y+0.48,-23.20,-22.98,M.boitier);                                    // boîtier transparent
+  boite(g,18.90,19.26,y+0.03,y+0.45,-23.17,-23.01,MAT.sombre); boite(g,18.95,19.20,y+0.20,y+0.34,-23.16,-23.02,MAT.chrome);   // carte et ventilateur
   return g;
 }
 // Chaise de bureau noire à piètement étoile, tournée vers le bureau (est)
@@ -172,8 +175,8 @@ function chaiseBureau(){
   for(let k=0;k<5;k++){ const a=k*Math.PI*2/5, b=boite(p,-0.02,0.02,F+0.04,F+0.07,0,0.32,MAT.noir); b.position.set(Math.sin(a)*0.16,F+0.055,Math.cos(a)*0.16); b.rotation.y=a;
     sphere(p,Math.sin(a)*0.31,F+0.03,Math.cos(a)*0.31,0.03,MAT.noir); }
   cylindre(p,0,F+0.07,F+0.45,0,0.03,MAT.chrome);
-  boite(p,-0.26,0.26,F+0.45,F+0.55,-0.24,0.26,M.cuirNoir);
-  const dos=boite(p,-0.25,0.25,F+0.55,F+1.30,-0.30,-0.22,M.cuirNoir); dos.rotation.x=-0.10;
+  boite(p,-0.26,0.26,F+0.45,F+0.55,-0.24,0.26,M.tissuNoir);
+  const dos=boite(p,-0.25,0.25,F+0.55,F+1.30,-0.30,-0.22,M.tissuNoir); dos.rotation.x=-0.10;
   for(const s of [-1,1]){ boite(p,s*0.28-0.03,s*0.28+0.03,F+0.55,F+0.75,-0.05,-0.01,MAT.noir); boite(p,s*0.28-0.04,s*0.28+0.04,F+0.75,F+0.78,-0.15,0.15,MAT.noir); }
   return g;
 }
@@ -213,7 +216,7 @@ export function construireEtage(root){
   if(douche){ const bloc=[]; douche.traverse(o=>{ if(o.isMesh&&o.material.name==='Material_377') bloc.push(o); }); for(const o of bloc) o.removeFromParent();
     douche.updateMatrixWorld(true); douche.attach(rideauDouche()); }
   return [litMezzanine(), armoireMezzanine(), fauteuil(), commodeMezzanine(),
-    bureauMezzanine(), tabouret('etage__tabouret_mezzanine_1',12.38,-21.60,MAT.blanc,MAT.blanc), tabouret('etage__tabouret_mezzanine_2',12.33,-22.15,MAT.noir,M.rougeAssise),
+    bureauMezzanine(), tabouret('etage__tabouret_mezzanine_1',12.38,-21.60,MAT.blanc,MAT.blanc), tabouret('etage__tabouret_mezzanine_2',12.33,-22.15,MAT.blanc,MAT.blanc),
     applique('etage__spot_mezzanine_1',14.10,'x',-24.05,F+1.90,1,0.08,0.08), applique('etage__spot_mezzanine_2',16.70,'x',-24.60,F+1.90,-1,0.08,0.08),
     applique('etage__applique_bureau',-22.75,'z',11.85,F+1.70,1,0.20,0.20), applique('rez__applique_escalier',12.87,'x',-18.22,2.80,1,0.18,0.26),
     armoiresDressing(), buffetDressing(), portant(), applique('etage__applique_dressing',13.97,'x',-23.80,F+1.80,-1,0.32,0.18),

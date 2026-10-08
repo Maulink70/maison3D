@@ -4,7 +4,7 @@ import * as THREE from 'three';
 
 import {MAT, boite, lignes, copier} from './formes.js';
 
-const {blanc,ceramique,sombre,chrome}=MAT;
+const {ceramique,sombre,chrome}=MAT, blanc=MAT.laqueCreme;   // meuble du lavabo crème (d'après Mauro)
 const hublot=new THREE.MeshStandardMaterial({color:0x5d666e,roughness:0.1,transparent:true,opacity:0.75});
 const miroir=new THREE.MeshStandardMaterial({color:0xe4ebee,roughness:0.06});
 

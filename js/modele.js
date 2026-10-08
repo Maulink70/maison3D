@@ -15,6 +15,7 @@ import {plafondsPin, solDouche, murAubergine, ouvrirPorteDouche, carrelerDouche}
 import {construireEtage} from './etage_pieces.js';
 import {installerPortes} from './portes.js';
 import {corrigerStructure, retirerPanneauxSurVitres, seuilBaie} from './corrections.js';
+import {habiller, habillerConstruits, habillerModele, poserCoordonnees} from './matieres.js';
 
 const loader=new GLTFLoader(); loader.setMeshoptDecoder(MeshoptDecoder);
 function charger(url,progres){
@@ -60,16 +61,22 @@ function gardeCorps(){
   return verre;
 }
 
+// Murs et plafonds peints (rez, étage) : « peinture un peu rugueuse » (questionnaire des textures)
+const PEINTURE=['Material_6','Material_363'];
 function installerStructure(root){
   root.traverse(o=>{ if(o.isMesh&&o.material.name===SOL_WC) carrelerSol(o); });
   const corrections=corrigerStructure(root);   // sols, seuil de la baie, mur percé pour la porte d'entrée (audit)
-  ouvrirPorteDouche(root); carrelerDouche(root); corrigerVitres(root); doublerFaces(root); app.model.add(root);
+  ouvrirPorteDouche(root); carrelerDouche(root); corrigerVitres(root);
+  root.traverse(o=>{ if(o.isMesh&&PEINTURE.includes(o.material.name)&&!o.material.userData.motif) habiller(o.material,'peinture'); });
+  poserCoordonnees(root);                      // avant les dos des faces, qui partagent la géométrie
+  doublerFaces(root); app.model.add(root);
   // escalier en vraies marches (réduit dessous), muret rampant, cloison du réduit : d'après les photos
   const esc=root.getObjectByName('rez__escalier'), clo=root.getObjectByName('rez__cloison');
   if(esc) remplacerEscalier(esc,root); if(clo) remplacerCloison(clo,root);
   root.add(fusionner(cloisonReduit()),solDouche(),corrections);
   for(const child of [...root.children]) ajouterFixe(child,child.name!=='rez__escalier');
   root.add(gardeCorps(),toitSud(),fusionner(decorEntree()),plafondsPin(),fusionner(murAubergine()));
+  habillerConstruits(root); poserCoordonnees(root);   // marches en pierre, nez de marche, faces refaites
 }
 
 // Remplace la carcasse SketchUp de la bibliothèque (seule pièce de plus de 2 m de haut) ; les livres restent
@@ -81,8 +88,14 @@ function remplacerEtagere(node,root){
 }
 
 // Couleurs corrigées d'après les photos (matériau SketchUp → couleur réelle), meuble par meuble
-const TEINTES={'rez__meuble_salon':{Material_15:0x6f1f2b},    // buffet : rouge vif → bordeaux
-  'rez__Bar_cuisine':{Material_52:0x1d1d1f}};                  // machine à café sur le bar : rouge → noire
+const TEINTES={'rez__meuble_salon':{Material_15:0x6f1f2b,       // buffet : rouge vif → bordeaux
+    Material_6:0xeee6d4},                                        // caisson blanc → crème (questionnaire)
+  'rez__Bar_cuisine':{Material_52:0x1d1d1f},                     // machine à café sur le bar : rouge → noire
+  'rez__Cherry':{Material_18:0x6a1a28, Material_15:0x4a1019}};   // cerise décorative : rouge → bordeaux
+// Matières du modèle remplacées par une texture dessinée (questionnaire des textures) : [motif, couleur]
+const MATIERES={'rez__canape_salon#1':{Material_309:['cuir',0x4a121b],   // base bordeaux foncé
+    Material_310:['cuir',0x4a121b], Material_311:['cuir',0xe8d8ad]},    // assise, coussins crème : tout en cuir
+  'rez__tapis_salon':{Material_361:['tapis',0xf3f0ea], Material_362:['tapis',0xf3f0ea]}};   // tapis blanc, poil mi-long
 function teinter(root){
   for(const [nom,t] of Object.entries(TEINTES)){ const n=root.getObjectByName(nom); if(!n) continue;
     n.traverse(o=>{ if(o.isMesh&&t[o.material.name]!==undefined){ o.material=o.material.clone(); o.material.color.set(t[o.material.name]); } }); }
@@ -94,6 +107,7 @@ function installerMobilier(root){
   const etagere=root.getObjectByName('rez__armoire'); if(etagere) remplacerEtagere(etagere,root);
   for(const n of [...construireBuanderie(root),...construireCuisine(),...construireSalon(),...construirePieces(root),...construireEtage(root)]) root.add(fusionner(n));
   installerPortes(root);
+  habillerModele(root,MATIERES); habillerConstruits(root); poserCoordonnees(root);
   for(const child of [...root.children]){
     const meta=META[child.name]||{l:child.name,c:'fixe'};
     if(meta.c==='fixe'){ ajouterFixe(child,true); continue; }

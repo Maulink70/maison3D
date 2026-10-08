@@ -14,12 +14,17 @@ export const MAT={
   tissuBeige:std(0xcdbfa9,{roughness:0.9}), drap:std(0xf1ede5,{roughness:0.9}),
   pierre:std(0x4b4e52,{roughness:0.75}), briqueSombre:std(0x4a4440,{roughness:0.85}), carrelageGris:std(0x8f8b86,{roughness:0.7}),
   porteSombre:std(0x3a2a22,{roughness:0.6}),
+  // teintes et matières précisées par Mauro (questionnaire des textures, 8 octobre 2026)
+  laqueCreme:std(0xeee6d4,{roughness:0.3}), cremeFonce:std(0xd2c5a8,{roughness:0.5}), verreOpaque:std(0xeef1ef,{roughness:0.08}),
+  tissuBleu:std(0x3f5f8f,{roughness:0.9}), lingeBleu:std(0xbcd2ea,{roughness:0.9}), boisBrunClair:std(0xb48a62,{roughness:0.6}),
   ceramique:std(0xfafaf8,{roughness:0.2}), feuille:std(0x3d7a37,{roughness:0.7}), feuilleClaire:std(0x6a9a3c,{roughness:0.7}),
   potBordeaux:std(0x6c1c2a,{roughness:0.5}), potBlanc:std(0xe9e9e6,{roughness:0.5}),
+  aloe:std(0x6b8a69,{roughness:0.5}), aloeClair:std(0x88a283,{roughness:0.5}), terre:std(0x3a2d24,{roughness:1}),
   lumiere:std(0xfff7e6,{emissive:0xfff1d6,emissiveIntensity:0.55,roughness:0.6}),
   verre:new THREE.MeshStandardMaterial({color:0xdcebf0,transparent:true,opacity:0.22,roughness:0.05,side:THREE.DoubleSide,depthWrite:false}),
   cristal:new THREE.MeshStandardMaterial({color:0xeef4f8,transparent:true,opacity:0.55,roughness:0.05})
 };
+for(const [k,m] of Object.entries(MAT)) m.name=k;     // nom du matériau = sa clé (bibliothèque de matières)
 export const TRAIT=new THREE.LineBasicMaterial({color:0xb5ad9c});
 const TRAIT_SOMBRE=new THREE.LineBasicMaterial({color:0x5a4a3a});
 

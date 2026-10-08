@@ -1,11 +1,12 @@
 // Salon du rez, compléments d'après les photos (canapé, tapis, buffet et bibliothèque sont déjà dans le modèle)
-import {MAT, boite, cylindre, sphere, groupe, plante} from './formes.js';
+import * as THREE from 'three';
+import {MAT, boite, cylindre, sphere, groupe} from './formes.js';
 
 // Meuble TV bas, crème, devant la partie fixe de la baie (mur sud, face intérieure z = -14,34)
 function meubleTV(){
   const g=groupe('rez__meuble_tv'), x0=16.10, x1=18.10, z1=-14.37, z0=z1-0.45;
   boite(g,x0,x1,0.05,0.45,z0,z1,MAT.creme);
-  boite(g,x0+0.04,x1-0.04,0,0.05,z0+0.04,z1-0.04,MAT.plinthe);
+  boite(g,x0+0.04,x1-0.04,0,0.05,z0+0.04,z1-0.04,MAT.cremeFonce);
   const w=(x1-x0)/3; for(let i=0;i<3;i++) boite(g,x0+i*w+0.004,x0+(i+1)*w-0.004,0.07,0.43,z0-0.015,z0,MAT.creme,true);
   return g;
 }
@@ -13,7 +14,7 @@ function television(){
   const g=groupe('rez__tv'), cx=17.10, z=-14.60;
   boite(g,cx-0.62,cx+0.62,0.53,1.25,z-0.025,z+0.025,MAT.noir);
   boite(g,cx-0.60,cx+0.60,0.55,1.23,z-0.027,z-0.025,MAT.verreNoir);
-  boite(g,cx-0.04,cx+0.04,0.45,0.53,z-0.02,z+0.02,MAT.sombre); boite(g,cx-0.20,cx+0.20,0.45,0.46,z-0.12,z+0.10,MAT.sombre);
+  boite(g,cx-0.04,cx+0.04,0.45,0.53,z-0.02,z+0.02,MAT.inox); boite(g,cx-0.20,cx+0.20,0.45,0.46,z-0.12,z+0.10,MAT.inox);   // pied en aluminium
   return g;
 }
 // Table basse : plateau en verre sur cadre chromé, sur le tapis
@@ -24,20 +25,44 @@ function tableBasse(){
   boite(g,x0+0.03,x1-0.03,0.36,0.375,z0+0.03,z0+0.05,MAT.chrome); boite(g,x0+0.03,x1-0.03,0.36,0.375,z1-0.05,z1-0.03,MAT.chrome);
   return g;
 }
-// Grande plante (yucca) près de la baie, côté porte coulissante
+// Grande plante près de la baie, côté porte coulissante : aloe vera dans un gros pot blanc (précisé par Mauro),
+// rosette de feuilles charnues bleu-vert, les extérieures longues et couchées, celles du cœur courtes et dressées
 function grandePlante(){
-  const g=groupe('rez__grande_plante');
-  cylindre(g,14.95,0.06,0.36,-14.95,0.17,MAT.potBlanc,0.2);
-  for(const [dx,dz,h] of [[0,0,1.05],[0.06,0.04,0.85],[-0.05,0.05,0.7]]){
-    cylindre(g,14.95+dx,0.36,0.36+h,-14.95+dz,0.03,MAT.boisCuisine,0.025);
-    plante(g,14.95+dx,0.36+h-0.05,-14.95+dz,{pot:0.001,hPot:0.001,h:0.65,feuilles:16,lame:0.03});
+  const g=groupe('rez__grande_plante'), x=14.95, z=-14.97, hPot=0.42, n=17;
+  cylindre(g,x,0,hPot,z,0.19,MAT.potBlanc,0.23,28);
+  cylindre(g,x,hPot-0.04,hPot-0.02,z,0.215,MAT.terre,0.215,28);
+  for(let i=0;i<n;i++){
+    const t=i/(n-1), az=i*2.399, inc=0.9-0.75*t, long=0.6-0.12*t, larg=0.085-0.03*t, r=0.06*(1-t);
+    feuilleAloe(g,x+Math.sin(az)*r,hPot-0.03,z+Math.cos(az)*r,az,inc,long,larg,i%4?MAT.aloe:MAT.aloeClair);
   }
   return g;
 }
-// Plante posée sur le caisson bas de la bibliothèque (côté salon)
+// Feuille d'aloe : deux tronçons de section triangulaire aplatie, la pointe plus inclinée que la base (feuille arquée)
+function feuilleAloe(g,x,y,z,az,inc,long,larg,mat){
+  const base=new THREE.Vector3(x,y,z);
+  for(const [l,r0,r1,i] of [[long*0.55,larg,larg*0.65,inc],[long*0.45,larg*0.65,0.004,Math.min(1.45,inc+0.35)]]){
+    const d=new THREE.Vector3(Math.sin(i)*Math.sin(az),Math.cos(i),Math.sin(i)*Math.cos(az));
+    const m=new THREE.Mesh(new THREE.CylinderGeometry(r1,r0,l,3,1),mat);
+    m.rotation.set(i,az,0,'YXZ'); m.scale.set(1,1,0.6); m.position.copy(base).addScaledVector(d,l/2);
+    m.userData.fusion=true; g.add(m); base.addScaledVector(d,l*0.97);
+  }
+}
+// Plante posée sur le caisson bas de la bibliothèque (côté salon) : plante à feuilles (précisé par Mauro)
 function planteBibliotheque(){
-  const g=groupe('rez__plante_bibliotheque');
-  plante(g,14.18,1.19,-17.85,{pot:0.11,hPot:0.18,h:0.65,feuilles:16,lame:0.03});   // feuilles en deçà du muret de l'escalier
+  const g=groupe('rez__plante_bibliotheque'), x=14.18, y0=1.19, z=-17.85, hPot=0.18;
+  cylindre(g,x,y0,y0+hPot,z,0.088,MAT.potBordeaux,0.11);
+  for(let i=0;i<22;i++){
+    const az=i*2.399, t=(i%7)/6, h=0.12+0.30*((i*5)%11)/10, d=0.04+0.10*t;
+    // tige, puis feuille ovale inclinée vers l'extérieur (feuilles en deçà du muret de l'escalier)
+    const tige=new THREE.Vector3(x+Math.sin(az)*d*0.6,y0+hPot+h,z+Math.cos(az)*d*0.6);
+    const s=new THREE.Mesh(new THREE.CylinderGeometry(0.003,0.004,1,4),MAT.feuille);
+    const pied=new THREE.Vector3(x,y0+hPot-0.01,z), v=tige.clone().sub(pied);
+    s.scale.y=v.length(); s.position.copy(pied).addScaledVector(v,0.5); s.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),v.normalize());
+    s.userData.fusion=true; g.add(s);
+    const f=new THREE.Mesh(new THREE.SphereGeometry(1,10,6),i%3?MAT.feuille:MAT.feuilleClaire);
+    const lg=0.075+0.03*t; f.scale.set(lg*0.45,0.008,lg); f.rotation.set(-0.25-0.5*t,az,0,'YXZ');
+    f.position.set(tige.x+Math.sin(az)*lg*0.8,tige.y+0.01,tige.z+Math.cos(az)*lg*0.8); f.userData.fusion=true; g.add(f);
+  }
   return g;
 }
 // Lampadaire blanc au bout de la bibliothèque, côté entrée

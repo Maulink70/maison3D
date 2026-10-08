@@ -39,7 +39,7 @@ export const META={
   'etage__lit_mezzanine':{l:'Lit d’appoint (mezzanine)',c:'meuble'}, 'etage__armoire_mezzanine':{l:'Armoire en hêtre (mezzanine)',c:'meuble'},
   'etage__fauteuil_mezzanine':{l:'Fauteuil noir',c:'meuble'}, 'etage__commode_mezzanine':{l:'Commode blanche (mezzanine)',c:'meuble'},
   'etage__bureau_mezzanine':{l:'Bureau haut et écran (mezzanine)',c:'meuble'},
-  'etage__tabouret_mezzanine_1':{l:'Tabouret blanc (bureau)',c:'meuble'}, 'etage__tabouret_mezzanine_2':{l:'Tabouret noir (bureau)',c:'meuble'},
+  'etage__tabouret_mezzanine_1':{l:'Tabouret blanc 1 (bureau)',c:'meuble'}, 'etage__tabouret_mezzanine_2':{l:'Tabouret blanc 2 (bureau)',c:'meuble'},
   'etage__spot_mezzanine_1':{l:'Applique (mezzanine) 1',c:'meuble'}, 'etage__spot_mezzanine_2':{l:'Applique (mezzanine) 2',c:'meuble'},
   'etage__applique_bureau':{l:'Applique (coin bureau)',c:'meuble'}, 'rez__applique_escalier':{l:'Applique (escalier)',c:'meuble'},
   'etage__armoires_dressing':{l:'Armoires blanches en L (dressing)',c:'meuble'}, 'etage__buffet_dressing':{l:'Buffet bas aubergine (dressing)',c:'meuble'},

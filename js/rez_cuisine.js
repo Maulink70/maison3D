@@ -69,10 +69,10 @@ function suspension(){
   return g;
 }
 
-// Coin repas : table blanche, longue banquette bordeaux côté cuisine, 3 chaises bordeaux côté salon
+// Coin repas : table blanche (plateau en verre opaque), longue banquette bordeaux côté cuisine, 3 chaises bordeaux côté salon
 function table(){
   const g=groupe('rez__table_repas'), x0=15.95, x1=17.75, z0=-21.15, z1=-20.25;
-  boite(g,x0,x1,0.72,0.75,z0,z1,MAT.blanc);
+  boite(g,x0,x1,0.72,0.75,z0,z1,MAT.verreOpaque);                          // plateau en verre opaque
   boite(g,x0+0.06,x1-0.06,0.66,0.72,z0+0.06,z1-0.06,MAT.inox);
   for(const [x,z] of [[x0+0.07,z0+0.07],[x1-0.07,z0+0.07],[x0+0.07,z1-0.07],[x1-0.07,z1-0.07]]) boite(g,x-0.025,x+0.025,0,0.66,z-0.025,z+0.025,MAT.inox);
   return g;
