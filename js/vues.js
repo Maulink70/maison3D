@@ -1,15 +1,18 @@
 // Modes (maquette / visite) et niveaux (tout / rez / étage)
 import * as THREE from 'three';
 import {app, $} from './app.js';
-import {ETAGE_FLOOR, REZ_CUT, ROOF_CUT} from './config.js';
+import {ETAGE_FLOOR, REZ_CUT, ROOF_CUT, ETAGE_CUT} from './config.js';
 import {enterWalk} from './visite.js';
 
 export function setLevel(l){
   const {renderer,orbit,camera,CENTER}=app;
   app.level=l; for(const k of ['all','rez','etage']) $('l-'+k).setAttribute('aria-pressed',String(k===l));
   if(app.mode==='walk'){ enterWalk(l==='etage'?'etage':'rez'); return; }
-  const cut=l==='rez'?REZ_CUT:l==='etage'?ROOF_CUT:null;
-  renderer.clippingPlanes=cut?[new THREE.Plane(new THREE.Vector3(0,-1,0),cut)]:[];
+  // Rez : coupe sous le plafond. Étage : coupe sous le toit et sous le plancher, le rez disparaît
+  const plans=[];
+  if(l==='rez') plans.push(new THREE.Plane(new THREE.Vector3(0,-1,0),REZ_CUT));
+  if(l==='etage') plans.push(new THREE.Plane(new THREE.Vector3(0,-1,0),ROOF_CUT),new THREE.Plane(new THREE.Vector3(0,1,0),-ETAGE_CUT));
+  renderer.clippingPlanes=plans;
   if(l==='all'){ orbit.target.copy(CENTER); camera.position.set(CENTER.x+11,14,CENTER.z+13); }
   else { const y=l==='rez'?0.4:ETAGE_FLOOR+0.4; orbit.target.set(CENTER.x,y,CENTER.z); camera.position.set(CENTER.x+3,y+15,CENTER.z+6); }
   orbit.update();

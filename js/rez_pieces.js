@@ -94,21 +94,23 @@ function vasque(){
   boite(g,x0,x0+0.09,1.80,1.84,-26.62,-25.99,MAT.chrome); boite(g,x0+0.06,x0+0.09,1.795,1.80,-26.60,-26.01,MAT.lumiere);
   return g;
 }
-// Sèche-serviettes chromé entre la vasque et le WC
+// Sèche-serviettes chromé à gauche du miroir, sur le mur sud (z = -25,01), tourné vers la baignoire
 function secheServiettes(){
-  const g=groupe('rez__seche_serviettes'), x=11.36, z0=-25.75, z1=-25.30;
-  for(const z of [z0,z1]) cylindre(g,x,0.30,1.60,z,0.014,MAT.chrome);
-  for(let y=0.40;y<1.6;y+=0.12) boite(g,x-0.01,x+0.01,y-0.01,y+0.01,z0,z1,MAT.chrome);
+  const g=groupe('rez__seche_serviettes'), x0=11.45, x1=11.93, z=-25.06;
+  for(const x of [x0,x1]) cylindre(g,x,0.95,1.85,z,0.014,MAT.chrome);
+  for(let y=1.00;y<1.85;y+=0.12) boite(g,x0,x1,y-0.01,y+0.01,z-0.01,z+0.01,MAT.chrome);
+  for(const x of [x0,x1]) for(const y of [1.05,1.75]) boite(g,x-0.008,x+0.008,y-0.008,y+0.008,z,-25.008,MAT.chrome);
   return g;
 }
-// WC suspendu sur un muret carrelé à mi-hauteur, contre le mur sud près de la porte (copie du WC de l'étage)
+// WC suspendu dans le renfoncement du mur sud (x 12,19 → 13,00, fond à z = -24,28), adossé à un coffrage
+// à mi-hauteur en plaquettes grises (seulement dans le renfoncement) ; copie du WC de l'étage
 function wcSdb(root){
-  const g=groupe('rez__wc_sdb');
-  boite(g,11.31,12.95,0,1.15,-25.21,-25.01,MAT.carrelageGris); boite(g,11.31,12.97,1.15,1.17,-25.23,-25.01,MAT.carrelageGris);
+  const g=groupe('rez__wc_sdb'), x0=12.188, x1=12.998, zFond=-24.278, zF=-24.48, xc=(x0+x1)/2;
+  boite(g,x0,x1,0,1.15,zF,zFond,MAT.carrelageGris); boite(g,x0,x1,1.15,1.17,zF-0.02,zFond,MAT.carrelageGris);
   const cuvette=root.getObjectByName('etage__wc'), plaque=root.getObjectByName('etage__bouton_wc_douche');
-  // à l'étage le WC est adossé au mur z = -21,39 et regarde vers -z, comme ici (adossé au muret z = -25,21)
-  if(cuvette) g.add(copier(cuvette,new THREE.Vector3(17.179,2.74,-21.39),new THREE.Vector3(12.15,0,-25.21),0));
-  if(plaque) g.add(copier(plaque,new THREE.Vector3(17.175,2.74,-21.423),new THREE.Vector3(12.15,0,-25.21),0));
+  // à l'étage le WC est adossé au mur z = -21,39 et regarde vers -z, comme ici (adossé au coffrage z = -24,48)
+  if(cuvette) g.add(copier(cuvette,new THREE.Vector3(17.179,2.74,-21.39),new THREE.Vector3(xc,0,zF),0));
+  if(plaque) g.add(copier(plaque,new THREE.Vector3(17.175,2.74,-21.423),new THREE.Vector3(xc,0,zF),0));
   return g;
 }
 

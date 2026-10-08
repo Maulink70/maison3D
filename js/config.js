@@ -1,5 +1,7 @@
 // Constantes du modèle (mètres, axe vertical Y)
 export const ETAGE_FLOOR=2.74, REZ_CUT=2.33, ROOF_CUT=5.15, EYE=1.6;
+// Coupe basse de la vue « Étage » : le sol de la douche de l'étage est à 2,40 m dans le modèle, sous le plancher (2,74)
+export const ETAGE_CUT=2.38;
 
 // Le modèle est découpé en deux fichiers (outils/decouper_glb.mjs) : la structure s'affiche d'abord
 export const FICHIERS={structure:'modele/structure.glb', mobilier:'modele/mobilier.glb'};

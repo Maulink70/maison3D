@@ -76,7 +76,8 @@ function remplacerEtagere(node,root){
 }
 
 // Couleurs corrigées d'après les photos (matériau SketchUp → couleur réelle), meuble par meuble
-const TEINTES={'rez__meuble_salon':{Material_15:0x6f1f2b}};   // buffet : rouge vif → bordeaux
+const TEINTES={'rez__meuble_salon':{Material_15:0x6f1f2b},    // buffet : rouge vif → bordeaux
+  'rez__Bar_cuisine':{Material_52:0x1d1d1f}};                  // machine à café sur le bar : rouge → noire
 function teinter(root){
   for(const [nom,t] of Object.entries(TEINTES)){ const n=root.getObjectByName(nom); if(!n) continue;
     n.traverse(o=>{ if(o.isMesh&&t[o.material.name]!==undefined){ o.material=o.material.clone(); o.material.color.set(t[o.material.name]); } }); }

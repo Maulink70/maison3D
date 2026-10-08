@@ -11,8 +11,7 @@ export function pick(e){
   const r=canvas.getBoundingClientRect();
   const p=new THREE.Vector2((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1);
   rc.setFromCamera(p,camera); rc.far=Infinity;
-  const cut=renderer.clippingPlanes[0]?renderer.clippingPlanes[0].constant:Infinity;
-  const hits=rc.intersectObjects([model],true).filter(h=>h.point.y<cut&&visibleChain(h.object));
+  const hits=rc.intersectObjects([model],true).filter(h=>renderer.clippingPlanes.every(pl=>pl.distanceToPoint(h.point)>=0)&&visibleChain(h.object));
   const h=hits[0]; const name=h&&h.object.userData.item;
   if(name&&!items[name].hidden) select(name); else select(null);
 }
