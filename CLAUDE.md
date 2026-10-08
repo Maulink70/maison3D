@@ -264,6 +264,7 @@ Rendre la maquette conforme à la réalité pièce par pièce, d'après les phot
 
 ## À rappeler à Mauro
 
+- **À la fin du projet, avant la vidéo** : parler du **rendu**. Mauro le trouve plat et voudrait, en plus du mode photo (rendu kie.ai de l'étape 5), un rendu en direct plus proche de la réalité dans la 3D. À étudier quand tout fonctionnera, et à essayer d'abord sur une copie du site (demande du 8 octobre 2026).
 - **À la fin du projet** : parler de la création d'une **vidéo** de quelqu'un qui marche dans l'appartement et entre dans toutes les pièces (demande de Mauro du 8 octobre 2026, notée pour ne pas l'oublier).
 
 ## Problèmes connus
