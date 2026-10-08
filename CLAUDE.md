@@ -99,9 +99,22 @@ Pièces : rez = salon, cuisine, chambre, salle de bain ; étage = chambre, salle
 
 ### Vues et calques
 - Vue maquette, visite à la première personne, **plan 2D vu de dessus par niveau**.
-- **Masquer un niveau** : pouvoir cacher l'étage (et tout niveau supérieur s'il y en a un jour) pour voir le rez par le haut, dans toute vue. Le prototype le fait déjà par un plan de coupe (`REZ_CUT`) ; la cible est un vrai interrupteur par niveau (afficher / masquer), en plus de la coupe.
-- **Calques** activables dans toute vue : cotes, hauteurs, noms des pièces.
-- Vitres transparentes (remplacer la texture « nuages » de SketchUp), murs pleins vus de l'extérieur (faces simples côté extérieur à doubler), **lumière du jour réglable** (matin, midi, soir).
+- **Masquer un niveau** : pouvoir cacher le rez ou l'étage (et tout niveau supérieur s'il y en a un jour) pour travailler sur un seul niveau, dans toute vue. Le prototype le fait déjà par un plan de coupe (`REZ_CUT`) ; la cible est un vrai interrupteur par niveau (afficher / masquer), en plus de la coupe.
+- **Isoler une pièce** : choisir une pièce (salon, chambre…) et tout le reste disparaît ou devient transparent, la caméra se cadre sur la pièce, pour la modifier sans gêne. Nécessite de définir les pièces (emprise au sol de chacune) dans le code.
+- **Murs transparents** : en vue maquette, murs à environ 30 % d'opacité pour voir derrière sans couper.
+- **Vue éclatée** : un curseur sépare les niveaux verticalement (et peut écarter les murs de la dalle) pour comprendre l'ensemble.
+- **Caméras mémorisées** : enregistrer des points de vue nommés (« salon depuis la porte ») pour y revenir en un clic, et refaire les rendus kie.ai sous le même angle d'une variante à l'autre.
+- **Vraie photo en fond** : afficher la photo réelle de la pièce derrière la 3D, caméra calée dessus, pour vérifier que le modèle correspond et préparer le rendu réaliste.
+- **Calques** activables dans toute vue : cotes, hauteurs, noms des pièces, surfaces.
+- Vitres transparentes (remplacer la texture « nuages » de SketchUp), murs pleins vus de l'extérieur (faces simples côté extérieur à doubler), **lumière du jour réglable** (matin, midi, soir ; en dernier, c'est du confort).
+
+### Aide à la décision
+- **Alertes de passage** : un meuble qui chevauche un mur ou un autre meuble passe en rouge ; signaler un passage inférieur à 70–80 cm et une porte qui ne peut plus s'ouvrir (débattement).
+- **Règle de mesure** : deux points cliqués donnent la distance, en 3D et sur le plan 2D.
+- **Surfaces** : surface au sol de chaque pièce, et surface libre restante une fois meublée.
+- **Comparaison de variantes** : deux variantes côte à côte ou en fondu (« Actuel » / « Projet 1 »).
+- **Historique et annuler / rétablir** : chaque modification est journalisée (qui, quand, quoi), avec annulation.
+- Plus tard, si besoin : liste des meubles d'une variante exportable en tableau (nom, dimensions, matière, lien marchand, prix saisi, total).
 
 ### Impression
 En PDF ou image : plan 2D par niveau avec cotes ; n'importe quelle vue 3D à l'écran avec ses calques actifs ; fiche d'un meuble (dimensions, couleur, matière, position).
@@ -123,6 +136,11 @@ But : voir la pièce **en vrai** avec le nouveau meuble, en complément de la 3D
 - Stockage dans **Airtable**, derrière **n8n** sur le VPS Hostinger de Mauro (`srv1123557.hstgr.cloud`). Le site ne parle qu'à n8n (webhooks). n8n vérifie l'utilisateur, puis lit et écrit dans Airtable. Les clés d'API (Airtable, Sketchfab, kie.ai) restent dans n8n, **jamais dans la page**.
 - Le `localStorage` actuel (clé `diolly3d-v1`) sera remplacé par cette synchronisation ; il peut rester comme cache hors ligne.
 
+### Technique attendue
+- **Application installable** (PWA) sur la tablette et le PC, comme Familia : manifeste, icône, service worker pour le cache du modèle.
+- **Chargement progressif** : afficher d'abord la structure (murs, sols), puis les meubles, pour une ouverture rapide. Pas de mode hors ligne complet (non souhaité).
+- **Le modèle SketchUp ne sera plus la source** : une fois l'application en place, Mauro ne retournera plus dans SketchUp ; les modifications se font dans l'application. Le pipeline OBJ → GLB reste documenté pour archive, mais aucune fonction d'import SketchUp n'est à prévoir.
+
 ### Hébergement
 Vercel, relié à GitHub : projet « maison3d » (`prj_xamwNtiD0YBKAkVO3DebYhOWMu8y`), production **https://maison3d.vercel.app**, redéployé automatiquement à chaque push sur `main`. Dépôt privé. Site statique, rien à compiler (preset « Other », pas de build). **Vercel limite à 100 déploiements par 24 h** : regrouper les pushes, un par lot testé, jamais pour « voir si ça marche ». Vérifier les déploiements avec le connecteur Vercel.
 
@@ -133,16 +151,17 @@ Vercel, relié à GitHub : projet « maison3d » (`prj_xamwNtiD0YBKAkVO3DebYhOWM
 - Au début de chaque session, tester les accès réseau utiles par curl avant d'annoncer quoi que ce soit.
 
 ### Ordre de construction (livrer et faire valider étape par étape)
-1. **Navigation et rendu** : modes séparés, Aller à, toucher au sol, vitesse, portes, rotation libre des meubles, masquage par niveau, vitres, murs, calques, plan 2D, impression, lumière.
-2. **Comptes et synchronisation** : workflows n8n + base Airtable « Maison3D », variantes nommées.
-3. **Catalogue** : banques 3D, formes simples, import GLB, panneau photo, dimensions, matières, remplacement.
-4. **Rendu réaliste kie.ai** : galerie de vraies photos par pièce, bouton de rendu, mode « Image » avec ajout d'un objet par trombone, historique, insertion dans Familia.
+1. **Navigation et vues** : modes séparés, Aller à, toucher au sol, vitesse, portes, rotation libre des meubles, masquage par niveau, isoler une pièce, murs transparents, caméras mémorisées, vitres, murs pleins, calques, plan 2D, règle de mesure, surfaces, chargement progressif, impression.
+2. **Aide à la décision et confort** : alertes de passage, annuler / rétablir et historique local, vue éclatée, application installable (PWA), lumière du jour.
+3. **Comptes et synchronisation** : workflows n8n + base Airtable « Maison3D », variantes nommées, comparaison de variantes, historique partagé (qui, quand, quoi).
+4. **Catalogue** : banques 3D, formes simples, import GLB, panneau photo, dimensions, matières, remplacement.
+5. **Rendu réaliste kie.ai** : galerie de vraies photos par pièce, vraie photo en fond de la 3D, bouton de rendu, mode « Image » avec ajout d'un objet par trombone, historique des rendus, insertion dans Familia.
 
 À prévoir du côté de Mauro : une base Airtable « Maison3D » (à décrire précisément avant de la créer), quelques workflows n8n (Claude Code peut les créer, n8n étant connecté), un compte Sketchfab gratuit, et ses vraies photos des pièces.
 
 ## État du projet (à mettre à jour par Claude Code à la fin de chaque livraison, avant le push)
 
-- 8 octobre 2026 : cahier des charges validé, site prototype déployé sur https://maison3d.vercel.app, environnement Claude Code configuré. **Aucune étape commencée.** Prochaine action : plan détaillé de l'étape 1, à faire valider par Mauro.
+- 8 octobre 2026 : cahier des charges validé et complété (aide à la décision, vues, technique), ordre de construction en cinq étapes, site prototype déployé sur https://maison3d.vercel.app, environnement Claude Code configuré. **Aucune étape commencée.** Prochaine action : plan détaillé de l'étape 1, à faire valider par Mauro.
 
 ## Problèmes connus
 
