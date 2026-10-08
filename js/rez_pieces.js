@@ -76,22 +76,25 @@ function douche(){
   boite(g,14.72,14.75,0,2.39,-27.10,-26.11,MAT.briqueSombre); boite(g,14.72,14.75,0,1.40,-27.78,-27.10,MAT.briqueSombre);
   lignes(g,-27.78,-26.11,0.03,1.38,14.719,0.075,'x');
   boite(g,14.70,14.72,2.37,2.39,-27.05,-26.15,MAT.lumiere);                              // bandeau lumineux
-  cylindre(g,14.24,0.90,2.02,-27.33,0.012,MAT.chrome);                                    // colonne de douche
-  boite(g,14.17,14.31,1.08,1.14,-27.36,-27.30,MAT.chrome);
-  boite(g,14.235,14.245,2.00,2.02,-27.33,-27.05,MAT.chrome); cylindre(g,14.24,1.99,2.01,-27.0,0.12,MAT.chrome);
+  // colonne contre le mur en plaquettes, au début de la pente du toit ; le pommeau est tourné vers le lavabo (ouest)
+  const xc=14.70, zc=-27.12;
+  cylindre(g,xc,0.90,2.02,zc,0.012,MAT.chrome);
+  boite(g,xc-0.06,xc,1.08,1.14,zc-0.07,zc+0.07,MAT.chrome);                             // mitigeur thermostatique
+  boite(g,xc-0.30,xc,2.00,2.02,zc-0.005,zc+0.005,MAT.chrome); cylindre(g,xc-0.32,1.99,2.01,zc,0.12,MAT.chrome);
   return g;
 }
-// Meuble vasque en chêne suspendu contre le mur ouest (x = 11,31), grande vasque blanche, miroir et réglette
+// Meuble vasque en chêne suspendu contre le mur ouest (x = 11,31), de la baignoire jusqu'au mur sud ;
+// grande vasque blanche, miroir et réglette centrés sur le meuble
 function vasque(){
-  const g=groupe('rez__vasque_sdb'), x0=11.31, z0=-26.78, z1=-25.83, xf=11.81;
+  const g=groupe('rez__vasque_sdb'), x0=11.31, z0=-26.78, z1=-25.01, xf=11.81, zm=(z0+z1)/2;
   boite(g,x0,xf-0.018,0.40,0.80,z0,z1,MAT.chene);
   for(const [y0,y1] of [[0.40,0.60],[0.60,0.80]]) boite(g,xf-0.018,xf,y0+0.004,y1-0.004,z0+0.004,z1-0.004,MAT.chene,'sombre');
-  const v0=11.33, v1=11.80, w0=z0+0.05, w1=z1-0.05, y0=0.80, y1=0.95, e=0.02;
+  const v0=11.33, v1=11.80, w0=zm-0.425, w1=zm+0.425, y0=0.80, y1=0.95, e=0.02;
   boite(g,v0,v1,y0,y0+0.04,w0,w1,MAT.ceramique); boite(g,v0,v0+0.09,y0,y1,w0,w1,MAT.ceramique); boite(g,v1-e,v1,y0,y1,w0,w1,MAT.ceramique);
   boite(g,v0,v1,y0,y1,w0,w0+e,MAT.ceramique); boite(g,v0,v1,y0,y1,w1-e,w1,MAT.ceramique);
-  cylindre(g,11.37,y1,y1+0.17,(z0+z1)/2,0.014,MAT.chrome); boite(g,11.36,11.47,y1+0.14,y1+0.16,(z0+z1)/2-0.01,(z0+z1)/2+0.01,MAT.chrome);
-  boite(g,x0,x0+0.006,1.05,1.75,z0,z1,new THREE.MeshStandardMaterial({color:0xdde6ea,roughness:0.06}));
-  boite(g,x0,x0+0.09,1.80,1.84,-26.62,-25.99,MAT.chrome); boite(g,x0+0.06,x0+0.09,1.795,1.80,-26.60,-26.01,MAT.lumiere);
+  cylindre(g,11.37,y1,y1+0.17,zm,0.014,MAT.chrome); boite(g,11.36,11.47,y1+0.14,y1+0.16,zm-0.01,zm+0.01,MAT.chrome);
+  boite(g,x0,x0+0.006,1.05,1.75,zm-0.475,zm+0.475,new THREE.MeshStandardMaterial({color:0xdde6ea,roughness:0.06}));
+  boite(g,x0,x0+0.09,1.80,1.84,zm-0.315,zm+0.315,MAT.chrome); boite(g,x0+0.06,x0+0.09,1.795,1.80,zm-0.295,zm+0.295,MAT.lumiere);
   return g;
 }
 // Sèche-serviettes chromé à gauche du miroir, sur le mur sud (z = -25,01), tourné vers la baignoire

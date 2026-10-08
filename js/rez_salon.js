@@ -37,7 +37,7 @@ function grandePlante(){
 // Plante posée sur le caisson bas de la bibliothèque (côté salon)
 function planteBibliotheque(){
   const g=groupe('rez__plante_bibliotheque');
-  plante(g,14.05,1.19,-17.85,{pot:0.11,hPot:0.18,h:0.75,feuilles:16,lame:0.03});
+  plante(g,14.18,1.19,-17.85,{pot:0.11,hPot:0.18,h:0.65,feuilles:16,lame:0.03});   // feuilles en deçà du muret de l'escalier
   return g;
 }
 // Lampadaire blanc au bout de la bibliothèque, côté entrée

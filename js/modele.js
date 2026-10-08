@@ -11,6 +11,8 @@ import {remplacerEscalier, remplacerCloison, cloisonReduit, toitSud, decorEntree
 import {construireCuisine} from './rez_cuisine.js';
 import {construireSalon} from './rez_salon.js';
 import {construirePieces} from './rez_pieces.js';
+import {plafondsPin, solDouche, murAubergine, ouvrirPorteDouche, carrelerDouche} from './etage_structure.js';
+import {construireEtage} from './etage_pieces.js';
 
 const loader=new GLTFLoader(); loader.setMeshoptDecoder(MeshoptDecoder);
 function charger(url,progres){
@@ -58,13 +60,13 @@ function gardeCorps(){
 
 function installerStructure(root){
   root.traverse(o=>{ if(o.isMesh&&o.material.name===SOL_WC) carrelerSol(o); });
-  corrigerVitres(root); doublerFaces(root); app.model.add(root);
+  ouvrirPorteDouche(root); carrelerDouche(root); corrigerVitres(root); doublerFaces(root); app.model.add(root);
   // escalier en vraies marches (réduit dessous), muret rampant, cloison du réduit : d'après les photos
   const esc=root.getObjectByName('rez__escalier'), clo=root.getObjectByName('rez__cloison');
   if(esc) remplacerEscalier(esc,root); if(clo) remplacerCloison(clo,root);
-  root.add(fusionner(cloisonReduit()));
+  root.add(fusionner(cloisonReduit()),solDouche());
   for(const child of [...root.children]) ajouterFixe(child,child.name!=='rez__escalier');
-  root.add(gardeCorps(),toitSud(),fusionner(decorEntree()));
+  root.add(gardeCorps(),toitSud(),fusionner(decorEntree()),plafondsPin(),fusionner(murAubergine()));
 }
 
 // Remplace la carcasse SketchUp de la bibliothèque (seule pièce de plus de 2 m de haut) ; les livres restent
@@ -87,7 +89,7 @@ function installerMobilier(root){
   corrigerVitres(root); teinter(root);
   app.model.add(root); root.updateMatrixWorld(true);
   const etagere=root.getObjectByName('rez__armoire'); if(etagere) remplacerEtagere(etagere,root);
-  for(const n of [...construireBuanderie(root),...construireCuisine(),...construireSalon(),...construirePieces(root)]) root.add(fusionner(n));
+  for(const n of [...construireBuanderie(root),...construireCuisine(),...construireSalon(),...construirePieces(root),...construireEtage(root)]) root.add(fusionner(n));
   for(const child of [...root.children]){
     const meta=META[child.name]||{l:child.name,c:'fixe'};
     if(meta.c==='fixe'){ ajouterFixe(child,true); continue; }

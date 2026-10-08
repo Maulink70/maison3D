@@ -44,9 +44,10 @@ export function cloisonReduit(){
 
 // Pan sud du toit, absent du modèle : de 2,74 m au-dessus de la baie au faîte (5,80 m), au-dessus du salon et
 // des pièces de l'étage. Visible seulement par-dessous, pour que la vue maquette reste ouverte.
+export const yToitSud=z=>2.74+(5.80-2.74)*(-14.14-z)/(-14.14+25.5);
 export function toitSud(){
   const g=new THREE.Group(); g.name='toit_sud';
-  const y=z=>2.74+(5.80-2.74)*(-14.14-z)/(-14.14+25.5);
+  const y=yToitSud;
   const mat=new THREE.MeshStandardMaterial({color:0xf2efe9,roughness:0.85});
   g.add(plafond([[12.67,y(-14.14),-14.14],[19.64,y(-14.14),-14.14],[19.64,y(-20.91),-20.91],[12.67,y(-20.91),-20.91]],mat));
   g.add(plafond([[11.11,y(-20.91),-20.91],[19.64,y(-20.91),-20.91],[19.64,y(-25.5),-25.5],[11.11,y(-25.5),-25.5]],mat));
