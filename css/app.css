@@ -1,0 +1,89 @@
+[hidden]{display:none!important}
+body{margin:0}
+/* Layout: plein écran 3D, barre d'outils flottante en haut, panneau mobilier à droite (feuille en bas sur téléphone) */
+:root{
+  --bg:#e9ecee; --scene:#dfe3e6; --panel:#ffffff; --ink:#1c2227; --muted:#5b6670;
+  --line:#d3d9de; --accent:#2c5a86; --accent-soft:#e1eaf3; --danger:#a33a2c;
+  --font-ui:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --font-data:"IBM Plex Mono",ui-monospace,"Cascadia Mono",Consolas,monospace;
+  --r:10px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#14181b; --scene:#1b2024; --panel:#1f2529; --ink:#e5e9ec; --muted:#98a3ac;
+  --line:#2f373d; --accent:#82b2df; --accent-soft:#233444; --danger:#e48a7c; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#14181b; --scene:#1b2024; --panel:#1f2529; --ink:#e5e9ec; --muted:#98a3ac;
+  --line:#2f373d; --accent:#82b2df; --accent-soft:#233444; --danger:#e48a7c; color-scheme:dark}
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--font-ui);font-size:14px;overflow:hidden}
+#app{position:fixed;inset:env(safe-area-inset-top,0px) 0 env(safe-area-inset-bottom,0px) 0}
+#c{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;outline:none}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+.bar{position:absolute;top:12px;left:16px;right:16px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;pointer-events:none}
+.bar>*{pointer-events:auto}
+.brand{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:6px 12px;display:flex;flex-direction:column;line-height:1.2}
+.brand strong{font-weight:600;font-size:15px}
+.brand span{font-family:var(--font-data);font-size:11px;color:var(--muted);letter-spacing:.02em}
+.seg{display:flex;background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:3px;gap:2px}
+.seg button{border:0;background:transparent;padding:6px 11px;border-radius:7px;font-weight:500;color:var(--muted)}
+.seg button[aria-pressed="true"]{background:var(--accent-soft);color:var(--accent)}
+.seg button:disabled{opacity:.35;cursor:default}
+.spacer{flex:1}
+.btn{border:1px solid var(--line);background:var(--panel);border-radius:var(--r);padding:8px 12px;font-weight:500}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--panel)}
+.btn.danger{color:var(--danger)}
+
+#panel{position:absolute;top:76px;right:16px;bottom:16px;width:300px;max-width:calc(100% - 32px);background:var(--panel);border:1px solid var(--line);border-radius:12px;display:flex;flex-direction:column;overflow:hidden}
+#panel[hidden]{display:none!important}
+.sec{padding:14px 16px;border-bottom:1px solid var(--line)}
+.sec h2{margin:0 0 2px;font-size:16px;font-weight:600;text-wrap:balance}
+.eyebrow{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:500}
+.dims{font-family:var(--font-data);font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums;margin:4px 0 12px}
+.tools{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.tools .wide{grid-column:1 / -1}
+.colorrow{display:flex;align-items:center;gap:8px;grid-column:1 / -1;border:1px solid var(--line);border-radius:var(--r);padding:4px 8px 4px 12px}
+.colorrow label{flex:1;font-weight:500}
+.colorrow input{width:40px;height:30px;border:0;background:none;padding:0}
+.list{overflow:auto;flex:1;padding:6px 8px 12px}
+.group-title{padding:12px 8px 4px}
+.row{display:flex;align-items:center;gap:6px;border-radius:8px}
+.row:hover{background:var(--accent-soft)}
+.row .name{flex:1;min-width:0;text-align:left;border:0;background:none;padding:7px 8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row .lvl{font-family:var(--font-data);font-size:11px;color:var(--muted)}
+.row .eye{border:0;background:none;padding:6px 8px;color:var(--muted);font-size:12px}
+.row.off .name{color:var(--muted);text-decoration:line-through}
+.row.sel{background:var(--accent-soft)}
+.row.sel .name{color:var(--accent);font-weight:600}
+.foot{padding:10px 16px;border-top:1px solid var(--line);display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.foot small{color:var(--muted);flex:1;min-width:120px}
+
+#hint{position:absolute;left:16px;bottom:16px;max-width:min(460px,calc(100% - 352px));background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:8px 12px;color:var(--muted);font-size:12.5px;line-height:1.45}
+#pad{position:absolute;left:16px;bottom:72px;display:grid;grid-template-columns:repeat(3,52px);grid-template-rows:repeat(2,52px);gap:6px;user-select:none;-webkit-user-select:none}
+#pad button{border:1px solid var(--line);background:var(--panel);border-radius:12px;font-size:18px;touch-action:none}
+#pad button.active{background:var(--accent-soft);color:var(--accent)}
+#pad .up{grid-area:1/2}
+#pad [data-k="left"]{grid-area:2/1}
+#pad [data-k="back"]{grid-area:2/2}
+#pad [data-k="right"]{grid-area:2/3}
+#loading{position:absolute;inset:0;display:grid;place-items:center;background:var(--bg)}
+#loading div{display:flex;flex-direction:column;gap:10px;align-items:center;color:var(--muted)}
+#loading .meter{width:220px;height:4px;background:var(--line);border-radius:2px;overflow:hidden}
+#loading .meter i{display:block;height:100%;width:0;background:var(--accent);transition:width .2s}
+#loading .num{font-family:var(--font-data);font-variant-numeric:tabular-nums}
+
+@media (max-width:760px){
+  .brand span{display:none}
+  .bar{top:8px;left:12px;right:12px;gap:6px}
+  .seg button{padding:6px 9px}
+  #panel{top:auto;left:0;right:0;bottom:0;width:auto;max-width:none;max-height:55%;border-radius:14px 14px 0 0;border-left:0;border-right:0;border-bottom:0;padding-bottom:env(safe-area-inset-bottom,0px)}
+  #hint{display:none}
+  #pad{bottom:16px}
+  body.sheet-open #pad{display:none}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+/* Chargement des meubles après la structure */
+#charge{position:absolute;top:72px;left:50%;transform:translateX(-50%);background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:6px 14px;font-size:12.5px;color:var(--muted);white-space:nowrap;pointer-events:none}
+#charge .num{font-family:var(--font-data);font-variant-numeric:tabular-nums;color:var(--ink)}
+.list .attente{padding:12px 8px;color:var(--muted)}

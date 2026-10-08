@@ -10,8 +10,9 @@ Visite 3D de l'appartement, à ouvrir dans un navigateur :
 
 | Fichier | Rôle |
 |---|---|
-| `index.html` | Le site |
-| `appartement.glb` | Le modèle 3D optimisé |
+| `index.html`, `css/`, `js/` | Le site (sans compilation) |
+| `modele/` | Le modèle 3D chargé par le site : la structure d'abord, puis le mobilier |
+| `appartement.glb` | Le modèle 3D complet (archive, source de `modele/`) |
 | `source/` | Exports d'origine de SketchUp (OBJ et STL) |
 | `outils/` | Scripts de conversion SketchUp → site |
 | `CLAUDE.md` | Instructions pour Claude Code |
