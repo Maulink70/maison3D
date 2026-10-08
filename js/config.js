@@ -26,6 +26,7 @@ export const META={
   'rez__grande_plante':{l:'Grande plante',c:'meuble'}, 'rez__plante_bibliotheque':{l:'Plante sur la bibliothèque',c:'meuble'},
   'rez__lampadaire':{l:'Lampadaire',c:'meuble'}, 'rez__lampe_buffet':{l:'Lampe du buffet',c:'meuble'},
   'rez__commode':{l:'Commode (entrée)',c:'meuble'}, 'rez__porte_entree':{l:'Porte d’entrée',c:'ouverture'}, 'rez__porte_reduit':{l:'Porte du réduit',c:'ouverture'},
+  'rez__aspirateur':{l:'Aspirateur (réduit)',c:'meuble'}, 'rez__sacs_tri':{l:'3 sacs de tri (réduit)',c:'meuble'},
   'rez__plafonnier_entree':{l:'Plafonnier (entrée)',c:'meuble'}, 'rez__plafonnier_degagement':{l:'Plafonnier (dégagement)',c:'meuble'},
   'rez__plafonnier_sdb':{l:'Plafonnier (salle de bain)',c:'meuble'}, 'rez__plafonnier_wc':{l:'Plafonnier (WC)',c:'meuble'},
   'rez__lit':{l:'Lit 180 × 200',c:'meuble'}, 'rez__chevet_1':{l:'Table de chevet 1',c:'meuble'}, 'rez__chevet_2':{l:'Table de chevet 2',c:'meuble'}, 'rez__lustre_chambre':{l:'Lustre (chambre)',c:'meuble'},

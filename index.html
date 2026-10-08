@@ -16,9 +16,13 @@
 
   <header class="bar">
     <div class="brand"><strong>Appartement Diolly</strong><span>2 niveaux · échelle 1:1 en mètres</span></div>
-    <div class="seg" role="group" aria-label="Mode de vue">
+    <div class="seg" role="group" aria-label="Ce que l’on fait">
+      <button id="mo-visite" aria-pressed="true">Visite</button>
+      <button id="mo-editer" aria-pressed="false">Éditer</button>
+    </div>
+    <div class="seg" role="group" aria-label="Vue">
       <button id="m-orbit" aria-pressed="true">Maquette</button>
-      <button id="m-walk" aria-pressed="false">Visite</button>
+      <button id="m-walk" aria-pressed="false">1re personne</button>
     </div>
     <div class="seg" role="group" aria-label="Niveau">
       <button id="l-all" aria-pressed="true">Tout</button>
@@ -26,10 +30,11 @@
       <button id="l-etage" aria-pressed="false">Étage</button>
     </div>
     <span class="spacer"></span>
-    <button class="btn" id="toggle-panel" aria-expanded="true">Meubles</button>
+    <button class="btn" id="portes" aria-pressed="false">Tout ouvrir</button>
+    <button class="btn" id="toggle-panel" aria-expanded="true" hidden>Meubles</button>
   </header>
 
-  <aside id="panel" aria-label="Mobilier">
+  <aside id="panel" aria-label="Mobilier" hidden>
     <section class="sec" id="sel" hidden>
       <div class="eyebrow" id="sel-cat">Mobilier</div>
       <h2 id="sel-name">—</h2>
@@ -38,6 +43,8 @@
         <button class="btn primary wide" id="t-move">Déplacer</button>
         <button class="btn" id="t-rotl">↺ Tourner 90°</button>
         <button class="btn" id="t-rotr">↻ Tourner 90°</button>
+        <div class="anglerow"><label for="t-angle">Angle</label><input type="range" id="t-angle" min="-180" max="180" step="1" value="0"><input type="number" id="t-angle-num" min="-180" max="180" step="1" value="0" inputmode="decimal" aria-label="Angle en degrés"><span>°</span></div>
+        <button class="btn wide" id="t-porte" hidden>Ouvrir la porte</button>
         <div class="colorrow"><label for="t-color">Couleur</label><input type="color" id="t-color" value="#ffffff"><button class="btn" id="t-color-clear">Origine</button></div>
         <button class="btn" id="t-hide">Masquer</button>
         <button class="btn" id="t-reset">Remettre en place</button>

@@ -22,7 +22,8 @@ export function remplacerEscalier(node,root){
   const pente=(15*haut)/(ESC.zHaut-zBas), yS=z=>Math.max(0,(z-zBas)*pente-0.30);
   const zPied=zBas+0.30/pente, sous=new THREE.MeshStandardMaterial({color:0xf0ede6,roughness:0.8,side:THREE.DoubleSide});
   fusionner(g);
-  g.add(plafond([[x0,0,zPied],[x1,0,zPied],[x1,yS(ESC.zHaut),ESC.zHaut],[x0,yS(ESC.zHaut),ESC.zHaut]],sous));
+  const sf=plafond([[x0,0,zPied],[x1,0,zPied],[x1,yS(ESC.zHaut),ESC.zHaut],[x0,yS(ESC.zHaut),ESC.zHaut]],sous);
+  sf.userData.collider=true; g.add(sf);                              // en visite, la sous-face arrête dans le réduit
 }
 
 // Le mur entre l'escalier et la bibliothèque est un muret qui suit la pente (≈ 95 cm au-dessus des nez de marche)
@@ -35,10 +36,12 @@ export function remplacerCloison(node,root){
   g.add(new THREE.Mesh(geo,mat));
 }
 
-// Cloison du réduit sous l'escalier (sa porte est un élément de la liste « Portes et fenêtres »)
+// Cloison du réduit sous l'escalier, percée pour sa porte (x 12,93 → 13,70, hauteur 2,04 m ; la porte est un
+// élément de la liste « Portes et fenêtres »)
 export function cloisonReduit(){
   const g=new THREE.Group(); g.name='rez__cloison_reduit';
-  boite(g,ESC.x0,ESC.x1,0,2.40,-21.10,-21.03,MAT.mur);
+  boite(g,ESC.x0,12.93,0,2.40,-21.10,-21.03,MAT.mur); boite(g,13.70,ESC.x1,0,2.40,-21.10,-21.03,MAT.mur);
+  boite(g,12.93,13.70,2.04,2.40,-21.10,-21.03,MAT.mur);
   return g;
 }
 

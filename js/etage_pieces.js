@@ -110,7 +110,7 @@ function armoiresDressing(){
 }
 // Buffet bas laqué aubergine contre le mur est : 2 × 4 tiroirs à bandeaux alu, sur petits pieds
 function buffetDressing(){
-  const g=groupe('etage__buffet_dressing'), x0=13.50, x1=13.97, z0=-25.45, z1=-23.45, y0=F+0.06, y1=F+0.66, zm=(z0+z1)/2;
+  const g=groupe('etage__buffet_dressing'), x0=13.50, x1=13.97, z0=-25.70, z1=-23.70, y0=F+0.06, y1=F+0.66, zm=(z0+z1)/2;
   boite(g,x0+0.02,x1,y0,y1,z0,z1,M.aubergine);
   for(const [a,b] of [[z0,zm],[zm,z1]]) for(let k=0;k<4;k++){ const ya=y0+k*0.15;
     boite(g,x0,x0+0.02,ya+0.004,ya+0.146,a+0.004,b-0.004,M.aubergine); boite(g,x0-0.005,x0,ya+0.12,ya+0.135,a+0.03,b-0.03,MAT.chrome); }

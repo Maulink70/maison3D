@@ -13,6 +13,7 @@ import {construireSalon} from './rez_salon.js';
 import {construirePieces} from './rez_pieces.js';
 import {plafondsPin, solDouche, murAubergine, ouvrirPorteDouche, carrelerDouche} from './etage_structure.js';
 import {construireEtage} from './etage_pieces.js';
+import {installerPortes} from './portes.js';
 
 const loader=new GLTFLoader(); loader.setMeshoptDecoder(MeshoptDecoder);
 function charger(url,progres){
@@ -43,7 +44,7 @@ function ajouterFixe(o,mur=true){
   o.updateMatrixWorld(true);
   o.traverse(m=>{ if(!m.isMesh||m.userData.vitre||m.userData.dos) return;
     const c=new THREE.Mesh(m.geometry,solid); c.matrixAutoUpdate=false; c.matrixWorld.copy(m.matrixWorld);
-    app.floors.push(c); if(mur) app.colliders.push(c); });
+    app.floors.push(c); if(mur||m.userData.collider) app.colliders.push(c); });
 }
 
 function gardeCorps(){
@@ -90,6 +91,7 @@ function installerMobilier(root){
   app.model.add(root); root.updateMatrixWorld(true);
   const etagere=root.getObjectByName('rez__armoire'); if(etagere) remplacerEtagere(etagere,root);
   for(const n of [...construireBuanderie(root),...construireCuisine(),...construireSalon(),...construirePieces(root),...construireEtage(root)]) root.add(fusionner(n));
+  installerPortes(root);
   for(const child of [...root.children]){
     const meta=META[child.name]||{l:child.name,c:'fixe'};
     if(meta.c==='fixe'){ ajouterFixe(child,true); continue; }
@@ -99,6 +101,7 @@ function installerMobilier(root){
       home:g.position.clone(),hidden:false,color:null,mats:[]};
     child.traverse(o=>{ if(o.isMesh){ o.userData.item=child.name; it.mats.push(o); } });
     app.items[child.name]=it;
+    if(/fenetre|baie|element_mural|velux/i.test(child.name)) app.fenetres.push(...it.mats);
   }
 }
 

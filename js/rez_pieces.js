@@ -21,11 +21,36 @@ function porteEntree(){
   boite(g,12.43,12.47,1.03,1.07,-21.16,-21.135,MAT.chrome); boite(g,12.33,12.47,1.04,1.06,-21.18,-21.16,MAT.chrome);
   return g;
 }
-// Porte affleurante blanche du réduit sous l'escalier, à côté de la porte d'entrée
+// Porte blanche du réduit sous l'escalier, à côté de la porte d'entrée : chambranle ici, battant ouvrable dans portes.js
 function porteReduit(){
-  const g=groupe('rez__porte_reduit');
-  boite(g,12.93,13.70,0,2.02,-21.12,-21.10,MAT.blanc,true);
-  boite(g,13.60,13.64,0.99,1.03,-21.14,-21.12,MAT.chrome); boite(g,13.50,13.64,1.00,1.02,-21.16,-21.14,MAT.chrome);
+  const g=groupe('rez__porte_reduit'), z0=-21.135, z1=-21.10;
+  boite(g,12.87,12.93,0,2.10,z0,z1,MAT.blanc); boite(g,13.70,13.766,0,2.10,z0,z1,MAT.blanc); boite(g,12.87,13.766,2.04,2.10,z0,z1,MAT.blanc);
+  return g;
+}
+// Dans le réduit (x 12,87 → 13,77, du mur z = -21,03 vers le nord, plafond rampant) : aspirateur traîneau contre le
+// mur ouest, près de la porte, et 3 sacs de tri (emballages, papier, verre) au fond
+const tissu=c=>new THREE.MeshStandardMaterial({color:c,roughness:0.85});
+function aspirateur(){
+  const g=groupe('rez__aspirateur'), rouge=new THREE.MeshStandardMaterial({color:0x8e1f27,roughness:0.4});
+  boite(g,12.92,13.20,0.05,0.20,-20.96,-20.58,rouge); boite(g,12.94,13.18,0.20,0.25,-20.90,-20.62,MAT.sombre);
+  for(const [x,z,r] of [[12.915,-20.66,0.07],[13.205,-20.66,0.07],[13.06,-20.92,0.03]]){ const m=cylindre(g,x,0,0.03,z,r,MAT.noir); m.rotation.z=Math.PI/2; m.position.y=r; }
+  cylindre(g,12.95,0.07,0.92,-20.99,0.017,MAT.inox);                                  // tube debout dans l'angle
+  boite(g,12.90,13.20,0,0.05,-21.02,-20.97,MAT.sombre);                               // brosse au sol
+  const tuyau=new THREE.CatmullRomCurve3([[13.06,0.18,-20.96],[13.08,0.35,-21.0],[13.02,0.75,-21.0],[12.97,0.92,-20.99]].map(p=>new THREE.Vector3(...p)));
+  const t=new THREE.Mesh(new THREE.TubeGeometry(tuyau,16,0.018,8),MAT.sombre); t.userData.fusion=true; g.add(t);
+  return g;
+}
+function sacsTri(){
+  const g=groupe('rez__sacs_tri'), z0=-20.02, z1=-19.72;
+  [0xd9ae2b,0x2f5f9e,0x3f7f3a].forEach((c,i)=>{
+    const x0=12.89+i*0.29, x1=x0+0.28, m=tissu(c);
+    boite(g,x0,x1,0,0.42,z0,z1,m);                                                              // sac ouvert : fond plein,
+    boite(g,x0,x0+0.012,0.42,0.52,z0,z1,m); boite(g,x1-0.012,x1,0.42,0.52,z0,z1,m);            // bords relevés
+    boite(g,x0,x1,0.42,0.52,z0,z0+0.012,m); boite(g,x0,x1,0.42,0.52,z1-0.012,z1,m);
+    boite(g,x0+0.012,x1-0.012,0.42,0.47,z0+0.012,z1-0.012,MAT.sombre);                         // contenu
+    for(const z of [z0-0.008,z1+0.008]) boite(g,x0+0.08,x1-0.08,0.62,0.645,z-0.004,z+0.004,m); // anses
+    for(const z of [z0-0.008,z1+0.008]) for(const x of [x0+0.08,x1-0.08]) boite(g,x-0.012,x+0.012,0.50,0.645,z-0.004,z+0.004,m);
+  });
   return g;
 }
 function plafonnier(nom,x,z,yPlafond=2.40){
@@ -118,7 +143,7 @@ function wcSdb(root){
 }
 
 export function construirePieces(root){
-  return [commode(), porteEntree(), porteReduit(), plafonnier('rez__plafonnier_entree',12.40,-21.85), plafonnier('rez__plafonnier_degagement',13.95,-23.70),
+  return [commode(), porteEntree(), porteReduit(), aspirateur(), sacsTri(), plafonnier('rez__plafonnier_entree',12.40,-21.85), plafonnier('rez__plafonnier_degagement',13.95,-23.70),
     lit(), chevet('rez__chevet_1',16.20), chevet('rez__chevet_2',18.71), lustre(),
     douche(), vasque(), secheServiettes(), wcSdb(root), plafonnier('rez__plafonnier_sdb',12.40,-25.60), globeWC()];
 }
