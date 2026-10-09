@@ -111,7 +111,8 @@ export function mesureToucher(cx,cy){
   if(!premier){ premier=q.p; survol=null; majBandeau(); return; }
   const a=premier, b=q.p; premier=null; survol=null;
   if(Math.hypot(b[0]-a[0],b[1]-a[1],b[2]-a[2])<0.005){ majBandeau(); return; }
-  mesures.push({a:a.map(v=>+v.toFixed(4)),b:b.map(v=>+v.toFixed(4)),t:Math.max(Date.now(),(mesures.at(-1)?.t||0)+1)});   // t sert d'identifiant garder(); majBandeau();
+  mesures.push({a:a.map(v=>+v.toFixed(4)),b:b.map(v=>+v.toFixed(4)),t:Math.max(Date.now(),(mesures.at(-1)?.t||0)+1)});   // t sert d'identifiant
+  garder(); majBandeau();
 }
 function activer(oui){
   app.mesure=oui; premier=null; survol=null; $('mesurer').setAttribute('aria-pressed',String(oui)); $('app').classList.toggle('mesure',oui); majBandeau();
