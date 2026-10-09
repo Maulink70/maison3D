@@ -42,6 +42,8 @@ export function cloisonReduit(){
   const g=new THREE.Group(); g.name='rez__cloison_reduit';
   boite(g,ESC.x0,12.93,0,2.40,-21.10,-21.03,MAT.mur); boite(g,13.70,ESC.x1,0,2.40,-21.10,-21.03,MAT.mur);
   boite(g,12.93,13.70,2.04,2.40,-21.10,-21.03,MAT.mur);
+  // cadre affleurant jusqu'au battant (12,95 → 13,68, 2,02 m) : aucun jour autour de la porte fermée
+  boite(g,12.93,12.95,0,2.04,-21.10,-21.03,MAT.mur); boite(g,13.68,13.70,0,2.04,-21.10,-21.03,MAT.mur); boite(g,12.95,13.68,2.02,2.04,-21.10,-21.03,MAT.mur);
   return g;
 }
 

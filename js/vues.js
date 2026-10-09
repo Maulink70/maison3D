@@ -5,7 +5,7 @@ import {app, $} from './app.js';
 import {ETAGE_FLOOR, REZ_CUT, ROOF_CUT, ETAGE_CUT} from './config.js';
 import {enterWalk} from './visite.js';
 import {select, openSheet, petitEcran} from './edition.js';
-import {toutOuvrir} from './portes.js';
+import {toutOuvrir, toutesFenetres} from './portes.js';
 import {creerCiel} from './ciel.js';
 
 const UI='maison3d-ui';
@@ -13,10 +13,10 @@ function memoriser(){ try{ localStorage.setItem(UI,JSON.stringify({edition:app.e
 export function prefs(){ try{ return JSON.parse(localStorage.getItem(UI)||'{}')||{}; }catch{ return {}; } }
 
 const AIDE={
-  vo:'Visite : glisser pour tourner autour, molette ou pincement pour zoomer, deux doigts pour décaler. Touchez une porte pour l’ouvrir ou la fermer. Pour modifier un meuble, passez en « Éditer ».',
-  vw:'Visite : glisser pour regarder, flèches, ZQSD ou boutons pour marcher. Touchez le sol pour y aller, appui long pour vous y téléporter. Molette ou pincement : zoom. Les portes s’ouvrent à votre approche ; touchez-les pour les ouvrir ou les fermer.',
+  vo:'Visite : glisser pour tourner autour, molette ou pincement pour zoomer, deux doigts pour décaler. Touchez une porte ou une fenêtre pour l’ouvrir ou la fermer. Pour modifier un meuble, passez en « Éditer ».',
+  vw:'Visite : glisser pour regarder, flèches, WASD (ZQSD sur clavier français) ou boutons pour marcher. Touchez le sol pour faire un pas, appui long pour vous téléporter. Molette ou pincement : zoom. Les portes s’ouvrent à votre approche ; touchez une porte ou une fenêtre pour l’ouvrir ou la fermer.',
   eo:'Éditer : touchez un meuble pour le déplacer, le tourner, changer sa couleur ou le masquer. Glisser pour tourner autour.',
-  ew:'Éditer en 1re personne : touchez un meuble pour le modifier. Touchez le sol pour y aller, appui long pour vous y téléporter.'
+  ew:'Éditer en 1re personne : touchez un meuble pour le modifier. Touchez le sol pour faire un pas, appui long pour vous téléporter.'
 };
 function majAide(){ $('hint').textContent=AIDE[(app.edition?'e':'v')+(app.mode==='walk'?'w':'o')]; }
 
@@ -52,14 +52,17 @@ export function setMode(m){
   else setLevel(app.level==='all'||!app.level?'all':app.level);
   majAide(); memoriser();
 }
-// Bouton « Tout ouvrir » : les portes restent ouvertes ; « Portes auto » : elles s'ouvrent et se ferment seules
-function majPortesBouton(){ $('portes').setAttribute('aria-pressed',String(app.toutOuvert)); $('portes').textContent=app.toutOuvert?'Portes auto':'Tout ouvrir'; }
+// Bouton « Ouvrir les portes » : elles restent ouvertes ; « Portes auto » : elles s'ouvrent et se ferment seules.
+// Bouton « Ouvrir les fenêtres » / « Fermer les fenêtres » (jamais d'automatisme pour les fenêtres)
+function majPortesBouton(){ $('portes').setAttribute('aria-pressed',String(app.toutOuvert)); $('portes').textContent=app.toutOuvert?'Portes auto':'Ouvrir les portes';
+  $('fenetres').setAttribute('aria-pressed',String(!!app.fenetresOuvertes)); $('fenetres').textContent=app.fenetresOuvertes?'Fermer les fenêtres':'Ouvrir les fenêtres'; }
 
 export function initVues(){
   $('mo-visite').onclick=()=>setEdition(false); $('mo-editer').onclick=()=>setEdition(true);
   $('m-orbit').onclick=()=>setMode('orbit'); $('m-walk').onclick=()=>{ if(app.level==='all') app.level='rez'; setMode('walk'); };
   $('l-all').onclick=()=>setLevel('all'); $('l-rez').onclick=()=>setLevel('rez'); $('l-etage').onclick=()=>setLevel('etage');
   $('portes').onclick=()=>{ toutOuvrir(!app.toutOuvert); majPortesBouton(); };
+  $('fenetres').onclick=()=>{ toutesFenetres(!app.fenetresOuvertes); majPortesBouton(); };
   majPortesBouton();
 }
 // Au chargement : reprend les derniers choix (Visite et Maquette la première fois)

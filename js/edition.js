@@ -4,7 +4,7 @@ import {app, $, css, fmt} from './app.js';
 import {CAT_LABEL} from './config.js';
 import {save} from './sauvegarde.js';
 import {glisserVers} from './visite.js';
-import {basculerPorte, porteDe} from './portes.js';
+import {basculerPorte, basculerElement, ouvrantsDe} from './portes.js';
 
 const rc=new THREE.Raycaster();
 
@@ -34,7 +34,8 @@ export function toucher(e){
 
 const deg=r=>{ let a=Math.round(r*180/Math.PI)%360; if(a>180) a-=360; if(a<=-180) a+=360; return a; };
 function majAngle(){ if(!app.selected) return; const a=deg(app.selected.g.rotation.y); $('t-angle').value=a; $('t-angle-num').value=a; }
-function majPorte(){ const p=app.selected&&porteDe(app.selected.name); $('t-porte').hidden=!p; if(p) $('t-porte').textContent=p.cible?'Fermer la porte':'Ouvrir la porte'; }
+function majPorte(){ const l=app.selected?ouvrantsDe(app.selected.name):[]; $('t-porte').hidden=!l.length; if(!l.length) return;
+  const quoi=l[0].def.fenetre?'la fenêtre':'la porte'; $('t-porte').textContent=(l.some(p=>!p.cible)?'Ouvrir ':'Fermer ')+quoi; }
 
 export function select(name){
   const {scene,tc,items}=app;
@@ -122,7 +123,7 @@ export function initEdition(){
   $('t-rotr').onclick=()=>app.selected&&tourner(deg(app.selected.g.rotation.y)-90);
   $('t-angle').oninput=e=>tourner(+e.target.value);
   $('t-angle-num').onchange=e=>{ const a=Number(String(e.target.value).replace(',','.')); if(Number.isFinite(a)) tourner(deg(a*Math.PI/180)); else majAngle(); };
-  $('t-porte').onclick=()=>{ const p=app.selected&&porteDe(app.selected.name); if(p){ basculerPorte(p); majPorte(); } };
+  $('t-porte').onclick=()=>{ if(app.selected){ basculerElement(app.selected.name); majPorte(); } };
   $('t-color').oninput=e=>{ if(!app.selected) return; paint(app.selected,e.target.value); save(); };
   $('t-color-clear').onclick=()=>{ if(!app.selected) return; paint(app.selected,null); $('t-color').value='#ffffff'; save(); };
   $('t-hide').onclick=()=>{ if(!app.selected) return; const it=app.selected; setHidden(it,!it.hidden); select(null); save(); };

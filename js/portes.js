@@ -39,9 +39,10 @@ function dormantVitree(g,matBois){
 
 // Cadre blanc reconstruit (étage) : montants et traverse dans l'épaisseur du mur, chambranles des deux côtés
 function cadreNeuf(g,d){
-  const [o0,o1]=d.ouv, e=d.mur/2+0.012, ht=d.y0+d.h+0.09, c=0.07, m=blancPorte;
+  const [o0,o1]=d.ouv, e=d.mur/2+0.012, ht=d.y0+d.h+0.09, c=0.07, m=blancPorte, b0=Math.min(d.a0,d.a1), b1=Math.max(d.a0,d.a1);
   const piece=(a0,a1,y0,y1,p0,p1)=>d.axe==='x'?boite(g,p0,p1,y0,y1,a0,a1,m):boite(g,a0,a1,y0,y1,p0,p1,m);
-  piece(o0,o0+0.04,d.y0,ht,d.plan-e,d.plan+e); piece(o1-0.04,o1,d.y0,ht,d.plan-e,d.plan+e); piece(o0,o1,ht-0.04,ht,d.plan-e,d.plan+e);
+  // montants et traverse jusqu'au battant : aucun jour autour de la porte fermée (audit du 9 octobre 2026)
+  piece(o0,b0,d.y0,ht,d.plan-e,d.plan+e); piece(b1,o1,d.y0,ht,d.plan-e,d.plan+e); piece(o0,o1,d.y0+d.h,ht,d.plan-e,d.plan+e);
   for(const s of [-1,1]){ const p0=d.plan+s*e, p1=p0+s*0.012, lo=Math.min(p0,p1), hi=Math.max(p0,p1);
     piece(o0-c,o0+0.01,d.y0,ht+c,lo,hi); piece(o1-0.01,o1+c,d.y0,ht+c,lo,hi); piece(o0-c,o1+c,ht,ht+c,lo,hi); }
 }
@@ -112,25 +113,31 @@ function visible(o){ while(o){ if(!o.visible) return false; o=o.parent; } return
 export function centrePorte(p){ return v.copy(p.centreLocal).applyMatrix4(p.node.matrixWorld); }
 
 // Ouverture automatique à l'approche (1re personne), fermeture au-delà de 2 m ; un geste manuel est respecté
-// tant qu'on reste à moins de 3 m (ou de la distance d'où on l'a fait, plus 1,5 m) ; « Tout ouvrir » suspend l'automatisme. La porte du réduit ne s'ouvre qu'à la main
+// tant qu'on reste à moins de 3 m (ou de la distance d'où on l'a fait, plus 1,5 m) ; « Ouvrir les portes » suspend l'automatisme. La porte du réduit ne s'ouvre qu'à la main ;
+// les fenêtres (js/fenetres.js, même liste app.portes, def.fenetre) jamais à l'approche
 export function majPortes(dt){
   const cam=app.camera.position, pied=cam.y-EYE;
   for(const p of app.portes){
     if(!visible(p.pivot)) continue;
-    if(app.mode==='walk'&&!app.toutOuvert){
+    if(app.mode==='walk'&&!app.toutOuvert&&!p.def.fenetre){          // les fenêtres ne s'ouvrent et ne se ferment qu'à la main
       const c=centrePorte(p), dist=Math.hypot(cam.x-c.x,cam.z-c.z), memeNiveau=Math.abs(pied-p.def.y0)<1.2;
       if(p.manuel){ if(dist>Math.max(3,p.distManuel+1.5)||!memeNiveau) p.manuel=false; }
       else if(memeNiveau&&dist<1.3&&p.def.auto!==false) p.cible=true;
       else if(dist>2||!memeNiveau) p.cible=false;
     }
-    const but=p.cible?p.ouvert:0, pas=3*dt;
-    if(p.angle!==but){ p.angle+=Math.max(-pas,Math.min(pas,but-p.angle)); p.pivot.rotation.y=p.angle; }
+    const but=p.cible?p.ouvert:0, pas=(p.vitesse||3)*dt;
+    if(p.angle!==but){ p.angle+=Math.max(-pas,Math.min(pas,but-p.angle)); if(p.poser) p.poser(p.angle); else p.pivot.rotation.y=p.angle; }
   }
 }
 // Geste manuel : respecté tant qu'on ne s'éloigne pas de plus de 1,5 m par rapport à l'endroit d'où l'on a touché la porte
 // (au moins 3 m), même si on l'a touchée de loin
 export function basculerPorte(p){ const c=centrePorte(p), cam=app.camera.position;
   p.cible=!p.cible; p.manuel=true; p.distManuel=Math.hypot(cam.x-c.x,cam.z-c.z); }
-export function toutOuvrir(oui){ app.toutOuvert=oui; for(const p of app.portes){ p.cible=oui; p.manuel=false; } }
+// Bouton du panneau (Éditer) : ouvre tous les ouvrants de l'élément s'il en reste un fermé, sinon les ferme
+export function basculerElement(nom){ const l=ouvrantsDe(nom), ouvrir=l.some(p=>!p.cible); for(const p of l) if(p.cible!==ouvrir) basculerPorte(p); return ouvrir; }
+export function toutOuvrir(oui){ app.toutOuvert=oui; for(const p of app.portes) if(!p.def.fenetre){ p.cible=oui; p.manuel=false; } }
+// « Ouvrir les fenêtres » : toutes ouvertes ou toutes fermées (elles restent ainsi : pas d'automatisme)
+export function toutesFenetres(oui){ app.fenetresOuvertes=oui; for(const p of app.portes) if(p.def.fenetre) p.cible=oui; }
 export function porteDe(nom){ return app.portes.find(p=>p.nom===nom); }
+export function ouvrantsDe(nom){ return app.portes.filter(p=>p.nom===nom); }
 export function obstaclesPortes(){ return app.battants.filter(visible); }

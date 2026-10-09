@@ -14,6 +14,7 @@ import {construirePieces} from './rez_pieces.js';
 import {plafondsPin, solDouche, murAubergine, ouvrirPorteDouche, carrelerDouche} from './etage_structure.js';
 import {construireEtage} from './etage_pieces.js';
 import {installerPortes} from './portes.js';
+import {installerFenetres} from './fenetres.js';
 import {corrigerStructure, retirerPanneauxSurVitres, seuilBaie} from './corrections.js';
 import {habiller, habillerConstruits, habillerModele, poserCoordonnees} from './matieres.js';
 
@@ -106,7 +107,7 @@ function installerMobilier(root){
   app.model.add(root); root.updateMatrixWorld(true);
   const etagere=root.getObjectByName('rez__armoire'); if(etagere) remplacerEtagere(etagere,root);
   for(const n of [...construireBuanderie(root),...construireCuisine(),...construireSalon(),...construirePieces(root),...construireEtage(root)]) root.add(fusionner(n));
-  installerPortes(root);
+  installerPortes(root); installerFenetres(root);
   const tapis=root.getObjectByName('rez__tapis_salon'); if(tapis) tapis.scale.y=1.75;   // poils longs : 3,5 cm d'épaisseur au lieu de 2
   habillerModele(root,MATIERES); habillerConstruits(root); poserCoordonnees(root);
   for(const child of [...root.children]){
