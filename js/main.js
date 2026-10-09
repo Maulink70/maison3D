@@ -10,8 +10,9 @@ import {majPortes} from './portes.js';
 import {initAller, majCadrage} from './aller.js';
 import {majCouvercles} from './coupes.js';
 import {initPlan, majPlan, camPlan} from './plan.js';
+import {initCalques, majCalques} from './calques.js';
 
-initVues(); initVisite(); initEdition(); initSauvegarde(); initAller(); initPlan();
+initVues(); initVisite(); initEdition(); initSauvegarde(); initAller(); initPlan(); initCalques();
 
 // Cercle posé au sol pendant un appui long (point de téléportation)
 const marque=new THREE.Mesh(new THREE.RingGeometry(0.16,0.25,40),new THREE.MeshBasicMaterial({color:new THREE.Color(css('--accent')||'#2c5a86'),transparent:true,opacity:0.9,depthTest:false,side:THREE.DoubleSide}));
@@ -68,5 +69,6 @@ app.renderer.setAnimationLoop(()=>{
   if(app.mode==='walk') walk(dt); else if(app.mode==='plan') majPlan(dt); else { majCadrage(dt); app.orbit.update(); }
   majPortes(dt); majCouvercles();
   if(app.selBox&&app.tc.object) app.selBox.update();
+  majCalques();
   app.renderer.render(app.scene,app.mode==='plan'?camPlan:app.camera);
 });

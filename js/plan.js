@@ -69,29 +69,32 @@ function poserStyle(){
 }
 
 // ---------- contours : bords entre cellules pleines et vides d'une grille, enchaînés en boucles, simplifiés ----------
-// plein[j*nx+i] ; (x0, z0) coin de la grille ; renvoie un chemin SVG en mètres (remplissage pair-impair)
-function contours(plein,nx,nz,x0,z0,pas,tol){
+// plein[j*nx+i] ; (x0, z0) coin de la grille ; renvoie les boucles de points [x, z] en mètres
+export function boucles(plein,nx,nz,x0,z0,pas,tol){
   const P=(i,j)=>i>=0&&j>=0&&i<nx&&j<nz&&plein[j*nx+i]===1, cle=(i,j)=>j*(nx+1)+i, depart=new Map();
   const ajout=(a,b,c,d)=>{ const k=cle(a,b); if(!depart.has(k)) depart.set(k,[]); depart.get(k).push([a,b,c,d]); };
   for(let j=0;j<nz;j++) for(let i=0;i<nx;i++){ if(!P(i,j)) continue;
     if(!P(i,j-1)) ajout(i,j,i+1,j); if(!P(i+1,j)) ajout(i+1,j,i+1,j+1); if(!P(i,j+1)) ajout(i+1,j+1,i,j+1); if(!P(i-1,j)) ajout(i,j+1,i,j); }
-  const boucles=[];
+  const res=[];
   for(const liste of depart.values()) while(liste.length){
     let [a,b,c,d]=liste.pop(); const pts=[[a,b]];
     for(let garde=0;garde<1e7;garde++){ pts.push([c,d]); const suite=depart.get(cle(c,d)); if(!suite||!suite.length) break;
       const dx=c-a, dz=d-b; let k=suite.findIndex(e=>(e[2]-e[0])*dz-(e[3]-e[1])*dx<0); if(k<0) k=0;   // au point double, on tourne du même côté
       [a,b,c,d]=suite.splice(k,1)[0]; }
-    if(pts.length>3) boucles.push(simplifier(pts.map(([i,j])=>[x0+i*pas,z0+j*pas]),tol));
+    if(pts.length>3) res.push(simplifier(pts.map(([i,j])=>[x0+i*pas,z0+j*pas]),tol));
   }
-  return boucles.filter(b=>b.length>=3).map(b=>'M'+b.map(p=>p[0].toFixed(3)+' '+p[1].toFixed(3)).join('L')+'Z').join('');
+  return res.filter(b=>b.length>=3);
 }
+// même chose en chemin SVG (remplissage pair-impair)
+const contours=(...a)=>boucles(...a).map(b=>'M'+b.map(p=>p[0].toFixed(3)+' '+p[1].toFixed(3)).join('L')+'Z').join('');
 
 // ---------- murs coupés à 1 m (grille de 1 cm, remplie depuis les pièces et l'extérieur) ----------
 const POCHE=0.01, poches={};
 function exclu(o){ while(o){ if(o.name==='toit_sud'||o.name==='rez__escalier') return true; o=o.parent; } return false; }
-function murs(){
-  if(poches[niveau]) return poches[niveau];
-  const h=sol()+COUPE, racine=app.model.children[0]; racine.updateMatrixWorld(true);
+// renvoie {chemin, plein, nx, nz, x0, z0, pas} (grille gardée pour les distances aux murs des cotes)
+export function murs(niv=niveau){
+  if(poches[niv]) return poches[niv];
+  const h=(niv==='etage'?ETAGE_FLOOR:0)+COUPE, racine=app.model.children[0]; racine.updateMatrixWorld(true);
   const x0=10.9, z0=-28.4, nx=Math.ceil((19.9-x0)/POCHE), nz=Math.ceil((-13.9-z0)/POCHE);
   const mur=new Uint8Array(nx*nz), A=new THREE.Vector3(), B=new THREE.Vector3(), C=new THREE.Vector3(), segs=[];
   const marque=(x,z)=>{ const i=Math.floor((x-x0)/POCHE), j=Math.floor((z-z0)/POCHE); if(i>=0&&j>=0&&i<nx&&j<nz) mur[j*nx+i]=1; };
@@ -124,10 +127,10 @@ function murs(){
   const vu=new Uint8Array(nx*nz), pile=new Int32Array(nx*nz*2); let n=0;
   const pousser=k=>{ if(!vu[k]&&!mur[k]){ vu[k]=1; pile[n++]=k; } };
   for(let i=0;i<nx;i++){ pousser(i); pousser((nz-1)*nx+i); } for(let j=0;j<nz;j++){ pousser(j*nx); pousser(j*nx+nx-1); }
-  for(const p of PIECES.filter(q=>q.niveau===niveau)) for(const [a,b,c,d] of p.rects){ const i=Math.floor(((a+c)/2-x0)/POCHE), j=Math.floor(((b+d)/2-z0)/POCHE); pousser(j*nx+i); }
+  for(const p of PIECES.filter(q=>q.niveau===niv)) for(const [a,b,c,d] of p.rects){ const i=Math.floor(((a+c)/2-x0)/POCHE), j=Math.floor(((b+d)/2-z0)/POCHE); pousser(j*nx+i); }
   while(n){ const k=pile[--n], i=k%nx; if(i>0) pousser(k-1); if(i<nx-1) pousser(k+1); if(k>=nx) pousser(k-nx); if(k<nx*(nz-1)) pousser(k+nx); }
   const plein=new Uint8Array(nx*nz); for(let k=0;k<nx*nz;k++) plein[k]=vu[k]?0:1;
-  return poches[niveau]=contours(plein,nx,nz,x0,z0,POCHE,0.006);
+  return poches[niv]={chemin:contours(plein,nx,nz,x0,z0,POCHE,0.006),plein,nx,nz,x0,z0,pas:POCHE};
 }
 
 // ---------- contour d'un meuble vu de dessus (grille de 2 cm, repère du meuble), calculé une fois ----------
@@ -154,8 +157,11 @@ function silhouette(it){
         if((w0>=0&&w1>=0&&w2>=0)||(w0<=0&&w1<=0&&w2<=0)) plein[j*nx+i]=1; }
     }
   });
+  it.empreinte={plein,nx,nz,hx,hz,pas:PAS};
   return it.plan=contours(plein,nx,nz,-hx,-hz,PAS,0.012);
 }
+// grille de l'emprise au sol d'un meuble, dans son repère (surface libre des pièces)
+export function empreinte(it){ silhouette(it); return it.empreinte; }
 // Douglas-Peucker (1,2 cm) : les escaliers de la grille deviennent des diagonales ou des courbes. La boucle fermée est
 // coupée en deux au point le plus éloigné du départ
 function simplifier(pts,tol=0.012){
@@ -179,7 +185,7 @@ const meublesDuNiveau=()=>Object.values(app.items).filter(it=>it.meta.c==='meubl
 function construire(){
   const m=monde(); m.replaceChildren(); contenu={niveau,meubles:new Map(),avecMobilier:app.mobilierPret};
   const archi=el('g',{class:'archi-seul'},m);
-  el('path',{class:'poche',d:murs()},archi);
+  el('path',{class:'poche',d:murs().chemin},archi);
   if(niveau==='etage'){
     // vide sur le salon (double hauteur) et garde-corps vitré de la mezzanine
     const v=VIDE;
@@ -233,6 +239,9 @@ export function sortirPlan(){ if(!actif) return; actif=false; anim=null; svg().s
 export function niveauPlan(l,recadrer=true){ niveau=l==='etage'?'etage':'rez'; poserStyle(); construire(); if(recadrer) allerVue(cible(bornesNiveau())); }
 export function stylePlan(s){ style=s==='reel'?'reel':'archi'; for(const k of ['archi','reel']) $('ps-'+k).setAttribute('aria-pressed',String(k===style)); if(actif) poserStyle(); }
 export function planActif(){ return actif; }
+export function niveauDuPlan(){ return niveau; }
+// (x, z) en mètres → pixels dans le calque du plan
+export function versEcran(x,z){ const {W,H}=taille(); return {x:W/2+(x-vue.cx)*vue.s, y:H/2+(z-vue.cz)*vue.s}; }
 
 // Appelé à chaque image en plan : animation du cadrage, meubles, mode Visite / Éditer
 export function majPlan(dt){

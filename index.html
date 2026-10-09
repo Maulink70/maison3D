@@ -14,6 +14,8 @@
 <div id="app">
   <canvas id="c" tabindex="0" aria-label="Vue 3D de l'appartement"></canvas>
   <svg id="plan" hidden role="img" aria-label="Plan 2D vu de dessus"><g id="plan-monde"></g></svg>
+  <svg id="calques" hidden aria-label="Calques : noms, surfaces, hauteurs et cotes"></svg>
+  <div id="bandeau-piece" role="status" hidden></div>
 
   <header class="bar">
     <div class="brand"><strong>Appartement Diolly</strong><span>2 niveaux · échelle 1:1 en mètres</span></div>
@@ -38,6 +40,10 @@
     <div class="aller">
       <button class="btn" id="aller" aria-haspopup="menu" aria-expanded="false" aria-controls="aller-menu">Aller à <span aria-hidden="true">▾</span></button>
       <div id="aller-menu" class="menu" role="menu" aria-label="Aller à une pièce" hidden></div>
+    </div>
+    <div class="aller">
+      <button class="btn" id="calques-bouton" aria-haspopup="true" aria-expanded="false" aria-controls="calques-menu">Calques <span aria-hidden="true">▾</span></button>
+      <div id="calques-menu" class="menu" role="dialog" aria-label="Calques" hidden></div>
     </div>
     <span class="spacer"></span>
     <button class="btn" id="portes" aria-pressed="false">Ouvrir les portes</button>

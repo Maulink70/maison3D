@@ -8,6 +8,7 @@ import {PIECES, surface, bornes, pieceEn} from './pieces.js';
 import {allerA} from './visite.js';
 import {setLevel} from './vues.js';
 import {cadrerPlan} from './plan.js';
+import {caler} from './calques.js';
 
 let anim=null;
 const doux=matchMedia('(prefers-reduced-motion: reduce)');
@@ -43,6 +44,7 @@ const m2=p=>surface(p).toFixed(1).replace('.',',')+' m²';
 function ouvrir(oui){
   menu().hidden=!oui; bouton().setAttribute('aria-expanded',String(oui));
   if(!oui) return;
+  caler(menu());
   // pièce où l'on est (1re personne) mise en évidence
   const c=app.camera.position, ici=app.mode==='walk'?pieceEn(c.x,c.z,c.y>ETAGE_FLOOR+0.5?'etage':'rez'):null;
   for(const b of menu().querySelectorAll('[data-piece]')) b.toggleAttribute('aria-current',b.dataset.piece===ici?.id);
