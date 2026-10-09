@@ -113,13 +113,13 @@ function visible(o){ while(o){ if(!o.visible) return false; o=o.parent; } return
 export function centrePorte(p){ return v.copy(p.centreLocal).applyMatrix4(p.node.matrixWorld); }
 
 // Ouverture automatique à l'approche (1re personne), fermeture au-delà de 2 m ; un geste manuel est respecté
-// tant qu'on reste à moins de 3 m (ou de la distance d'où on l'a fait, plus 1,5 m) ; « Ouvrir les portes » suspend l'automatisme. La porte du réduit ne s'ouvre qu'à la main ;
+// tant qu'on reste à moins de 3 m (ou de la distance d'où on l'a fait, plus 1,5 m) ; bouton « Portes auto » (app.portesAuto) pour l'arrêter. La porte du réduit ne s'ouvre qu'à la main ;
 // les fenêtres (js/fenetres.js, même liste app.portes, def.fenetre) jamais à l'approche
 export function majPortes(dt){
   const cam=app.camera.position, pied=cam.y-EYE;
   for(const p of app.portes){
     if(!visible(p.pivot)) continue;
-    if(app.mode==='walk'&&!app.toutOuvert&&!p.def.fenetre){          // les fenêtres ne s'ouvrent et ne se ferment qu'à la main
+    if(app.mode==='walk'&&app.portesAuto&&!p.def.fenetre){            // les fenêtres ne s'ouvrent et ne se ferment qu'à la main
       const c=centrePorte(p), dist=Math.hypot(cam.x-c.x,cam.z-c.z), memeNiveau=Math.abs(pied-p.def.y0)<1.2;
       if(p.manuel){ if(dist>Math.max(3,p.distManuel+1.5)||!memeNiveau) p.manuel=false; }
       else if(memeNiveau&&dist<1.3&&p.def.auto!==false) p.cible=true;
@@ -135,7 +135,14 @@ export function basculerPorte(p){ const c=centrePorte(p), cam=app.camera.positio
   p.cible=!p.cible; p.manuel=true; p.distManuel=Math.hypot(cam.x-c.x,cam.z-c.z); }
 // Bouton du panneau (Éditer) : ouvre tous les ouvrants de l'élément s'il en reste un fermé, sinon les ferme
 export function basculerElement(nom){ const l=ouvrantsDe(nom), ouvrir=l.some(p=>!p.cible); for(const p of l) if(p.cible!==ouvrir) basculerPorte(p); return ouvrir; }
-export function toutOuvrir(oui){ app.toutOuvert=oui; for(const p of app.portes) if(!p.def.fenetre||p.def.porte){ p.cible=oui; p.manuel=false; } }   // la baie suit aussi
+// « Ouvrir les portes » (la baie suit aussi) : elles restent ouvertes, l'automatisme s'arrête (sinon il refermerait celles
+// dont on s'éloigne) ; « Fermer les portes » : toutes fermées, comme à la main (l'automatisme, s'il est en marche, ne rouvre
+// la porte près de laquelle on se tient qu'après s'en être éloigné)
+export function toutOuvrir(oui){ app.toutOuvert=oui; if(oui) app.portesAuto=false; const cam=app.camera.position;
+  for(const p of app.portes) if(!p.def.fenetre||p.def.porte){ p.cible=oui; p.manuel=!oui;
+    if(!oui){ const c=centrePorte(p); p.distManuel=Math.hypot(cam.x-c.x,cam.z-c.z); } } }
+// « Portes auto » : en 1re personne, les portes s'ouvrent à l'approche et se referment quand on s'éloigne
+export function portesAuto(oui){ app.portesAuto=oui; if(oui){ app.toutOuvert=false; for(const p of app.portes) if(!p.def.fenetre) p.manuel=false; } }
 // « Ouvrir les fenêtres » : toutes ouvertes ou toutes fermées (elles restent ainsi : pas d'automatisme)
 export function toutesFenetres(oui){ app.fenetresOuvertes=oui; for(const p of app.portes) if(p.def.fenetre) p.cible=oui; }
 export function porteDe(nom){ return app.portes.find(p=>p.nom===nom); }

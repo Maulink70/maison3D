@@ -50,7 +50,7 @@ export function plafondsPin(){
 export function solDouche(){
   const g=new THREE.Group(); g.name='etage__sol_douche';
   const mat=new THREE.MeshStandardMaterial({map:texCarreau('#3d4a56','#5b6670'),roughness:0.55});
-  for(const [x0,x1,z0,z1] of [[16.78,19.44,-22.79,-21.40],[17.62,19.44,-21.40,-21.19],[16.70,16.86,-22.83,-21.80]]){   // pièce + seuil (couvre aussi le pied des chambranles)
+  for(const [x0,x1,z0,z1] of [[16.78,19.44,-22.79,-21.40],[17.62,19.44,-21.40,-21.19],[16.74,16.86,-22.83,-21.80]]){   // pièce + seuil côté douche, depuis le milieu du battant (côté mezzanine, le parquet passe sous la porte)
     const geo=new THREE.PlaneGeometry(x1-x0,z1-z0); geo.rotateX(-Math.PI/2); geo.translate((x0+x1)/2,ETAGE_FLOOR+0.002,(z0+z1)/2);
     const p=geo.attributes.position, uv=[]; for(let i=0;i<p.count;i++) uv.push(p.getX(i)/0.30,p.getZ(i)/0.30);
     geo.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2)); g.add(new THREE.Mesh(geo,mat));

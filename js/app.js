@@ -39,7 +39,7 @@ export const app={
   mode:'orbit', level:'all', gizmoDrag:false,
   items:{}, selected:null, selBox:null,
   colliders:[], floors:[],   // copies DoubleSide des éléments fixes : murs (visite) et sols (hauteur)
-  fenetres:[], portes:[], battants:[], toutOuvert:false,   // fenêtres et battants : obstacles qui suivent l'élément
+  fenetres:[], portes:[], battants:[], toutOuvert:false, portesAuto:true,   // fenêtres et battants : obstacles qui suivent l'élément
   edition:false,             // Visite (rien n'est modifiable) ou Éditer
   mobilierPret:false
 };
