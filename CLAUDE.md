@@ -126,6 +126,12 @@ npx serve .        # ou : python3 -m http.server 8000
 
 Les tests de marche en navigateur sans écran sont lents (2 à 3 images par seconde, déplacement plafonné par image) : faire marcher jusqu'à une condition plutôt qu'un temps fixe, et compter en **images affichées** (aide `window.__images(k)` injectée par `addInitScript`, qui attend k images) plutôt qu'en millisecondes pour décider qu'on est arrêté ; redessiner avant de viser un point à l'écran.
 
+**Quels tests lancer** (règle validée par Mauro le 9 octobre 2026 ; la série complète compte 70 tests, ~20 min sans écran) :
+- petite retouche isolée (couleur, texte, CSS, un meuble seul) : seulement les tests concernés + un contrôle rapide que le site se charge sans erreur dans la console (~3 min), puis publication ;
+- retouche qui touche le cœur du site (portes, fenêtres, marche, chargement du modèle, corrections des sols et murs, `modele.js`, `visite.js`, `portes.js`, `fenetres.js`, `corrections.js`) : la série complète ;
+- au moins une fois par jour de travail, et avant toute grosse livraison : la série complète.
+Ne rien calculer d'autre dans le navigateur sans écran pendant une série (images, audits) : le ralentissement fait échouer les tests à délai ; garder le serveur local lancé de façon détachée (`setsid python3 -m http.server 8000`), une tâche de fond limitée dans le temps l'arrête en pleine série.
+
 Pour un test automatisé sans écran : Playwright + Chromium avec `--use-gl=angle --use-angle=swiftshader --enable-unsafe-swiftshader`, attendre que `#loading` soit caché (structure affichée) puis que `window.maison3d.mobilierPret` soit vrai (meubles chargés), puis faire une capture. `window.maison3d` donne accès à la caméra, aux contrôles et aux meubles ; les modules peuvent être importés dans la page (`await import('/js/visite.js')`) pour piloter la marche.
 
 ## Historique
