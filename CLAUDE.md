@@ -295,6 +295,7 @@ Rendre la maquette conforme à la réalité pièce par pièce, d'après les phot
 
 - **À la fin du projet, avant la vidéo** : parler du **rendu**. Mauro le trouve plat et voudrait, en plus du mode photo (rendu kie.ai de l'étape 5), un rendu en direct plus proche de la réalité dans la 3D. À étudier quand tout fonctionnera, et à essayer d'abord sur une copie du site (demande du 8 octobre 2026).
 - **À l'étape 5 (mode photo)** : reprendre les idées du 9 octobre 2026 notées sous « Mode « Image » » (boutiques en ligne, avant / après avec barre, plein écran en diaporama).
+- **Terrasses et petit jardin** (demande de Mauro du 9 octobre 2026, rappel programmé le 10 octobre à 9 h) : les modéliser aussi, plus tard, d'après ses photos (à déposer dans le Drive « Maison 3D / Photos », jamais dans le dépôt).
 - **À la fin du projet** : faire une rubrique **« Aide »** (demande de Mauro du 9 octobre 2026) ; le texte d'aide en bas à gauche est masqué sur tablette et téléphone (il cachait le pavé de marche), il reste sur PC.
 - **À la fin du projet** : parler de la création d'une **vidéo** de quelqu'un qui marche dans l'appartement et entre dans toutes les pièces (demande de Mauro du 8 octobre 2026, notée pour ne pas l'oublier).
 
