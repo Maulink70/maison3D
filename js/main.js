@@ -13,6 +13,7 @@ import {initPlan, majPlan, camPlan} from './plan.js';
 import {initCalques, majCalques} from './calques.js';
 import {initMesure, majMesures, mesureToucher} from './mesure.js';
 import {initImpression} from './impression.js';
+import {majTransparence} from './transparence.js';
 
 initVues(); initVisite(); initEdition(); initSauvegarde(); initAller(); initPlan(); initCalques(); initMesure(); initImpression();
 
@@ -69,7 +70,7 @@ const clock=new THREE.Clock();
 app.renderer.setAnimationLoop(()=>{
   const dt=Math.min(clock.getDelta(),0.1);
   if(app.mode==='walk') walk(dt); else if(app.mode==='plan') majPlan(dt); else { majCadrage(dt); app.orbit.update(); }
-  majPortes(dt); majCouvercles();
+  majPortes(dt); majCouvercles(); majTransparence();
   if(app.selBox&&app.tc.object) app.selBox.update();
   majCalques(); majMesures();
   app.renderer.render(app.scene,app.mode==='plan'?camPlan:app.camera);

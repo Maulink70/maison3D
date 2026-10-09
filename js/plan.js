@@ -101,7 +101,7 @@ export function murs(niv=niveau){
   racine.traverse(o=>{
     if(!o.isMesh||o.userData.dos||o.material.transparent||exclu(o)) return;
     const bb=new THREE.Box3().setFromObject(o); if(bb.min.y>=h||bb.max.y<=h) return;
-    const pos=o.geometry.attributes.position, idx=o.geometry.index, n=idx?idx.count:pos.count;
+    const geo=o.userData.geoComplete||o.geometry, pos=geo.attributes.position, idx=geo.index, n=idx?idx.count:pos.count;   // murs transparents : géométrie complète
     for(let k=0;k<n;k+=3){
       A.fromBufferAttribute(pos,idx?idx.getX(k):k).applyMatrix4(o.matrixWorld);
       B.fromBufferAttribute(pos,idx?idx.getX(k+1):k+1).applyMatrix4(o.matrixWorld);
