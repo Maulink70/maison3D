@@ -2,7 +2,7 @@
 // WC suspendu face à la porte, colonne lave-linge + sèche-linge dans la niche, lavabo sur meuble à persiennes.
 import * as THREE from 'three';
 
-import {MAT, boite, lignes, copier} from './formes.js';
+import {MAT, boite, lignes, copier, enFlottants} from './formes.js';
 
 const {ceramique,sombre,chrome}=MAT, blanc=MAT.laqueCreme;   // meuble du lavabo crème (d'après Mauro)
 const hublot=new THREE.MeshStandardMaterial({color:0x5d666e,roughness:0.1,transparent:true,opacity:0.75});
@@ -77,4 +77,55 @@ export function carrelerSol(mesh){
   for(let i=0;i<p.count;i++){ v.fromBufferAttribute(p,i).applyMatrix4(mesh.matrixWorld); uv.push(v.x/0.30,v.z/0.30); }
   geo.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2)); mesh.geometry=geo;
   mesh.material=new THREE.MeshStandardMaterial({map:tex,roughness:0.6});
+}
+
+// Murs du WC / buanderie carrelés comme sur la photo de Mauro (9 octobre 2026) : faïence blanche, carreaux de 30 × 40 cm
+// posés en hauteur, joints gris clair alignés, du sol au plafond (coffrage du WC, pilier du lavabo et niche des machines
+// compris). Les faces de la peinture (Material_6) tournées vers l'intérieur de la pièce sont recopiées, découpées à
+// l'emprise de la pièce, dans un maillage carrelé posé 2 mm devant (coordonnées de texture en mètres).
+const PIECE_WC=[[11.10,-24.20,13.00,-22.66],[11.10,-24.93,12.11,-24.20]];   // jusqu'au mur ouest (fond de la niche des machines à x = 11,108)
+const dansWC=(x,z,m=0)=>PIECE_WC.some(([x0,z0,x1,z1])=>x>x0-m&&x<x1+m&&z>z0-m&&z<z1+m);
+function texFaience(){
+  const c=document.createElement('canvas'); c.width=150; c.height=200; const x=c.getContext('2d');
+  x.fillStyle='#b4b5b1'; x.fillRect(0,0,150,200);                                   // joint (≈ 4 mm, visible aussi en biais)
+  const g=x.createLinearGradient(0,0,150,200); g.addColorStop(0,'#f8f8f5'); g.addColorStop(1,'#ececE8');
+  x.fillStyle=g; x.fillRect(2,2,146,196);
+  const t=new THREE.CanvasTexture(c); t.wrapS=t.wrapT=THREE.RepeatWrapping; t.colorSpace=THREE.SRGBColorSpace; t.anisotropy=8; return t;
+}
+// Découpe d'un polygone par le demi-espace q·axe ≥ val (sens +1) ou ≤ val (sens -1)
+function couper(poly,axe,val,sens){
+  const r=[];
+  for(let i=0;i<poly.length;i++){ const a=poly[i], b=poly[(i+1)%poly.length], da=sens*(a[axe]-val), db=sens*(b[axe]-val);
+    if(da>=0) r.push(a); if((da>=0)!==(db>=0)) r.push(a.clone().lerp(b,da/(da-db))); }
+  return r;
+}
+export function carrelerMursWC(root){
+  const rez=root.getObjectByName('structure_rez'); if(!rez) return;
+  const mat=new THREE.MeshStandardMaterial({map:texFaience(),roughness:0.22}); mat.name='faience_wc';
+  const n=new THREE.Vector3(), e=new THREE.Vector3(), c=new THREE.Vector3(), M=0.02;
+  const pos=[], nor=[], uv=[], v=[0,1,2].map(()=>new THREE.Vector3());
+  // chaque face verticale de la peinture, découpée à l'emprise de chaque partie de la pièce (2 cm de marge, dans
+  // l'épaisseur des murs) ; gardée si elle est sur le bord de la pièce et tournée vers l'intérieur ; posée 2 mm devant
+  rez.traverse(o=>{ if(!o.isMesh||o.material.name!=='Material_6'||o.userData.dos) return;
+    o.updateMatrixWorld(true);
+    let g=enFlottants(o.geometry); if(g.index) g=g.toNonIndexed(); g.applyMatrix4(o.matrixWorld);
+    const p=g.attributes.position;
+    for(let i=0;i+2<p.count;i+=3){ v.forEach((q,k)=>q.fromBufferAttribute(p,i+k));
+      n.subVectors(v[1],v[0]).cross(e.subVectors(v[2],v[0])); if(n.lengthSq()<1e-10) continue; n.normalize(); if(Math.abs(n.y)>0.3) continue;
+      for(const [x0,z0,x1,z1] of PIECE_WC){
+        let poly=v.map(q=>q.clone());
+        for(const [axe,val,sens] of [['x',x0-M,1],['x',x1+M,-1],['z',z0-M,1],['z',z1+M,-1]]){ poly=couper(poly,axe,val,sens); if(poly.length<3) break; }
+        if(poly.length<3) continue;
+        c.set(0,0,0); for(const q of poly) c.add(q); c.multiplyScalar(1/poly.length);
+        const lat=Math.abs(n.x)>Math.abs(n.z);
+        // côté peint vers la pièce, ou dos vers la pièce (face unique de SketchUp vue par son dos, rendue par son double)
+        for(const sg of [1,-1]){ const cx=c.x+sg*n.x*0.05, cz=c.z+sg*n.z*0.05; if(!(cx>x0&&cx<x1&&cz>z0&&cz<z1)) continue;
+          for(let k=1;k+1<poly.length;k++) for(const q of sg>0?[poly[0],poly[k],poly[k+1]]:[poly[0],poly[k+1],poly[k]]){
+            pos.push(q.x+sg*n.x*0.002,q.y,q.z+sg*n.z*0.002); nor.push(sg*n.x,sg*n.y,sg*n.z); uv.push((lat?q.z:q.x)/0.30,q.y/0.40); } }
+      } } });
+  if(!pos.length) return;
+  const g=new THREE.BufferGeometry();
+  g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3)); g.setAttribute('normal',new THREE.Float32BufferAttribute(nor,3));
+  g.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));
+  const m=new THREE.Mesh(g,mat); m.name='rez__faience_wc'; rez.updateMatrixWorld(true); m.applyMatrix4(rez.matrixWorld.clone().invert()); rez.add(m);
 }

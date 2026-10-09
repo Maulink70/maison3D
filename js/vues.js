@@ -1,7 +1,7 @@
 // Ce que l'on fait (Visite / Éditer), comment on regarde (Maquette / 1re personne) et niveau (tout / rez / étage).
 // Les choix sont mémorisés dans le navigateur.
 import * as THREE from 'three';
-import {app, $} from './app.js';
+import {app, $, champVisite} from './app.js';
 import {ETAGE_FLOOR, REZ_CUT, ROOF_CUT, ETAGE_CUT} from './config.js';
 import {enterWalk} from './visite.js';
 import {select, openSheet, petitEcran} from './edition.js';
@@ -47,7 +47,7 @@ export function setMode(m){
   app.orbit.enabled=m==='orbit';
   // 1re personne : ciel et sol dehors, champ de vision propre (zoom par molette ou pincement)
   (app.ciel||creerCiel()).visible=m==='walk';
-  app.camera.fov=m==='walk'?(app.fovVisite||60):50; app.camera.updateProjectionMatrix();
+  if(m==='walk') champVisite(); else { app.camera.fov=50; app.camera.updateProjectionMatrix(); }
   if(m==='walk') enterWalk(app.level==='etage'?'etage':'rez');
   else setLevel(app.level==='all'||!app.level?'all':app.level);
   majAide(); memoriser();

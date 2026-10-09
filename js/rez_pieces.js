@@ -2,6 +2,7 @@
 import * as THREE from 'three';
 import {MAT, boite, cylindre, sphere, groupe, lignes, copier} from './formes.js';
 import {ENTREE} from './corrections.js';
+import {app} from './app.js';
 
 // ---------- Entrée ----------
 // Commode en érable contre le mur du WC (face z = -22,58), façade vers l'entrée : 2 petits tiroirs + 4 grands
@@ -134,11 +135,36 @@ function secheServiettes(){
   for(const x of [x0,x1]) for(const y of [1.05,1.75]) boite(g,x-0.008,x+0.008,y-0.008,y+0.008,z,-25.008,MAT.chrome);
   return g;
 }
-// WC suspendu dans le renfoncement du mur sud (x 12,19 → 13,00, fond à z = -24,28), adossé à un coffrage
-// à mi-hauteur en plaquettes grises (seulement dans le renfoncement) ; copie du WC de l'étage
+// Carrelage du mur de la baignoire (Material_10, mur z = -28,00) : matériau et correspondance (x, y) → (u, v) relevés
+// sur ce mur, pour poser le même carreau, à la même taille, ailleurs
+function carrelageBaignoire(){
+  let res=null;
+  app.model.getObjectByName('structure_rez')?.traverse(o=>{ if(res||!o.isMesh||o.material.name!=='Material_10'||o.userData.dos) return;
+    o.updateMatrixWorld(true); const g=o.geometry, p=g.attributes.position, uv=g.attributes.uv, idx=g.index; if(!uv) return;
+    for(let t=0;t<(idx?idx.count:p.count)&&!res;t+=3){
+      const k=[0,1,2].map(i=>idx?idx.getX(t+i):t+i), q=k.map(i=>new THREE.Vector3().fromBufferAttribute(p,i).applyMatrix4(o.matrixWorld));
+      if(!q.every(v=>Math.abs(v.z+27.998)<0.01)) continue;
+      const m=new THREE.Matrix3().set(q[0].x,q[0].y,1, q[1].x,q[1].y,1, q[2].x,q[2].y,1); if(Math.abs(m.determinant())<1e-4) continue;
+      const inv=m.invert(), cu=new THREE.Vector3(...k.map(i=>uv.getX(i))).applyMatrix3(inv), cv=new THREE.Vector3(...k.map(i=>uv.getY(i))).applyMatrix3(inv);
+      res={mat:o.material, f:(a,b)=>[cu.x*a+cu.y*b+cu.z, cv.x*a+cv.y*b+cv.z]}; } });
+  return res;
+}
+// Coordonnées de texture d'une boîte selon le carrelage du mur : faces avant / arrière (x, y), côtés (z, y), dessus (x, z)
+function plaquer(b,f){
+  b.geometry.translate(b.position.x,b.position.y,b.position.z); b.position.set(0,0,0);
+  const p=b.geometry.attributes.position, n=b.geometry.attributes.normal, uv=b.geometry.attributes.uv;
+  for(let i=0;i<p.count;i++){ const [x,y,z]=[p.getX(i),p.getY(i),p.getZ(i)];
+    uv.setXY(i,...(Math.abs(n.getZ(i))>0.5?f(x,y):Math.abs(n.getX(i))>0.5?f(z,y):f(x,z))); }
+  uv.needsUpdate=true;
+}
+// WC suspendu dans le renfoncement du mur sud (x 12,19 → 13,00, fond à z = -24,28), adossé à un coffrage à mi-hauteur
+// (seulement dans le renfoncement) dans le carrelage du mur de la baignoire (demandé par Mauro le 9 octobre 2026) ;
+// copie du WC de l'étage
 function wcSdb(root){
   const g=groupe('rez__wc_sdb'), x0=12.188, x1=12.998, zFond=-24.278, zF=-24.48, xc=(x0+x1)/2;
-  boite(g,x0,x1,0,1.15,zF,zFond,MAT.carrelageGris); boite(g,x0,x1,1.15,1.17,zF-0.02,zFond,MAT.carrelageGris);
+  const carr=carrelageBaignoire(), mc=carr?carr.mat:MAT.carrelageGris;
+  const cof=[boite(g,x0,x1,0,1.15,zF,zFond,mc), boite(g,x0,x1,1.15,1.17,zF-0.02,zFond,mc)];
+  if(carr) for(const b of cof) plaquer(b,carr.f);
   const cuvette=root.getObjectByName('etage__wc'), plaque=root.getObjectByName('etage__bouton_wc_douche');
   // à l'étage le WC est adossé au mur z = -21,39 et regarde vers -z, comme ici (adossé au coffrage z = -24,48)
   if(cuvette) g.add(copier(cuvette,new THREE.Vector3(17.179,2.74,-21.39),new THREE.Vector3(xc,0,zF),0));

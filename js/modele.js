@@ -5,7 +5,7 @@ import {MeshoptDecoder} from 'three/addons/libs/meshopt_decoder.module.js';
 import {app, $} from './app.js';
 import {META, FICHIERS, GARDE_CORPS, ETAGE_FLOOR, SOL_WC} from './config.js';
 import {construireEtagere} from './etagere.js';
-import {construireBuanderie, carrelerSol} from './buanderie.js';
+import {construireBuanderie, carrelerSol, carrelerMursWC} from './buanderie.js';
 import {fusionner} from './formes.js';
 import {remplacerEscalier, remplacerCloison, cloisonReduit, toitSud, decorEntree} from './rez_structure.js';
 import {construireCuisine} from './rez_cuisine.js';
@@ -66,6 +66,7 @@ function gardeCorps(){
 const PEINTURE=['Material_6','Material_363'];
 function installerStructure(root){
   root.traverse(o=>{ if(o.isMesh&&o.material.name===SOL_WC) carrelerSol(o); });
+  carrelerMursWC(root);                        // faïence blanche du WC / buanderie (photo de Mauro)
   const corrections=corrigerStructure(root);   // sols, seuil de la baie, mur percé pour la porte d'entrée (audit)
   ouvrirPorteDouche(root); carrelerDouche(root); corrigerVitres(root);
   root.traverse(o=>{ if(o.isMesh&&PEINTURE.includes(o.material.name)&&!o.material.userData.motif) habiller(o.material,'peinture'); });

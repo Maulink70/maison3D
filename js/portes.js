@@ -10,14 +10,16 @@ import {ENTREE} from './corrections.js';
 // axe 'x' : mur à x constant (plan), battant de a0 à a1 en z ; axe 'z' : mur à z constant, battant en x.
 // charniere : extrémité du battant côté charnière ; sens : côté (+1 / -1 sur la normale du mur) vers lequel il s'ouvre.
 // cadre : 'modele' (cadre du modèle gardé), 'neuf' (cadre reconstruit, épaisseur du mur), 'aucun' (déjà construit)
+// Portes à cadre du modèle : battant à la taille de l'ouverture du cadre, 3 mm de jeu (il faisait 70 cm dans un cadre de
+// 88 à 98 cm : 9 cm de vide de chaque côté et en haut, vu par Mauro le 9 octobre 2026)
 // auto:false : pas d'ouverture à l'approche (le réduit, ouvert, barrerait l'entrée ; portes donnant dehors), seulement
 // en la touchant. ext : porte donnant dehors, une barrière invisible empêche de sortir. vitree : ouvrant vitré
 export const PORTES=[
   {nom:'rez__porte_entree',              axe:'z', plan:-21.08,  a0:11.66,   a1:12.56,   charniere:11.66,   sens:-1, y0:0, h:2.10, mat:'sombre', cadre:'aucun', auto:false, ext:true},   // porte d'entrée : vers l'intérieur
   {nom:'rez__element_mural',             axe:'x', plan:19.47,   a0:-23.86,  a1:-22.826, charniere:-23.86,  sens:-1, y0:0.02, h:2.08, cadre:'vitree', vitree:true, auto:false, ext:true},   // porte-fenêtre cuisine : vers le four
-  {nom:'rez__porte_interieure_88x218',   axe:'x', plan:13.038,  a0:-25.889, a1:-25.189, charniere:-25.189, sens:-1, y0:0, h:2.09, bois:true,  cadre:'modele'},  // salle de bain
-  {nom:'rez__porte_interieure_88x218_2', axe:'x', plan:13.038,  a0:-23.453, a1:-22.753, charniere:-22.753, sens:-1, y0:0, h:2.09, bois:true,  cadre:'modele'},  // WC / buanderie
-  {nom:'rez__porte_interieure_98_(80)',  axe:'z', plan:-24.968, a0:13.263,  a1:14.063,  charniere:13.263,  sens:-1, y0:0, h:2.09, bois:true,  cadre:'modele'},  // chambre
+  {nom:'rez__porte_interieure_88x218',   axe:'x', plan:13.038,  a0:-25.975, a1:-25.105, charniere:-25.105, sens:-1, y0:0, h:2.177, bois:true, cadre:'modele'},  // salle de bain
+  {nom:'rez__porte_interieure_88x218_2', axe:'x', plan:13.038,  a0:-23.540, a1:-22.666, charniere:-22.666, sens:-1, y0:0, h:2.177, bois:true, cadre:'modele'},  // WC / buanderie
+  {nom:'rez__porte_interieure_98_(80)',  axe:'z', plan:-24.968, a0:13.176,  a1:14.150,  charniere:13.176,  sens:-1, y0:0, h:2.177, bois:true, cadre:'modele'},  // chambre
   {nom:'rez__porte_reduit',              axe:'z', plan:-21.065, a0:12.95,   a1:13.68,   charniere:12.95,   sens:-1, y0:0, h:2.02, bois:false, cadre:'aucun', auto:false},   // réduit sous l'escalier : s'ouvre vers l'entrée, charnière côté porte d'entrée
   {nom:'etage__porte_dressing',          axe:'z', plan:-22.79,  a0:12.975,  a1:13.875,  charniere:13.875,  sens:-1, y0:F, h:2.05, bois:false, cadre:'neuf', ouv:[12.93,13.92], mur:0.08},
   {nom:'etage__porte_chambre_etage',     axe:'x', plan:16.74,   a0:-23.82,  a1:-22.91,  charniere:-22.91,  sens:+1, y0:F, h:2.05, bois:false, cadre:'neuf', ouv:[-23.86,-22.87], mur:0.08},

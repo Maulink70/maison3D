@@ -1,6 +1,6 @@
 // Point d'entrée : assemble les modules, charge le modèle, lance la boucle d'affichage
 import * as THREE from 'three';
-import {app, css} from './app.js';
+import {app, css, champVisite} from './app.js';
 import {chargerModele} from './modele.js';
 import {initVues, demarrerVues} from './vues.js';
 import {initVisite, walk, regarder, teleporter, solSous} from './visite.js';
@@ -15,16 +15,15 @@ const marque=new THREE.Mesh(new THREE.RingGeometry(0.16,0.25,40),new THREE.MeshB
 marque.rotation.x=-Math.PI/2; marque.renderOrder=10; marque.visible=false; marque.raycast=()=>{}; app.scene.add(marque);
 
 // Zoom en 1re personne : molette (PC) ou pincement à deux doigts (tablette) ; on change le champ de vision
-// (35° à 100°), on ne bouge pas : zoomer en arrière montre plus de la pièce
+// (champVisite : 35° à 95° en largeur), on ne bouge pas : zoomer en arrière montre plus de la pièce
 const {canvas}=app;
-function champ(fov){ app.camera.fov=THREE.MathUtils.clamp(fov,35,100); app.camera.updateProjectionMatrix(); app.fovVisite=app.camera.fov; }
-canvas.addEventListener('wheel',e=>{ if(app.mode!=='walk') return; e.preventDefault(); champ(app.camera.fov*Math.exp(e.deltaY*0.0012)); },{passive:false});
+canvas.addEventListener('wheel',e=>{ if(app.mode!=='walk') return; e.preventDefault(); champVisite(app.fovVisite*Math.exp(e.deltaY*0.0012)); },{passive:false});
 const doigts=new Map(); let pince=null;
 const ecart=()=>{ const [a,b]=[...doigts.values()]; return Math.hypot(a.x-b.x,a.y-b.y); };
 canvas.addEventListener('pointerdown',e=>{ doigts.set(e.pointerId,{x:e.clientX,y:e.clientY});
-  if(doigts.size===2&&app.mode==='walk') pince={d:ecart(),fov:app.camera.fov}; });
+  if(doigts.size===2&&app.mode==='walk') pince={d:ecart(),fov:app.fovVisite}; });
 canvas.addEventListener('pointermove',e=>{ if(!doigts.has(e.pointerId)) return; doigts.set(e.pointerId,{x:e.clientX,y:e.clientY});
-  if(pince&&doigts.size===2) champ(pince.fov*pince.d/Math.max(20,ecart())); });
+  if(pince&&doigts.size===2) champVisite(pince.fov*pince.d/Math.max(20,ecart())); });
 for(const t of ['pointerup','pointercancel']) canvas.addEventListener(t,e=>{ doigts.delete(e.pointerId); if(doigts.size<2) pince=null; });
 
 // Pointeur : glisser = regarder (1re personne) ; toucher bref = porte, sol ou meuble selon le mode ;

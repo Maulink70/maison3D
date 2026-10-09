@@ -4,7 +4,7 @@
 // (jamais à l'approche), comme les portes : toucher la fenêtre, bouton du panneau en Éditer, « Ouvrir les fenêtres ».
 import * as THREE from 'three';
 import {app} from './app.js';
-import {MAT, boite, fusionner, uvMonde} from './formes.js';
+import {MAT, boite, fusionner, uvMonde, extraire} from './formes.js';
 
 const VERRE=new THREE.MeshStandardMaterial({color:0xdcebf0,transparent:true,opacity:0.16,roughness:0.05,side:THREE.DoubleSide,depthWrite:false});
 const DROIT=Math.PI/2;
@@ -60,26 +60,6 @@ function cadreOuvrant(g,f,o,orig,s,bois){
   else piece(g,f,pa-0.01,pa+0.01,py-0.12,py+0.01,s*0.012,s*0.03,MAT.chrome);
 }
 
-// Triangles d'un maillage dont le centre passe le test (coordonnées monde) : nouveau maillage, en coordonnées monde
-// (les attributs du modèle sont compressés en entiers normalisés : ils sont d'abord convertis en flottants)
-function enFlottants(geo){
-  const g=new THREE.BufferGeometry(), lire=['getX','getY','getZ','getW'];
-  for(const [nom,att] of Object.entries(geo.attributes)){ const n=att.itemSize, a=new Float32Array(att.count*n);
-    for(let i=0;i<att.count;i++) for(let j=0;j<n;j++) a[i*n+j]=att[lire[j]](i);
-    g.setAttribute(nom,new THREE.BufferAttribute(a,n)); }
-  if(geo.index) g.setIndex(geo.index.clone()); return g;
-}
-function extraire(mesh,test){
-  mesh.updateMatrixWorld(true);
-  let g=enFlottants(mesh.geometry); if(g.index) g=g.toNonIndexed(); g.applyMatrix4(mesh.matrixWorld);
-  const p=g.attributes.position, garde=[], c=new THREE.Vector3(), t=new THREE.Vector3();
-  for(let i=0;i+2<p.count;i+=3){ c.fromBufferAttribute(p,i).add(t.fromBufferAttribute(p,i+1)).add(t.fromBufferAttribute(p,i+2)).multiplyScalar(1/3); if(test(c)) garde.push(i,i+1,i+2); }
-  if(!garde.length) return null;
-  const ng=new THREE.BufferGeometry();
-  for(const [nom,att] of Object.entries(g.attributes)){ const n=att.itemSize, arr=new att.array.constructor(garde.length*n);
-    garde.forEach((i,k)=>{ for(let j=0;j<n;j++) arr[k*n+j]=att.array[i*n+j]; }); ng.setAttribute(nom,new THREE.BufferAttribute(arr,n)); }
-  return new THREE.Mesh(ng,mesh.material);
-}
 
 // après fusion par matériau, la vitre garde son étiquette (vitres reconnues par les tests et la sélection)
 function marquerVitres(g){ g.traverse(o=>{ if(o.isMesh&&o.material===VERRE) o.userData.vitre=true; }); return g; }

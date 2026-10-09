@@ -41,10 +41,19 @@ export const app={
   colliders:[], floors:[],   // copies DoubleSide des éléments fixes : murs (visite) et sols (hauteur)
   fenetres:[], portes:[], battants:[], toutOuvert:false, portesAuto:true,   // fenêtres et battants : obstacles qui suivent l'élément
   edition:false,             // Visite (rien n'est modifiable) ou Éditer
+  fovVisite:85,              // zoom de la 1re personne : champ de vision horizontal en degrés (35 à 95)
   mobilierPret:false
 };
 
-function resize(){const r=canvas.getBoundingClientRect();renderer.setSize(r.width,r.height,false);camera.aspect=r.width/r.height;camera.updateProjectionMatrix();}
+// Champ de vision en 1re personne : réglé en largeur (35° à 95°, 85° au départ) puis converti en hauteur selon la forme
+// de l'écran, au plus 75° : au-delà la perspective se déforme (le zoom réglait la hauteur jusqu'à 100°, soit ~137° en
+// largeur sur un écran de PC ; corrigé le 9 octobre 2026 à la demande de Mauro)
+export function champVisite(h=app.fovVisite){
+  app.fovVisite=THREE.MathUtils.clamp(h,35,95); if(app.mode!=='walk') return;
+  const v=2*Math.atan(Math.tan(app.fovVisite*Math.PI/360)/camera.aspect)*180/Math.PI;
+  camera.fov=Math.min(75,v); camera.updateProjectionMatrix();
+}
+function resize(){const r=canvas.getBoundingClientRect();renderer.setSize(r.width,r.height,false);camera.aspect=r.width/r.height;camera.updateProjectionMatrix();champVisite();}
 window.addEventListener('resize',resize); resize();
 
 // Accès pour les tests automatisés
