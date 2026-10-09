@@ -11,7 +11,6 @@ import * as THREE from 'three';
 import {app, $, css} from './app.js';
 import {ETAGE_FLOOR, REZ_CUT, ROOF_CUT, ETAGE_CUT, GARDE_CORPS} from './config.js';
 import {PIECES, bornes} from './pieces.js';
-import {PORTES} from './portes.js';
 import {ESC} from './rez_structure.js';
 import {select} from './edition.js';
 import {save} from './sauvegarde.js';
@@ -19,6 +18,7 @@ import {save} from './sauvegarde.js';
 export const camPlan=new THREE.OrthographicCamera(-1,1,1,-1,0.1,200); camPlan.up.set(0,0,-1);
 const COUPE=1.0, SMIN=12, SMAX=600, NS='http://www.w3.org/2000/svg';
 const vue={cx:15.4,cz:-21.2,s:40};
+const VIDE={x0:12.87,x1:19.44,z0:-21.11,z1:-14.34};   // salon en double hauteur : vide vu de l'étage
 let anim=null, niveau='rez', actif=false, contenu=null;
 export let style='archi';
 const svg=()=>$('plan'), monde=()=>$('plan-monde');
@@ -45,7 +45,7 @@ function cible(b,marge=0.6){
 }
 function bornesNiveau(){
   const l=PIECES.filter(p=>p.niveau===niveau).map(bornes);
-  if(niveau==='etage') l.push({x0:12.87,x1:19.44,z0:-21.11,z1:-14.34});   // vide sur le salon
+  if(niveau==='etage') l.push(VIDE);
   return {x0:Math.min(...l.map(b=>b.x0)),x1:Math.max(...l.map(b=>b.x1)),z0:Math.min(...l.map(b=>b.z0)),z1:Math.max(...l.map(b=>b.z1))};
 }
 const doux=matchMedia('(prefers-reduced-motion: reduce)');
@@ -182,7 +182,7 @@ function construire(){
   el('path',{class:'poche',d:murs()},archi);
   if(niveau==='etage'){
     // vide sur le salon (double hauteur) et garde-corps vitré de la mezzanine
-    const v={x0:12.87,x1:19.44,z0:-21.11,z1:-14.34};
+    const v=VIDE;
     el('path',{class:'vide',d:`M${v.x0} ${v.z0}L${v.x1} ${v.z1}M${v.x1} ${v.z0}L${v.x0} ${v.z1}`},archi);
     const g=GARDE_CORPS; el('rect',{class:'gc',x:g.x0,y:g.z0,width:g.x1-g.x0,height:g.z1-g.z0},archi);
   } else {
