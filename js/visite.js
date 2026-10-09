@@ -93,7 +93,10 @@ export function walk(dt){
     cible=null;
     const fw=new THREE.Vector3(-Math.sin(yaw),0,-Math.cos(yaw)), rt=new THREE.Vector3(Math.cos(yaw),0,-Math.sin(yaw));
     const mv=fw.multiplyScalar(f).add(rt.multiplyScalar(s)).normalize().multiplyScalar(1.5*dt);
-    if(!avancer(mv)){ avancer(new THREE.Vector3(mv.x,0,0)) || avancer(new THREE.Vector3(0,0,mv.z)); }   // on glisse le long d'un obstacle
+    // pas bloqué : demi-pas puis quart de pas (on s'approche au plus près, quelle que soit la vitesse d'affichage),
+    // sinon on glisse le long de l'obstacle
+    const essayer=v=>avancer(v)||avancer(v.clone().multiplyScalar(0.5))||avancer(v.clone().multiplyScalar(0.25));
+    if(!essayer(mv)){ essayer(new THREE.Vector3(mv.x,0,0)) || essayer(new THREE.Vector3(0,0,mv.z)); }
   } else if(cible){
     const d=new THREE.Vector3(cible.x-camera.position.x,0,cible.z-camera.position.z), dist=d.length();
     if(dist<0.03) cible=null;
