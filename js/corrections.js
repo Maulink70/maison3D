@@ -80,7 +80,7 @@ export function corrigerStructure(root){
   }
   // 2 bis. Dégagement : sous l'armoire, pas de parquet mais une face blanche (peinture des murs), 0,3 mm au-dessus du
   //    parquet voisin : tache blanche qui scintille si on déplace l'armoire ; remplacée par du parquet raccordé à celui du dégagement
-  if(parquet) ajouts.add(dalle(parquet,14.15,14.87,-24.93,-22.84,0,[14.0,-23.9]));
+  if(parquet) ajouts.add(dalle(parquet,14.15,14.87,-24.93,-22.78,0,[14.0,-23.9]));
   if(rez) rez.traverse(o=>{ if(o.isMesh&&o.material.name==='Material_6') neutraliser(o,pts=>auSol(pts)&&pts.every(q=>q.x>13.0&&q.x<14.9&&q.z>-24.95&&q.z<-22.75)
     &&new THREE.Vector3().subVectors(pts[1],pts[0]).cross(new THREE.Vector3().subVectors(pts[2],pts[0])).y>0); });
   // 3. Sol bleu de la douche de l'étage tracé à 2,40 m sur toute l'emprise du bâtiment (remplacé par le sol à 2,74 m)
