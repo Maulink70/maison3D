@@ -150,13 +150,15 @@ function baie(root){
   marquerVitres(fusionner(pivot)); node.updateMatrixWorld(true); node.attach(pivot);
   // le nœud du modèle est mis à l'échelle (géométrie compressée) : la course est convertie dans son repère
   const base=pivot.position.clone(), dir=node.worldToLocal(new THREE.Vector3(1,0,0)).sub(node.worldToLocal(new THREE.Vector3()));
-  enregistrer(node,pivot,b.course,v=>{ pivot.position.copy(base).addScaledVector(dir,v); },b.nom,1.2);
+  // la baie est aussi une porte : elle suit « Ouvrir les portes » (et « Ouvrir les fenêtres »), sans ouverture automatique
+  enregistrer(node,pivot,b.course,v=>{ pivot.position.copy(base).addScaledVector(dir,v); },b.nom,1.2).def.porte=true;
   // on ne sort pas par la baie ouverte : bloc invisible dans la moitié extérieure du mur
   const m=new THREE.Mesh(new THREE.BoxGeometry(b.fixe[1]-b.mobile[0],2.4,0.03),new THREE.MeshBasicMaterial({side:THREE.DoubleSide}));
   m.position.set((b.mobile[0]+b.fixe[1])/2,1.2,b.ext-0.02); m.updateMatrixWorld(true); app.colliders.push(m);
 }
 
-// Velux : cadre blanc et vitre pivotant autour de l'axe horizontal du milieu, dans le plan du toit (la doublure du modèle reste)
+// Velux : cadre blanc et vitre dans le plan du toit (la doublure du modèle reste), charnière en haut côté extérieur :
+// tout l'ouvrant part vers l'extérieur, le bas se soulève (30 %), rien n'entre dans la pièce ; barre de manœuvre en bas
 function velux(root,v){
   const node=root.getObjectByName(v.nom); if(!node) return;
   let blanc=null; node.traverse(o=>{ if(o.isMesh&&o.material.name==='Material_363'&&!blanc) blanc=o.material; });
@@ -165,14 +167,15 @@ function velux(root,v){
   const n=new THREE.Vector3().crossVectors(u,w);                    // vers l'intérieur (sud, vers le bas)
   const cadre=new THREE.Group(); cadre.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(u,w,n));
   cadre.position.set((v.x[0]+v.x[1])/2,(VELUX_BAS.y+VELUX_HAUT.y)/2,(VELUX_BAS.z+VELUX_HAUT.z)/2);
-  const pivot=new THREE.Group(); pivot.name=v.nom+'__ouvrant'; cadre.add(pivot);
-  const lx=(v.x[1]-v.x[0])/2, ly=L/2, p=0.06, m=blanc||MAT.blanc;
-  boite(pivot,-lx-p,-lx,-ly-p,ly+p,-0.03,0.03,m); boite(pivot,lx,lx+p,-ly-p,ly+p,-0.03,0.03,m);
-  boite(pivot,-lx,lx,-ly-p,-ly,-0.03,0.03,m); boite(pivot,-lx,lx,ly,ly+p,-0.03,0.03,m);
-  const verre=boite(pivot,-lx,lx,-ly,ly,-0.003,0.003,VERRE); verre.userData.vitre=true;
-  boite(pivot,-lx+0.02,lx-0.02,ly+0.005,ly+0.03,0.03,0.05,MAT.inox);      // barre de manœuvre en haut, côté pièce
+  const lx=(v.x[1]-v.x[0])/2, ly=L/2, p=0.06, m=blanc||MAT.blanc, H=ly+p, E=-0.03;
+  const pivot=new THREE.Group(); pivot.name=v.nom+'__ouvrant'; pivot.position.set(0,H,E); cadre.add(pivot);   // arête haute, face extérieure
+  const b=(x0,x1,y0,y1,z0,z1,mat)=>boite(pivot,x0,x1,y0-H,y1-H,z0-E,z1-E,mat);
+  b(-lx-p,-lx,-ly-p,ly+p,-0.03,0.03,m); b(lx,lx+p,-ly-p,ly+p,-0.03,0.03,m);
+  b(-lx,lx,-ly-p,-ly,-0.03,0.03,m); b(-lx,lx,ly,ly+p,-0.03,0.03,m);
+  const verre=b(-lx,lx,-ly,ly,-0.003,0.003,VERRE); verre.userData.vitre=true;
+  b(-lx+0.02,lx-0.02,-ly-0.03,-ly-0.005,0.03,0.05,MAT.inox);         // barre de manœuvre en bas, côté pièce
   marquerVitres(fusionner(pivot)); node.updateMatrixWorld(true); node.attach(cadre);
-  enregistrer(node,pivot,-0.3*DROIT,a=>{ pivot.rotation.x=a; },v.nom);
+  enregistrer(node,pivot,0.3*DROIT,a=>{ pivot.rotation.x=a; },v.nom);  // angle positif : le bas part vers l'extérieur (−n)
 }
 
 export function installerFenetres(root){

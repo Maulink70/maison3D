@@ -25,7 +25,6 @@ export const PORTES=[
 ];
 const OUVERT=1.53;                       // ≈ 88°
 const blancPorte=new THREE.MeshStandardMaterial({color:0xf2f0ed,roughness:0.45});
-const profil=new THREE.MeshStandardMaterial({color:0xe4e2dd,roughness:0.4});
 const verre=new THREE.MeshStandardMaterial({color:0xdcebf0,transparent:true,opacity:0.16,roughness:0.05,side:THREE.DoubleSide,depthWrite:false});
 
 // Porte-fenêtre de la cuisine (le modèle n'a que des faces plates collées au mur) : dormant en bois dans
@@ -56,10 +55,11 @@ function battant(d,matBois){
   // pièce du battant : a le long du mur (depuis la charnière), y en hauteur, e dans l'épaisseur
   const piece=(a0,a1,y0,y1,e0,e1,m)=>d.axe==='x'?boite(pivot,e0,e1,y0,y1,Math.min(a0,a1),Math.max(a0,a1),m):boite(pivot,Math.min(a0,a1),Math.max(a0,a1),y0,y1,e0,e1,m);
   let feuille;
-  if(d.vitree){                                                  // ouvrant vitré : profilés de 6,5 cm et vitre
-    const r=0.065; feuille=piece(0,dir*w,0,d.h,-0.004,0.004,verre); feuille.userData.fusion=false; feuille.userData.vitre=true;
-    piece(0,dir*r,0,d.h,-0.03,0.03,profil); piece(dir*(w-r),dir*w,0,d.h,-0.03,0.03,profil);
-    piece(dir*r,dir*(w-r),0,0.09,-0.03,0.03,profil); piece(dir*r,dir*(w-r),d.h-r,d.h,-0.03,0.03,profil);
+  if(d.vitree){                                                  // ouvrant vitré : profilés en bois de 6,5 cm (comme le dormant) et vitre
+    const r=0.065, pb=matBois||MAT.chene; feuille=piece(0,dir*w,0,d.h,-0.004,0.004,verre); feuille.userData.fusion=false; feuille.userData.vitre=true;
+    const bois=(...a)=>{ const b=piece(...a,pb); if(pb.map){ b.geometry.translate(b.position.x,b.position.y,b.position.z); b.position.set(0,0,0); uvMonde(b.geometry); } };
+    bois(0,dir*r,0,d.h,-0.03,0.03); bois(dir*(w-r),dir*w,0,d.h,-0.03,0.03);
+    bois(dir*r,dir*(w-r),0,0.09,-0.03,0.03); bois(dir*r,dir*(w-r),d.h-r,d.h,-0.03,0.03);
     const s=d.sens, a=dir*(w-0.035);                               // poignée (crémone) côté pièce, près du bord libre
     piece(a-0.012,a+0.012,1.0,1.16,Math.min(s*0.03,s*0.045),Math.max(s*0.03,s*0.045),MAT.chrome);
     piece(a-0.01,a+0.01,0.94,1.08,Math.min(s*0.045,s*0.065),Math.max(s*0.045,s*0.065),MAT.chrome);
@@ -135,7 +135,7 @@ export function basculerPorte(p){ const c=centrePorte(p), cam=app.camera.positio
   p.cible=!p.cible; p.manuel=true; p.distManuel=Math.hypot(cam.x-c.x,cam.z-c.z); }
 // Bouton du panneau (Éditer) : ouvre tous les ouvrants de l'élément s'il en reste un fermé, sinon les ferme
 export function basculerElement(nom){ const l=ouvrantsDe(nom), ouvrir=l.some(p=>!p.cible); for(const p of l) if(p.cible!==ouvrir) basculerPorte(p); return ouvrir; }
-export function toutOuvrir(oui){ app.toutOuvert=oui; for(const p of app.portes) if(!p.def.fenetre){ p.cible=oui; p.manuel=false; } }
+export function toutOuvrir(oui){ app.toutOuvert=oui; for(const p of app.portes) if(!p.def.fenetre||p.def.porte){ p.cible=oui; p.manuel=false; } }   // la baie suit aussi
 // « Ouvrir les fenêtres » : toutes ouvertes ou toutes fermées (elles restent ainsi : pas d'automatisme)
 export function toutesFenetres(oui){ app.fenetresOuvertes=oui; for(const p of app.portes) if(p.def.fenetre) p.cible=oui; }
 export function porteDe(nom){ return app.portes.find(p=>p.nom===nom); }
