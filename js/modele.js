@@ -6,10 +6,10 @@ import {app, $} from './app.js';
 import {META, FICHIERS, GARDE_CORPS, ETAGE_FLOOR, SOL_WC} from './config.js';
 import {construireEtagere} from './etagere.js';
 import {construireBuanderie, carrelerSol, carrelerMursWC} from './buanderie.js';
-import {fusionner} from './formes.js';
+import {fusionner, MAT} from './formes.js';
 import {remplacerEscalier, remplacerCloison, cloisonReduit, toitSud, decorEntree} from './rez_structure.js';
 import {construireCuisine} from './rez_cuisine.js';
-import {construireSalon} from './rez_salon.js';
+import {construireSalon, construireBuffet} from './rez_salon.js';
 import {construirePieces} from './rez_pieces.js';
 import {plafondsPin, solDouche, murAubergine, ouvrirPorteDouche, carrelerDouche} from './etage_structure.js';
 import {construireEtage} from './etage_pieces.js';
@@ -89,6 +89,14 @@ function remplacerEtagere(node,root){
   const g=fusionner(construireEtagere()); root.add(g); node.attach(g);
 }
 
+// Buffet du salon refait d'après la photo de Mauro (js/rez_salon.js), dans le laqué bordeaux et crème du modèle (teintés)
+function remplacerBuffet(node,root){
+  let bordeaux=null, creme=null; node.traverse(o=>{ if(!o.isMesh) return;
+    if(o.material.name==='Material_15') bordeaux=o.material; if(o.material.name==='Material_6') creme=o.material; });
+  const vieux=[]; node.traverse(o=>{ if(o.isMesh) vieux.push(o); }); for(const o of vieux) o.removeFromParent();
+  const g=fusionner(construireBuffet(bordeaux||MAT.potBordeaux,creme||MAT.laqueCreme)); root.add(g); node.attach(g);
+}
+
 // Couleurs corrigées d'après les photos (matériau SketchUp → couleur réelle), meuble par meuble
 const TEINTES={'rez__meuble_salon':{Material_15:0x6f1f2b,       // buffet : rouge vif → bordeaux
     Material_6:0xeee6d4},                                        // caisson blanc → crème (questionnaire)
@@ -107,6 +115,7 @@ function installerMobilier(root){
   corrigerVitres(root); retirerPanneauxSurVitres(root); teinter(root); seuilBaie(root);
   app.model.add(root); root.updateMatrixWorld(true);
   const etagere=root.getObjectByName('rez__armoire'); if(etagere) remplacerEtagere(etagere,root);
+  const buffet=root.getObjectByName('rez__meuble_salon'); if(buffet) remplacerBuffet(buffet,root);
   for(const n of [...construireBuanderie(root),...construireCuisine(),...construireSalon(),...construirePieces(root),...construireEtage(root)]) root.add(fusionner(n));
   installerPortes(root); installerFenetres(root);
   const tapis=root.getObjectByName('rez__tapis_salon'); if(tapis) tapis.scale.y=1.75;   // poils longs : 3,5 cm d'épaisseur au lieu de 2

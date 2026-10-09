@@ -11,7 +11,7 @@ export const META={
   structure_rez:{l:'Structure rez',c:'fixe'}, structure_etage:{l:'Structure étage',c:'fixe'},
   'rez__escalier':{l:'Escalier',c:'fixe'}, 'rez__cloison':{l:'Cloison escalier',c:'fixe'},
   'rez__canape_salon#1':{l:'Canapé d’angle',c:'meuble'}, 'rez__tapis_salon':{l:'Tapis du salon',c:'meuble'},
-  'rez__meuble_salon':{l:'Meuble bas (rouge)',c:'meuble'}, 'rez__salon':{l:'Meuble haut (dégagement)',c:'meuble'},
+  'rez__meuble_salon':{l:'Buffet bordeaux et crème',c:'meuble'}, 'rez__salon':{l:'Meuble haut (dégagement)',c:'meuble'},
   'rez__Bar_cuisine':{l:'Bar de cuisine',c:'meuble'}, 'rez__armoire':{l:'Bibliothèque le long de l’escalier',c:'meuble'},
   'rez__armoire_chambre_a_coucher':{l:'Armoire chambre',c:'meuble'}, 'rez__Baignoire':{l:'Baignoire',c:'meuble'},
   'rez__Cherry':{l:'Cerise décorative',c:'meuble'}, 'rez__element_mural':{l:'Porte-fenêtre cuisine',c:'ouverture'},
