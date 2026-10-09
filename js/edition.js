@@ -6,6 +6,7 @@ import {save} from './sauvegarde.js';
 import {glisserVers} from './visite.js';
 import {basculerPorte, basculerElement, ouvrantsDe} from './portes.js';
 import {dansIsolement} from './isoler.js';
+import {estLampe, soirOuNuit, basculerLampe, marquerLampe, majPanneauLampe} from './lampes.js';
 
 const rc=new THREE.Raycaster();
 
@@ -23,7 +24,9 @@ function visibleChain(o){ while(o){ if(!o.visible) return false; o=o.parent;} re
 export function toucher(e){
   const h=viser(e.clientX,e.clientY);
   if(!app.edition){
+    const lampe=app.items[h?.object.userData.item];
     if(h?.object.userData.porte) basculerPorte(h.object.userData.porte);
+    else if(lampe&&estLampe(lampe)&&soirOuNuit()) basculerLampe(lampe);   // le soir, toucher une lampe l'allume ou l'éteint
     else if(h&&app.mode==='walk') glisserVers(h.point);
     return;
   }
@@ -68,7 +71,7 @@ export function select(name){
   app.selBox=new THREE.BoxHelper(it.g,new THREE.Color(css('--accent')||'#2c5a86')); scene.add(app.selBox);
   // sur le plan, on déplace en faisant glisser le meuble et on le tourne par sa poignée (pas de poignée 3D)
   modeOutil(null); $('t-move').disabled=$('t-poignee').disabled=app.mode==='plan';
-  majAngle(); majPorte();
+  majAngle(); majPorte(); majPanneauLampe();
   openSheet(true);
   document.querySelector('.row.sel')?.scrollIntoView({block:'nearest'});
 }
@@ -141,6 +144,8 @@ export function initEdition(){
   $('t-angle').oninput=e=>tourner(+e.target.value);
   $('t-angle-num').onchange=e=>{ const a=Number(String(e.target.value).replace(',','.')); if(Number.isFinite(a)) tourner(deg(a*Math.PI/180)); else majAngle(); };
   $('t-porte').onclick=()=>{ if(app.selected){ basculerElement(app.selected.name); majPorte(); } };
+  $('t-lampe').onchange=e=>{ if(app.selected) marquerLampe(app.selected,e.target.checked); };
+  $('t-allumer').onclick=()=>{ if(app.selected) basculerLampe(app.selected); };
   $('t-color').oninput=e=>{ if(!app.selected) return; paint(app.selected,e.target.value); save(); };
   $('t-color-clear').onclick=()=>{ if(!app.selected) return; paint(app.selected,null); $('t-color').value='#ffffff'; save(); };
   $('t-hide').onclick=()=>{ if(!app.selected) return; const it=app.selected; setHidden(it,!it.hidden); select(null); save(); };

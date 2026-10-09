@@ -214,7 +214,7 @@ export function initCalques(){
       // lumière du jour (lumiere.js) et vue éclatée (eclate.js)
       const l=document.createElement('div'); l.className='impr-ligne';
       l.innerHTML='<span id="cq-t-lumiere">Lumière</span><div class="seg" role="group" aria-labelledby="cq-t-lumiere">'+
-        [['normale','Normale'],['matin','Matin'],['midi','Midi'],['soir','Soir']].map(([k,t])=>`<button type="button" id="cq-lum-${k}" data-lumiere="${k}">${t}</button>`).join('')+'</div>';
+        [['normale','Normale'],['matin','Matin'],['midi','Midi'],['soir','Soir'],['nuit','Nuit']].map(([k,t])=>`<button type="button" id="cq-lum-${k}" data-lumiere="${k}">${t}</button>`).join('')+'</div>';
       l.querySelectorAll('[data-lumiere]').forEach(b=>b.onclick=()=>{ etat.lumiere=b.dataset.lumiere; garder(); majMenu(); });
       const e=document.createElement('label'); e.className='case eclat';
       e.innerHTML='<span>Vue éclatée</span><input type="range" id="cq-eclat" min="0" max="3" step="0.1" value="0"><output id="cq-eclat-val">0 m</output>';
