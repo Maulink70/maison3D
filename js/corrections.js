@@ -89,7 +89,9 @@ export function corrigerStructure(root){
   rez?.traverse(o=>{ if(o.isMesh&&o.material.name==='Material_13'){ const b=boiteMonde(o); if(b.max.y<0.1&&b.min.z>-14.4) o.userData.retirer=true; } });
   const aRetirer=[]; root.traverse(o=>{ if(o.userData.retirer) aRetirer.push(o); }); for(const o of aRetirer) o.removeFromParent();
   //    ses faces blanches internes (à 8 cm, vues à travers le bas de la vitre) partent avec lui
-  if(mur) rez.traverse(o=>{ if(o.isMesh&&o.material===mur) neutraliser(o,pts=>pts.every(q=>q.x>12.6&&q.x<19.7&&q.y>-0.005&&q.y<0.085&&q.z>-14.35&&q.z<-14.13)); });
+  //    (sur la largeur de la baie seulement, x 12,88 → 18,60 : plus loin, c'était le bas du mur, fente de 4 cm sur la pelouse,
+  //    vue par Mauro le 9 octobre 2026)
+  if(mur) rez.traverse(o=>{ if(o.isMesh&&o.material===mur) neutraliser(o,pts=>pts.every(q=>q.x>12.6&&q.x<18.60&&q.y>-0.005&&q.y<0.085&&q.z>-14.35&&q.z<-14.13)); });
   // 5. Porte d'entrée : on perce le mur (ses deux faces) et on les refait autour de l'ouverture
   if(rez&&mur){
     const E=ENTREE, dans=(pts,z,xa,xb,yb)=>pts.every(q=>Math.abs(q.z-z)<0.004&&q.x>xa-0.005&&q.x<xb+0.005&&q.y>-0.005&&q.y<yb+0.005);
