@@ -90,9 +90,9 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
   #pad{bottom:16px}
   body.sheet-open #pad{display:none}
 }
-/* tablette et téléphone (écran tactile) : pas de texte d'aide, il cachait le pavé de marche (Mauro, 9 octobre 2026) ;
-   une rubrique « Aide » est prévue à la fin du projet */
-@media (pointer:coarse){#hint{display:none}}
+/* plus de texte d'aide à l'écran (PC compris) : il cachait le pavé de marche (Mauro, 9 octobre 2026) ; les textes restent
+   dans vues.js (AIDE) pour la rubrique « Aide » prévue à la fin du projet */
+#hint{display:none!important}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 /* Chargement des meubles après la structure */
 #charge{position:absolute;top:72px;left:50%;transform:translateX(-50%);background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:6px 14px;font-size:12.5px;color:var(--muted);white-space:nowrap;pointer-events:none}
