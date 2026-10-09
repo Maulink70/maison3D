@@ -81,6 +81,9 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
 :root[data-theme="dark"]{--plan-meuble:#2b343b}
 #plan{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;cursor:grab}
 #plan[hidden]{display:none}
+/* style architecte : le fond papier est celui du calque SVG lui-même (et non le fond de la 3D) : si un navigateur recolore
+   la page, papier, murs et textes changent ensemble et restent lisibles */
+#plan:not(.reel){background:var(--panel)}
 #plan *{vector-effect:non-scaling-stroke}
 #plan .archi-seul{pointer-events:none}
 #plan .poche{fill:var(--ink);fill-rule:evenodd;stroke:none}
