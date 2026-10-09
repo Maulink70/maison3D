@@ -10,6 +10,7 @@ export function save(){
   }
   try{ localStorage.setItem(KEY,JSON.stringify(d)); $('save-state').textContent='Enregistré dans ce navigateur.'; }
   catch{ $('save-state').textContent='Ce navigateur ne garde pas les changements.'; }
+  dispatchEvent(new CustomEvent('disposition'));   // historique (annuler / rétablir), alertes de passage
 }
 export function restore(){
   let d={}; try{ d=JSON.parse(localStorage.getItem(KEY)||'{}'); }catch{}
@@ -22,6 +23,6 @@ export function initSauvegarde(){
     if(!armed){ armed=true; $('reset-all').textContent='Confirmer la réinitialisation'; setTimeout(()=>{armed=false;$('reset-all').textContent='Tout réinitialiser';},4000); return; }
     armed=false; $('reset-all').textContent='Tout réinitialiser';
     select(null); for(const it of Object.values(app.items)) resetItem(it); buildList();
-    try{localStorage.removeItem(KEY);}catch{} $('save-state').textContent='Disposition d’origine rétablie.';
+    save(); $('save-state').textContent='Disposition d’origine rétablie (annulable).';
   };
 }

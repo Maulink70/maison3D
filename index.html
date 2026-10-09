@@ -8,6 +8,11 @@
      Samsung Internet…) ne doivent pas le recolorer (textes du plan devenus blancs sur le fond blanc de la 3D) -->
 <meta name="color-scheme" content="light dark">
 <title>Appartement Diolly 3D</title>
+<!-- application installable (étape 2) : manifeste, icônes, couleur de la barre du système -->
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#2c5a86">
+<link rel="icon" type="image/png" href="icones/favicon-64.png">
+<link rel="apple-touch-icon" href="icones/apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
@@ -19,8 +24,11 @@
   <svg id="plan" class="plan-svg" hidden role="img" aria-label="Plan 2D vu de dessus"><g id="plan-monde"></g></svg>
   <svg id="calques" class="calques-svg" hidden aria-label="Calques : noms, surfaces, hauteurs et cotes"></svg>
   <svg id="mesures" class="mesures-svg" hidden aria-label="Mesures"></svg>
+  <div id="bandeaux">
   <div id="bandeau-piece" role="status" hidden></div>
+  <div id="bandeau-isole" hidden><span id="isole-texte" role="status"></span><span class="actions"><span class="seg" role="group" aria-label="Le reste de l’appartement"><button id="isole-pale" aria-pressed="true">Pâle</button><button id="isole-masque" aria-pressed="false">Masqué</button></span><button class="btn primary" id="isole-fin">Tout afficher</button></span></div>
   <div id="bandeau-mesure" hidden><span id="mesure-texte" role="status"></span><span class="actions"><button class="btn" id="mesure-effacer" hidden>Tout effacer</button><button class="btn primary" id="mesure-terminer">Terminer</button></span></div>
+  </div>
 
   <header class="bar">
     <div class="brand"><strong>Appartement Diolly</strong><span>2 niveaux · échelle 1:1 en mètres</span></div>
@@ -47,6 +55,10 @@
       <div id="aller-menu" class="menu" role="menu" aria-label="Aller à une pièce" hidden></div>
     </div>
     <div class="aller">
+      <button class="btn" id="vues" aria-haspopup="true" aria-expanded="false" aria-controls="vues-menu">Vues <span aria-hidden="true">▾</span></button>
+      <div id="vues-menu" class="menu" role="dialog" aria-label="Vues enregistrées" hidden></div>
+    </div>
+    <div class="aller">
       <button class="btn" id="calques-bouton" aria-haspopup="true" aria-expanded="false" aria-controls="calques-menu">Calques <span aria-hidden="true">▾</span></button>
       <div id="calques-menu" class="menu" role="dialog" aria-label="Calques" hidden></div>
     </div>
@@ -60,18 +72,27 @@
     <button class="btn" id="auto" aria-pressed="true">Portes auto : oui</button>
     <button class="btn" id="fenetres" aria-pressed="false">Ouvrir les fenêtres</button>
     <button class="btn" id="toggle-panel" aria-expanded="true" hidden>Meubles</button>
+    <button class="btn primary" id="installer" hidden>Installer l’application</button>
   </header>
 
   <aside id="panel" aria-label="Mobilier" hidden>
+    <div class="histo">
+      <button class="btn" id="h-annuler" disabled>↶ Annuler</button>
+      <button class="btn" id="h-retablir" disabled>↷ Rétablir</button>
+      <details id="h-details"><summary id="h-titre">Historique (0)</summary><div id="h-liste"></div></details>
+    </div>
+    <div id="alertes" role="status" hidden><div id="alertes-titre">⚠ Alertes</div><div id="alertes-liste"></div></div>
     <section class="sec" id="sel" hidden>
       <div class="eyebrow" id="sel-cat">Mobilier</div>
       <h2 id="sel-name">—</h2>
       <div class="dims" id="sel-dims"></div>
       <div class="tools">
-        <button class="btn primary wide" id="t-move">Déplacer</button>
+        <button class="btn primary" id="t-move">Déplacer</button>
+        <button class="btn" id="t-poignee" aria-pressed="false">Tourner à la main</button>
         <button class="btn" id="t-rotl">↺ Tourner 90°</button>
         <button class="btn" id="t-rotr">↻ Tourner 90°</button>
         <div class="anglerow"><label for="t-angle">Angle</label><input type="range" id="t-angle" min="-180" max="180" step="1" value="0"><input type="number" id="t-angle-num" min="-180" max="180" step="1" value="0" inputmode="decimal" aria-label="Angle en degrés"><span>°</span></div>
+        <label class="crans"><input type="checkbox" id="t-crans" checked> Crans de 15° (poignée et curseur)</label>
         <button class="btn wide" id="t-porte" hidden>Ouvrir la porte</button>
         <div class="colorrow"><label for="t-color">Couleur</label><input type="color" id="t-color" value="#ffffff"><button class="btn" id="t-color-clear">Origine</button></div>
         <button class="btn" id="t-hide">Masquer</button>

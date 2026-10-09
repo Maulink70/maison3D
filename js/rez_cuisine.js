@@ -81,6 +81,10 @@ function banquette(){
   const g=groupe('rez__banquette'), x0=15.90, x1=17.85, z0=-21.85, z1=-21.45;
   boite(g,x0,x1,0.08,0.38,z0,z1,MAT.cuir); boite(g,x0,x1,0.38,0.46,z0,z1,MAT.cuirClair);
   for(const x of [x0+0.08,x1-0.08]) boite(g,x-0.03,x+0.03,0,0.08,z0+0.05,z1-0.05,MAT.inox);
+  // dossier côté cuisine (on s'assoit face à la table, d'après Mauro le 9 octobre 2026) : coussin sur toute la longueur,
+  // même cuir que l'assise, tenu par deux montants plats en inox près des bouts
+  for(const x of [x0+0.15,x1-0.15]) boite(g,x-0.02,x+0.02,0.46,0.80,z0,z0+0.02,MAT.inox);
+  boite(g,x0+0.01,x1-0.01,0.52,0.80,z0+0.02,z0+0.11,MAT.cuirClair);
   return g;
 }
 function chaise(nom,x,z){

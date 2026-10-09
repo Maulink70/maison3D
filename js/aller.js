@@ -9,6 +9,7 @@ import {allerA} from './visite.js';
 import {setLevel} from './vues.js';
 import {cadrerPlan} from './plan.js';
 import {caler} from './calques.js';
+import {isoler} from './isoler.js';
 
 let anim=null;
 const doux=matchMedia('(prefers-reduced-motion: reduce)');
@@ -23,6 +24,9 @@ function cadrer(p){
   const pos=c.clone().addScaledVector(new THREE.Vector3(az.x*Math.cos(el),Math.sin(el),az.z*Math.cos(el)),dist);
   anim={t:0,dur:doux.matches?0.001:0.9,p0:camera.position.clone(),c0:orbit.target.clone(),p1:pos,c1:c};
 }
+// Caméras mémorisées : retour animé de la maquette à un point de vue (position de la caméra, point regardé)
+export function animerVers(p1,c1){ const {camera,orbit}=app;
+  anim={t:0,dur:doux.matches?0.001:0.9,p0:camera.position.clone(),c0:orbit.target.clone(),p1:new THREE.Vector3(...p1),c1:new THREE.Vector3(...c1)}; }
 // Appelé à chaque image en maquette, avant orbit.update()
 export function majCadrage(dt){
   if(!anim) return;
@@ -39,12 +43,15 @@ export function allerVers(id){
 }
 
 // ---------- menu ----------
+// en maquette, « Aller | Isoler » en tête du menu : isoler cadre la pièce et cache (ou pâlit) le reste (isoler.js)
+let modeIsoler=false;
 const bouton=()=>$('aller'), menu=()=>$('aller-menu');
+function majChoix(){ $('aller-choix').hidden=app.mode!=='orbit'; $('aller-va').setAttribute('aria-pressed',String(!modeIsoler)); $('aller-isole').setAttribute('aria-pressed',String(modeIsoler)); }
 const m2=p=>surface(p).toFixed(1).replace('.',',')+' m²';
 function ouvrir(oui){
   menu().hidden=!oui; bouton().setAttribute('aria-expanded',String(oui));
   if(!oui) return;
-  caler(menu());
+  majChoix(); caler(menu());
   // pièce où l'on est (1re personne) mise en évidence
   const c=app.camera.position, ici=app.mode==='walk'?pieceEn(c.x,c.z,c.y>ETAGE_FLOOR+0.5?'etage':'rez'):null;
   for(const b of menu().querySelectorAll('[data-piece]')) b.toggleAttribute('aria-current',b.dataset.piece===ici?.id);
@@ -52,13 +59,17 @@ function ouvrir(oui){
 }
 export function initAller(){
   const m=menu();
+  const ch=document.createElement('div'); ch.id='aller-choix'; ch.className='impr-ligne';
+  ch.innerHTML='<span>Pièce</span><div class="seg" role="group" aria-label="Aller à la pièce ou l’isoler"><button type="button" id="aller-va">Aller</button><button type="button" id="aller-isole">Isoler</button></div>';
+  m.append(ch);
+  ch.querySelector('#aller-va').onclick=()=>{ modeIsoler=false; majChoix(); }; ch.querySelector('#aller-isole').onclick=()=>{ modeIsoler=true; majChoix(); };
   for(const [niv,titre] of [['rez','Rez'],['etage','Étage']]){
     const g=document.createElement('div'); g.className='menu-groupe'; g.setAttribute('role','group'); g.setAttribute('aria-label',titre);
     const t=document.createElement('div'); t.className='menu-titre'; t.textContent=titre; g.append(t);
     for(const p of PIECES.filter(q=>q.niveau===niv)){
       const b=document.createElement('button'); b.type='button'; b.setAttribute('role','menuitem'); b.dataset.piece=p.id;
       const n=document.createElement('span'); n.textContent=p.nom; const s=document.createElement('span'); s.className='m2'; s.textContent=m2(p);
-      b.append(n,s); b.onclick=()=>{ ouvrir(false); allerVers(p.id); }; g.append(b);
+      b.append(n,s); b.onclick=()=>{ ouvrir(false); allerVers(p.id); if(modeIsoler&&app.mode==='orbit') isoler(p.id); }; g.append(b);
     }
     m.append(g);
   }

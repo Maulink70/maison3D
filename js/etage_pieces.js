@@ -3,6 +3,7 @@
 import * as THREE from 'three';
 import {ETAGE_FLOOR as F} from './config.js';
 import {MAT, boite, cylindre, sphere, groupe, lignes, fusionner} from './formes.js';
+import {textureDe} from './matieres.js';
 
 const std=(color,o={})=>new THREE.MeshStandardMaterial({color,roughness:0.5,...o});
 const M={
@@ -14,7 +15,7 @@ const M={
 for(const [k,m] of Object.entries(M)) m.name='etage_'+k;
 function texture(dessin,l=256,h=256){
   const c=document.createElement('canvas'); c.width=l; c.height=h; dessin(c.getContext('2d'),l,h);
-  const t=new THREE.CanvasTexture(c); t.colorSpace=THREE.SRGBColorSpace; return t;
+  const t=textureDe(c); t.colorSpace=THREE.SRGBColorSpace; return t;
 }
 // Couvre-lit en patchwork rouge et rose du lit d'appoint
 const patchwork=std(0xffffff,{roughness:0.9,map:texture((x,l,h)=>{

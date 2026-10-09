@@ -12,7 +12,7 @@ import {app, $, css} from './app.js';
 import {ETAGE_FLOOR, REZ_CUT, ROOF_CUT, ETAGE_CUT, GARDE_CORPS} from './config.js';
 import {PIECES, bornes} from './pieces.js';
 import {ESC} from './rez_structure.js';
-import {select} from './edition.js';
+import {select, majAngle, cranter} from './edition.js';
 import {save} from './sauvegarde.js';
 
 export const camPlan=new THREE.OrthographicCamera(-1,1,1,-1,0.1,200); camPlan.up.set(0,0,-1);
@@ -184,7 +184,20 @@ const f3=v=>(+v).toFixed(3);
 const meublesDuNiveau=niv=>Object.values(app.items).filter(it=>it.meta.c==='meuble'&&it.lvl===(niv==='etage'?'Étage':'Rez')&&it.home.y-(niv==='etage'?ETAGE_FLOOR:0)<COUPE);
 function construire(){
   const m=monde(); m.replaceChildren(); contenu={niveau,meubles:remplir(m,niveau),avecMobilier:app.mobilierPret};
+  // poignée de rotation du meuble sélectionné (Éditer) : tige et rond, devant le meuble
+  const p=el('g',{class:'rotation',hidden:''},m); contenu.poignee={g:p,tige:el('path',{class:'tige'},p),rond:el('circle',{class:'bouton',r:0.2},p)};
+  p.append(Object.assign(document.createElementNS(NS,'title'),{textContent:'Faire glisser pour tourner le meuble'}));
   majMeubles(true);
+}
+// position de la poignée : à 30 px devant le meuble (son côté −z), dans la direction où il est tourné
+function poigneeEn(it){ const g=it.g, L=Math.max(it.size.x,it.size.z)/2+30/vue.s; return [g.position.x-Math.sin(g.rotation.y)*L, g.position.z-Math.cos(g.rotation.y)*L]; }
+function majPoignee(){
+  const q=contenu?.poignee, it=app.selected; if(!q) return;
+  const voir=app.edition&&!app.mesure&&it&&!it.hidden&&contenu.meubles.has(it);
+  q.g.toggleAttribute('hidden',!voir); if(!voir) return;
+  const [x,z]=poigneeEn(it), g=it.g;
+  q.tige.setAttribute('d',`M${f3(g.position.x)} ${f3(g.position.z)}L${f3(x)} ${f3(z)}`);
+  q.rond.setAttribute('cx',f3(x)); q.rond.setAttribute('cy',f3(z)); q.rond.setAttribute('r',(9/vue.s).toFixed(4));
 }
 // dessin d'un niveau dans le groupe m (mètres) ; renvoie les meubles et leur chemin SVG
 function remplir(m,niv){
@@ -227,10 +240,10 @@ function remplir(m,niv){
 // position, rotation, masquage et sélection des meubles (à chaque image, seulement s'ils ont changé)
 function placer(it,e){ const g=it.g;
   e.p.setAttribute('transform',`translate(${g.position.x.toFixed(4)} ${g.position.z.toFixed(4)}) rotate(${(-g.rotation.y*180/Math.PI).toFixed(3)})`);
-  e.p.style.display=it.hidden?'none':''; e.p.classList.toggle('sel',app.selected===it); }
+  e.p.style.display=it.hidden?'none':''; e.p.classList.toggle('sel',app.selected===it); e.p.classList.toggle('alerte',!!it.alerte&&app.edition); }
 function majMeubles(force=false){
   for(const [it,e] of contenu.meubles){
-    const g=it.g, k=`${g.position.x.toFixed(4)} ${g.position.z.toFixed(4)} ${g.rotation.y.toFixed(4)} ${it.hidden} ${app.selected===it}`;
+    const g=it.g, k=`${g.position.x.toFixed(4)} ${g.position.z.toFixed(4)} ${g.rotation.y.toFixed(4)} ${it.hidden} ${app.selected===it} ${!!it.alerte&&app.edition}`;
     if(!force&&k===e.cle) continue; e.cle=k; placer(it,e);
   }
 }
@@ -246,6 +259,9 @@ export function emprisePlan(niv){
   return {x0:m.x0+i0*m.pas,x1:m.x0+(i1+1)*m.pas,z0:m.z0+j0*m.pas,z1:m.z0+(j1+1)*m.pas};
 }
 export const echellePlan=()=>vue.s;
+// caméras mémorisées : cadrage actuel, et retour animé à un cadrage enregistré
+export const vuePlan=()=>({cx:vue.cx,cz:vue.cz,s:vue.s});
+export function allerVuePlan(v){ allerVue({cx:v.cx,cz:v.cz,s:THREE.MathUtils.clamp(v.s,SMIN,SMAX)}); }
 
 // ---------- entrée, sortie, niveau, style ----------
 export function entrerPlan(l){
@@ -267,6 +283,7 @@ export function majPlan(dt){
     vue.cx=anim.a.cx+(anim.b.cx-anim.a.cx)*k; vue.cz=anim.a.cz+(anim.b.cz-anim.a.cz)*k; vue.s=anim.a.s*Math.pow(anim.b.s/anim.a.s,k); if(t>=1) anim=null; }
   majVue();
   if(!contenu||contenu.niveau!==niveau||(!contenu.avecMobilier&&app.mobilierPret)) construire(); else majMeubles();
+  majPoignee();
   svg().classList.toggle('visite',!app.edition);
 }
 
@@ -285,7 +302,8 @@ export function initPlan(){
     if(doigts.size===2){ if(geste?.type==='meuble'&&geste.bouge) save(); geste={type:'pince',d:ecart(),m:milieu(),s:vue.s}; return; }
     if(doigts.size>2) return;
     const cibleMeuble=app.edition&&!app.mesure&&e.target.closest?.('[data-item]');
-    if(cibleMeuble){ const it=app.items[cibleMeuble.dataset.item]; if(app.selected!==it) select(it.name);
+    if(app.edition&&!app.mesure&&app.selected&&e.target.closest?.('.rotation')) geste={type:'rotation',it:app.selected,bouge:false};
+    else if(cibleMeuble){ const it=app.items[cibleMeuble.dataset.item]; if(app.selected!==it) select(it.name);
       geste={type:'meuble',it,x:e.clientX,y:e.clientY,gx:it.g.position.x,gz:it.g.position.z,bouge:false}; }
     else geste={type:'pan',x:e.clientX,y:e.clientY,cx:vue.cx,cz:vue.cz,bouge:false};
   });
@@ -294,13 +312,15 @@ export function initPlan(){
     if(geste.type==='pince'&&doigts.size===2){ const m=milieu(), avant=versMonde(geste.m.x,geste.m.y);
       vue.s=THREE.MathUtils.clamp(geste.s*ecart()/Math.max(20,geste.d),SMIN,SMAX); majVue();
       const apres=versMonde(m.x,m.y); vue.cx+=avant.x-apres.x; vue.cz+=avant.z-apres.z; geste.m=m; geste.s=vue.s; geste.d=ecart(); majVue(); return; }
+    if(geste.type==='rotation'){ const w=versMonde(e.clientX,e.clientY), g=geste.it.g;   // le rond suit le doigt autour du centre
+      g.rotation.y=cranter(Math.atan2(-(w.x-g.position.x),-(w.z-g.position.z))); geste.bouge=true; app.selBox?.update(); majAngle(); return; }
     const dx=e.clientX-geste.x, dy=e.clientY-geste.y; if(Math.hypot(dx,dy)>4) geste.bouge=true;
     if(geste.type==='pan'){ vue.cx=geste.cx-dx/vue.s; vue.cz=geste.cz-dy/vue.s; majVue(); }
     else if(geste.type==='meuble'&&geste.bouge){ geste.it.g.position.x=geste.gx+dx/vue.s; geste.it.g.position.z=geste.gz+dy/vue.s; app.selBox?.update(); }
   });
   const fin=e=>{
     if(!doigts.delete(e.pointerId)) return;
-    if(geste?.type==='meuble'&&geste.bouge) save();
+    if((geste?.type==='meuble'||geste?.type==='rotation')&&geste.bouge) save();
     else if(geste?.type==='pan'&&!geste.bouge&&app.edition&&app.selected&&!app.mesure&&e.type==='pointerup') select(null);   // toucher le vide désélectionne
     if(doigts.size===1){ const [p]=doigts.values(); geste={type:'pan',x:p.x,y:p.y,cx:vue.cx,cz:vue.cz,bouge:true}; } else if(!doigts.size) geste=null;
   };

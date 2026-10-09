@@ -5,6 +5,7 @@ import {CAT_LABEL} from './config.js';
 import {save} from './sauvegarde.js';
 import {glisserVers} from './visite.js';
 import {basculerPorte, basculerElement, ouvrantsDe} from './portes.js';
+import {dansIsolement} from './isoler.js';
 
 const rc=new THREE.Raycaster();
 
@@ -13,7 +14,7 @@ export function viser(x,y){
   const {canvas,camera,renderer,model}=app;
   const r=canvas.getBoundingClientRect();
   rc.setFromCamera(new THREE.Vector2((x-r.left)/r.width*2-1,-(y-r.top)/r.height*2+1),camera); rc.far=Infinity;
-  return rc.intersectObjects([model],true).find(h=>renderer.clippingPlanes.every(pl=>pl.distanceToPoint(h.point)>=0)&&visibleChain(h.object));
+  return rc.intersectObjects([model],true).find(h=>renderer.clippingPlanes.every(pl=>pl.distanceToPoint(h.point)>=0)&&visibleChain(h.object)&&dansIsolement(h.point));   // pièce isolée : rien autour
 }
 function visibleChain(o){ while(o){ if(!o.visible) return false; o=o.parent;} return true; }
 
@@ -33,7 +34,21 @@ export function toucher(e){
 }
 
 const deg=r=>{ let a=Math.round(r*180/Math.PI)%360; if(a>180) a-=360; if(a<=-180) a+=360; return a; };
-function majAngle(){ if(!app.selected) return; const a=deg(app.selected.g.rotation.y); $('t-angle').value=a; $('t-angle-num').value=a; }
+export function majAngle(){ if(!app.selected) return; const a=deg(app.selected.g.rotation.y); $('t-angle').value=a; $('t-angle-num').value=a; }
+// Rotation libre (livraison 11) : crans de 15° pour la poignée (3D et plan) et le curseur, désactivables (mémorisés)
+const CRANS='maison3d-crans', PAS=Math.PI/12;
+try{ app.crans=localStorage.getItem(CRANS)!=='non'; }catch{ app.crans=true; }
+export const cranter=a=>app.crans?Math.round(a/PAS)*PAS:a;
+// après la poignée 3D : angle autour de la verticale seulement, lu dans l'ordre YXZ (sinon, au-delà de 90°, three.js
+// le range en x = z = 180°), éventuellement cranté
+function apresPoignee(){ const it=app.selected; if(!it||app.tc.getMode()!=='rotate') return;
+  const y=new THREE.Euler().setFromQuaternion(it.g.quaternion,'YXZ').y; it.g.rotation.set(0,cranter(y),0); majAngle(); }
+function modeOutil(m){ const {tc}=app;
+  if(!app.selected||!m||(tc.object&&tc.getMode()===m)){ tc.detach(); m=null; }
+  else { tc.setMode(m); tc.showX=tc.showZ=m==='translate'; tc.showY=m==='rotate'; tc.attach(app.selected.g); }
+  $('t-move').textContent=m==='translate'?'Terminer le déplacement':app.mode==='plan'?'Glissez-le sur le plan':'Déplacer';
+  $('t-poignee').textContent=m==='rotate'?'Terminer la rotation':app.mode==='plan'?'Tournez-le par sa poignée':'Tourner à la main';
+  $('t-poignee').setAttribute('aria-pressed',String(m==='rotate')); }
 function majPorte(){ const l=app.selected?ouvrantsDe(app.selected.name):[]; $('t-porte').hidden=!l.length; if(!l.length) return;
   const quoi=l[0].def.fenetre?'la fenêtre':'la porte'; $('t-porte').textContent=(l.some(p=>!p.cible)?'Ouvrir ':'Fermer ')+quoi; }
 
@@ -51,8 +66,8 @@ export function select(name){
   $('t-color').value=it.color||'#ffffff';
   $('t-hide').textContent=it.hidden?'Afficher':'Masquer';
   app.selBox=new THREE.BoxHelper(it.g,new THREE.Color(css('--accent')||'#2c5a86')); scene.add(app.selBox);
-  // sur le plan, on déplace en faisant glisser le meuble (pas de poignée 3D)
-  $('t-move').textContent=app.mode==='plan'?'Glissez-le sur le plan':'Déplacer'; $('t-move').disabled=app.mode==='plan'; $('t-move').classList.add('primary');
+  // sur le plan, on déplace en faisant glisser le meuble et on le tourne par sa poignée (pas de poignée 3D)
+  modeOutil(null); $('t-move').disabled=$('t-poignee').disabled=app.mode==='plan';
   majAngle(); majPorte();
   openSheet(true);
   document.querySelector('.row.sel')?.scrollIntoView({block:'nearest'});
@@ -114,11 +129,12 @@ export function petitEcran(){ return mq.matches; }
 export function initEdition(){
   const {tc}=app;
   tc.addEventListener('dragging-changed',e=>{app.orbit.enabled=!e.value&&app.mode==='orbit'; app.gizmoDrag=e.value; if(!e.value) save();});
-  tc.addEventListener('objectChange',()=>{ if(app.selBox) app.selBox.update(); });
-  $('t-move').onclick=()=>{ if(!app.selected) return;
-    if(tc.object){ tc.detach(); $('t-move').textContent='Déplacer'; }
-    else { tc.attach(app.selected.g); $('t-move').textContent='Terminer le déplacement'; }
-  };
+  tc.addEventListener('objectChange',()=>{ apresPoignee(); if(app.selBox) app.selBox.update(); });
+  $('t-move').onclick=()=>modeOutil('translate');
+  $('t-poignee').onclick=()=>modeOutil('rotate');
+  const majCrans=()=>{ $('t-crans').checked=app.crans; $('t-angle').step=app.crans?'15':'1'; };
+  $('t-crans').onchange=e=>{ app.crans=e.target.checked; try{ localStorage.setItem(CRANS,app.crans?'oui':'non'); }catch{} majCrans(); };
+  majCrans();
   const tourner=a=>{ if(!app.selected) return; app.selected.g.rotation.y=a*Math.PI/180; app.selBox&&app.selBox.update(); majAngle(); save(); };
   $('t-rotl').onclick=()=>app.selected&&tourner(deg(app.selected.g.rotation.y)+90);
   $('t-rotr').onclick=()=>app.selected&&tourner(deg(app.selected.g.rotation.y)-90);

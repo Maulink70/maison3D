@@ -29,6 +29,13 @@ export function allerA(x,z,floor,vx,vz,incl=-0.05){
   camera.rotation.set(pitch,yaw,0,'YXZ'); degager(); majNiveau(floor);
 }
 
+// Caméras mémorisées (cameras.js) : où l'on est et où l'on regarde, et y revenir
+export function etatVisite(){ const c=app.camera.position; return {x:c.x,y:groundY,z:c.z,yaw,pitch,fov:app.fovVisite}; }
+export function reprendreVisite(e){
+  const {camera,renderer}=app; renderer.clippingPlanes=[]; cible=null; groundY=e.y;
+  camera.position.set(e.x,groundY+EYE,e.z); yaw=e.yaw; pitch=e.pitch; camera.rotation.set(pitch,yaw,0,'YXZ');
+  majNiveau(groundY>ETAGE_FLOOR-0.8?'etage':'rez');
+}
 export function regarder(dx,dy){ yaw-=dx*0.005; pitch-=dy*0.005; pitch=Math.max(-1.3,Math.min(1.3,pitch)); }
 
 const rc=new THREE.Raycaster(), down=new THREE.Vector3(0,-1,0), o=new THREE.Vector3();

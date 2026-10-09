@@ -4,6 +4,7 @@
 import * as THREE from 'three';
 import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 import {app} from './app.js';
+import {textureDe} from './matieres.js';
 
 const C={x:15.4, z:-21.2};                       // centre de la maison
 const R_CIEL=285;                                // la caméra voit jusqu'à 300 m
@@ -34,7 +35,7 @@ function texCiel(){
         r+=(248*ombre-r)*dens; g+=(249*ombre-g)*dens; b+=(252*ombre-b)*dens; }
       px[k]=r; px[k+1]=g; px[k+2]=b; px[k+3]=255; } }
   x.putImageData(img,0,0);
-  const t=new THREE.CanvasTexture(c); t.colorSpace=THREE.SRGBColorSpace; return t;
+  const t=textureDe(c); t.colorSpace=THREE.SRGBColorSpace; return t;
 }
 
 // ---------- montagnes et collines : anneaux de relief autour de la maison, couleurs voilées par la distance ----------
@@ -70,7 +71,7 @@ function chaine(R,haut,profil,{roche,neige,limite,voileBas,voileHaut,graine}){
       col.lerp(voile,voileHaut+(voileBas-voileHaut)*Math.pow(prof,1.5));
       px[k]=Math.min(255,col.r*255); px[k+1]=Math.min(255,col.g*255); px[k+2]=Math.min(255,col.b*255); px[k+3]=255; } }
   x.putImageData(img,0,0);
-  const t=new THREE.CanvasTexture(c); t.colorSpace=THREE.SRGBColorSpace; t.wrapS=THREE.RepeatWrapping; t.anisotropy=4;
+  const t=textureDe(c); t.colorSpace=THREE.SRGBColorSpace; t.wrapS=THREE.RepeatWrapping; t.anisotropy=4;
   const g=new THREE.CylinderGeometry(R,R,haut,240,1,true); g.translate(C.x,haut/2-6,C.z);
   return new THREE.Mesh(g,new THREE.MeshBasicMaterial({map:t,side:THREE.DoubleSide,alphaTest:0.5}));
 }
@@ -98,7 +99,7 @@ function texHerbe(){
   const c=document.createElement('canvas'); c.width=c.height=N; const x=c.getContext('2d'), img=x.createImageData(N,N);
   for(let i=0;i<N*N;i++){ img.data[i*4]=Math.min(255,buf[i*3]*255); img.data[i*4+1]=Math.min(255,buf[i*3+1]*255); img.data[i*4+2]=Math.min(255,buf[i*3+2]*255); img.data[i*4+3]=255; }
   x.putImageData(img,0,0);
-  const t=new THREE.CanvasTexture(c); t.wrapS=t.wrapT=THREE.RepeatWrapping; t.colorSpace=THREE.SRGBColorSpace; t.anisotropy=8; return t;
+  const t=textureDe(c); t.wrapS=t.wrapT=THREE.RepeatWrapping; t.colorSpace=THREE.SRGBColorSpace; t.anisotropy=8; return t;
 }
 function pelouse(){
   const T=560, n=110, g=new THREE.PlaneGeometry(T,T,n,n); g.rotateX(-Math.PI/2); g.translate(C.x,0,C.z);

@@ -206,7 +206,7 @@ async function pdfVue(o){
 function imageMeuble(it){
   const {renderer,scene,canvas}=app, L=29, avant=[], caches=[];
   const marquer=o=>{ avant.push([o,o.layers.mask]); o.layers.enable(L); };
-  it.g.traverse(o=>{ marquer(o); if(o.name?.endsWith('__couvercle')&&o.visible){ caches.push(o); o.visible=false; } });
+  it.g.traverse(o=>{ marquer(o); if((o.name?.endsWith('__couvercle')||o.name==='alerte')&&o.visible){ caches.push(o); o.visible=false; } });   // ni couvercle ni voile rouge
   scene.traverse(o=>{ if(o.isLight) marquer(o); });
   const vis=it.g.visible; it.g.visible=true; it.g.updateMatrixWorld(true);
   const box=new THREE.Box3().setFromObject(it.g), c=box.getCenter(new THREE.Vector3()), R=Math.max(0.15,box.getSize(new THREE.Vector3()).length()/2);

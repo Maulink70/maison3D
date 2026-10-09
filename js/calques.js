@@ -9,11 +9,14 @@ import {ETAGE_FLOOR, GARDE_CORPS} from './config.js';
 import {PIECES, surface, pieceEn} from './pieces.js';
 import {versEcran, niveauDuPlan, murs, empreinte, boucles} from './plan.js';
 import {yToitSud, ESC} from './rez_structure.js';
+import {isolement, isolementActif, dansIsolement} from './isoler.js';
+import {decalage} from './eclate.js';
 
 const OPTIONS=[['noms','Noms des pièces'],['surfaces','Surfaces (au sol et libre)'],['hauteurs','Hauteurs sous plafond'],
   ['cPieces','Dimensions des pièces'],['cMurs','Longueur des murs'],['cMeuble','Meuble sélectionné et distances aux murs'],['cOuv','Portes et fenêtres'],['mesures','Mesures de la règle'],['murs','Murs transparents (maquette)']];
 const CLE='maison3d-calques', NS='http://www.w3.org/2000/svg';
-export const etat={noms:true,surfaces:true,hauteurs:false,cPieces:false,cMurs:false,cMeuble:false,cOuv:false,mesures:true,murs:false};
+export const etat={noms:true,surfaces:true,hauteurs:false,cPieces:false,cMurs:false,cMeuble:false,cOuv:false,mesures:true,murs:false,lumiere:'normale',eclat:0};
+const AFFICHAGE=['mesures','murs','lumiere','eclat'];   // réglages d'affichage du menu, pas des calques dessinés ici
 const masquees=new Set();
 const m=v=>v.toFixed(2).replace('.',',')+' m', m2=v=>v.toFixed(1).replace('.',',')+' m²';
 const sol=niv=>niv==='etage'?ETAGE_FLOOR:0, niveauDe=it=>it.lvl==='Étage'?'etage':'rez';
@@ -86,9 +89,9 @@ function versMur(niv,x,z,dx,dz){
 }
 
 // ---------- ce qu'il faut dessiner : étiquettes et cotes, points en mètres (x, z) au sol d'un niveau ----------
-function aDessiner(niveaux){
+function aDessiner(niveaux,seule=null){
   const out=[];
-  for(const p of PIECES.filter(q=>niveaux.includes(q.niveau))){
+  for(const p of PIECES.filter(q=>niveaux.includes(q.niveau)&&(!seule||q.id===seule))){
     const y=sol(p.niveau)+0.05, [cx,cz]=centre(p), l=lignesPiece(p);
     if(l.length) out.push({type:'etiquette',id:'et:'+p.id,y,x:cx,z:cz,lignes:l,titre:etat.noms});
     if(etat.cPieces) for(const [k,r] of p.rects.entries()){ if((r[2]-r[0])*(r[3]-r[1])<1.5) continue;
@@ -123,7 +126,7 @@ function aDessiner(niveaux){
       const d=versMur(niv,px+dx*0.005,pz+dz*0.005,dx,dz); if(d===null||d<0.02) continue;
       out.push({type:'cote',id:`di:${it.name}:${k}`,y,a:[px,pz],b:[px+dx*(d+0.005),pz+dz*(d+0.005)],texte:m(d+0.005),distance:true}); }
   }
-  return out.filter(e=>e.type!=='cote'||!masquees.has(e.id));
+  return out.filter(e=>(e.type!=='cote'||!masquees.has(e.id))&&(!seule||e.type!=='cote'||dansIsolement({x:(e.a[0]+e.b[0])/2,z:(e.a[1]+e.b[1])/2})));
 }
 
 // ---------- dessin (éléments SVG réutilisés d'une image à l'autre) ----------
@@ -173,14 +176,14 @@ const v3=new THREE.Vector3();
 let dernierBandeau=0;
 export function majCalques(){
   budget=1;
-  const actif=Object.entries(etat).some(([k,v])=>v&&k!=='mesures'&&k!=='murs'), svg=$('calques');   // mesures : leur calque (mesure.js) ; murs : transparence.js
+  const actif=Object.entries(etat).some(([k,v])=>v&&!AFFICHAGE.includes(k)), svg=$('calques');   // mesures : mesure.js ; murs, lumière, éclaté : leurs modules
   if(app.mode==='walk'||!actif||!app.mobilierPret){ if(pool.size){ for(const n of pool.values()) n.g.remove(); pool.clear(); } svg.toggleAttribute('hidden',true); majBandeau(); return; }
   $('bandeau-piece').hidden=true; svg.toggleAttribute('hidden',false);
   let niveaux, proj;
   if(app.mode==='plan'){ niveaux=[niveauDuPlan()]; proj=(x,y,z)=>versEcran(x,z); }
   else { niveaux=app.level==='all'?['rez','etage']:[app.level]; const r=svg.getBoundingClientRect(), cam=app.camera;
-    proj=(x,y,z)=>{ v3.set(x,y,z).project(cam); if(v3.z>1||v3.z<-1) return null; return {x:(v3.x+1)/2*r.width,y:(1-v3.y)/2*r.height}; }; }
-  dessiner(aDessiner(niveaux),proj);
+    proj=(x,y,z)=>{ v3.set(x,y+decalage(y),z).project(cam); if(v3.z>1||v3.z<-1) return null; return {x:(v3.x+1)/2*r.width,y:(1-v3.y)/2*r.height}; }; }
+  dessiner(aDessiner(niveaux,app.mode==='orbit'&&isolementActif()?isolement.piece:null),proj);   // pièce isolée : ses calques seulement
 }
 // 1re personne : pièce où l'on est (nom, surfaces, hauteur), en haut à gauche sous la barre
 function majBandeau(){
@@ -190,7 +193,6 @@ function majBandeau(){
   const c=app.camera.position, p=pieceEn(c.x,c.z,c.y>ETAGE_FLOOR+0.5?'etage':'rez');
   if(!p){ b.hidden=true; return; }
   b.textContent=lignesPiece(p).join(' · '); b.hidden=false;
-  b.style.top=(document.querySelector('.bar').getBoundingClientRect().bottom-$('app').getBoundingClientRect().top+8)+'px';   // sous la barre, même sur téléphone
 }
 
 // ---------- menu « Calques » ----------
@@ -208,13 +210,27 @@ export function initCalques(){
       const c=document.createElement('input'); c.type='checkbox'; c.id='cq-'+k; c.checked=!!etat[k]; c.onchange=()=>{ etat[k]=c.checked; garder(); };
       lab.append(c,document.createTextNode(l)); g.append(lab); }
     menu.append(g);
+    if(titre==='Affichage'){
+      // lumière du jour (lumiere.js) et vue éclatée (eclate.js)
+      const l=document.createElement('div'); l.className='impr-ligne';
+      l.innerHTML='<span id="cq-t-lumiere">Lumière</span><div class="seg" role="group" aria-labelledby="cq-t-lumiere">'+
+        [['normale','Normale'],['matin','Matin'],['midi','Midi'],['soir','Soir']].map(([k,t])=>`<button type="button" id="cq-lum-${k}" data-lumiere="${k}">${t}</button>`).join('')+'</div>';
+      l.querySelectorAll('[data-lumiere]').forEach(b=>b.onclick=()=>{ etat.lumiere=b.dataset.lumiere; garder(); majMenu(); });
+      const e=document.createElement('label'); e.className='case eclat';
+      e.innerHTML='<span>Vue éclatée</span><input type="range" id="cq-eclat" min="0" max="3" step="0.1" value="0"><output id="cq-eclat-val">0 m</output>';
+      e.querySelector('input').oninput=ev=>{ etat.eclat=+ev.target.value; garder(); majMenu(); };
+      g.append(l,e);
+    }
   }
   const pied=document.createElement('div'); pied.className='menu-pied';
   const re=document.createElement('button'); re.type='button'; re.id='cq-reafficher'; re.className='btn';
   re.onclick=()=>{ masquees.clear(); garder(); majMenu(); };
   const aide=document.createElement('p'); aide.textContent='Touchez une cote pour la masquer.';
   pied.append(re,aide); menu.append(pied);
-  function majMenu(){ re.hidden=!masquees.size; re.textContent=`Réafficher les cotes masquées (${masquees.size})`; for(const [k] of OPTIONS) $('cq-'+k).checked=!!etat[k]; }
+  function majMenu(){ re.hidden=!masquees.size; re.textContent=`Réafficher les cotes masquées (${masquees.size})`; for(const [k] of OPTIONS) $('cq-'+k).checked=!!etat[k];
+    for(const b of menu.querySelectorAll('[data-lumiere]')) b.setAttribute('aria-pressed',String((etat.lumiere||'normale')===b.dataset.lumiere));
+    const ok=app.mode==='orbit'&&app.level==='all', r=$('cq-eclat'); r.disabled=!ok; r.value=String(+etat.eclat||0);
+    $('cq-eclat-val').textContent=ok?(+etat.eclat||0).toFixed(1).replace('.',',')+' m':'maquette, Tout'; }
   bt.onclick=e=>{ e.stopPropagation(); ouvrir(menu.hidden); };
   addEventListener('pointerdown',e=>{ if(!menu.hidden&&!menu.contains(e.target)&&!bt.contains(e.target)) ouvrir(false); });
   menu.addEventListener('keydown',e=>{ if(e.key==='Escape'){ e.stopPropagation(); ouvrir(false); bt.focus(); } });

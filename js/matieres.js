@@ -19,15 +19,26 @@ function fbm(n,octaves,alea,base=4){ const out=new Float32Array(n*n); let amp=1,
   for(let o=0;o<octaves;o++){ const b=bruit(n,base<<o,alea); for(let i=0;i<out.length;i++) out[i]+=b[i]*amp; tot+=amp; amp*=0.5; }
   for(let i=0;i<out.length;i++) out[i]/=tot; return out; }
 
-// Toile à partir d'une fonction (x, y) → [r, g, b] (0..255) ; texture répétée
+// Pixels à partir d'une fonction (x, y) → [r, g, b] (0..255) : image carrée de n × n, en tableau
 function toile(n,pixel){
-  const c=document.createElement('canvas'); c.width=c.height=n; const ctx=c.getContext('2d'), img=ctx.createImageData(n,n), d=img.data;
+  const d=new Uint8ClampedArray(n*n*4);   // valeurs bornées à 0..255, comme dans une toile
   for(let y=0;y<n;y++) for(let x=0;x<n;x++){ const [r,g,b]=pixel(x,y), i=(y*n+x)*4; d[i]=r; d[i+1]=g; d[i+2]=b; d[i+3]=255; }
-  ctx.putImageData(img,0,0); return c;
+  return {d,n};
 }
-function texture(canvas,couleur=true){
-  const t=new THREE.CanvasTexture(canvas); t.wrapS=t.wrapT=THREE.RepeatWrapping; t.anisotropy=4;
+// Les textures dessinées en code partent vers la carte graphique en tableau de pixels (DataTexture), jamais par une toile
+// 2D (CanvasTexture) : sur le PC de Mauro, à la première ouverture, la copie directe d'une toile donnait parfois une
+// texture vide, et tout ce qui la portait sortait noir (murs, canapé, chaises, cuisine, escalier ; normal après
+// rechargement, 9 octobre 2026)
+function pixels(d,w,h,couleur){
+  const t=new THREE.DataTexture(d,w,h,THREE.RGBAFormat); t.flipY=true; t.generateMipmaps=true;
+  t.minFilter=THREE.LinearMipmapLinearFilter; t.magFilter=THREE.LinearFilter; t.needsUpdate=true;
   if(couleur) t.colorSpace=THREE.SRGBColorSpace; return t;
+}
+function texture({d,n},couleur=true){ const t=pixels(d,n,n,couleur); t.wrapS=t.wrapT=THREE.RepeatWrapping; t.anisotropy=4; return t; }
+// Texture d'une toile 2D dessinée (carrelages, ciel, montagnes, patchwork) : ses pixels sont relus et envoyés en tableau
+export function textureDe(c,couleur=true){
+  const d=c.getContext('2d').getImageData(0,0,c.width,c.height).data;
+  return pixels(new Uint8ClampedArray(d),c.width,c.height,couleur);
 }
 const gris=v=>{ const g=Math.max(0,Math.min(255,Math.round(v*255))); return [g,g,g]; };
 

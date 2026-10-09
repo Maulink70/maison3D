@@ -55,6 +55,8 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
 .anglerow input[type=range]{flex:1;min-width:0;accent-color:var(--accent)}
 .anglerow input[type=number]{width:52px;font:inherit;font-family:var(--font-data);font-variant-numeric:tabular-nums;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:4px 6px;text-align:right}
 .anglerow span{color:var(--muted)}
+.crans{grid-column:1 / -1;display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);padding:0 4px}
+.crans input{width:16px;height:16px;accent-color:var(--accent);margin:0}
 .btn[aria-pressed="true"]{background:var(--accent-soft);color:var(--accent);border-color:var(--accent)}
 .row{display:flex;align-items:center;gap:6px;border-radius:8px}
 .row:hover{background:var(--accent-soft)}
@@ -117,7 +119,9 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
 .calques-svg .cote .valeur{font-family:var(--font-data);font-size:11px;fill:var(--cote);text-anchor:middle;dominant-baseline:middle;font-variant-numeric:tabular-nums;pointer-events:auto;cursor:pointer}
 .calques-svg .cote.distance .trait{stroke:var(--cote-dist);stroke-dasharray:4 3}
 .calques-svg .cote.distance .valeur{fill:var(--cote-dist)}
-#bandeau-piece{position:absolute;left:16px;top:120px;background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:6px 12px;font-size:13px;font-variant-numeric:tabular-nums;pointer-events:none;max-width:calc(100% - 32px)}
+#bandeaux{position:absolute;left:16px;top:120px;display:flex;flex-direction:column;align-items:flex-start;gap:6px;pointer-events:none;max-width:calc(100% - 32px)}
+#bandeaux>*{pointer-events:auto;max-width:100%}
+#bandeau-piece{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:6px 12px;font-size:13px;font-variant-numeric:tabular-nums;pointer-events:none!important}
 #calques-menu{min-width:280px}
 .menu .case{display:flex;align-items:center;gap:10px;padding:7px 10px;border-radius:8px;cursor:pointer}
 .menu .case:hover{background:var(--accent-soft)}
@@ -182,10 +186,12 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
 .mesures-svg .en-cours .trait{stroke-dasharray:6 4}
 #app.mesure #mesures .mesure:not(.en-cours) .valeur{pointer-events:auto;cursor:pointer}
 #app.mesure #c,#app.mesure #plan{cursor:crosshair}
-#bandeau-mesure{position:absolute;left:16px;top:120px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--mesure);border-radius:var(--r);padding:6px 6px 6px 12px;font-size:13px;max-width:calc(100% - 32px)}
-#bandeau-mesure[hidden]{display:none}
-#bandeau-mesure #mesure-texte{flex:1 1 220px}
-#bandeau-mesure .actions{display:flex;gap:8px;margin-left:auto}
+#bandeau-mesure,#bandeau-isole{display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--mesure);border-radius:var(--r);padding:6px 6px 6px 12px;font-size:13px}
+#bandeau-isole{border-left-color:var(--accent)}
+#bandeau-isole .seg button{padding:5px 10px}
+#bandeau-mesure[hidden],#bandeau-isole[hidden]{display:none}
+#bandeau-mesure #mesure-texte,#isole-texte{flex:1 1 220px}
+#bandeau-mesure .actions,#bandeau-isole .actions{display:flex;gap:8px;margin-left:auto;align-items:center}
 /* Impression (livraison 8) : panneau « Imprimer » et dessin hors écran pour le PDF, toujours aux couleurs du thème clair */
 #impr-menu{min-width:340px}
 .impr-ligne{display:grid;grid-template-columns:86px 1fr;align-items:center;gap:8px;padding:4px 10px}
@@ -199,3 +205,40 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
 #impr-info{font-size:12.5px;line-height:1.4}
 .impression{position:fixed;left:-30000px;top:0;visibility:hidden;pointer-events:none;
   --panel:#ffffff;--ink:#1c2227;--muted:#5b6670;--line:#d3d9de;--accent:#2c5a86;--accent-soft:#e1eaf3;--plan-meuble:#e9eef3;--cote:#2c5a86;--cote-dist:#a3561d;--mesure:#7b2f8f}
+/* Rotation libre (livraison 11) : poignée du meuble sélectionné sur le plan */
+.plan-svg .rotation .tige{fill:none;stroke:var(--accent);stroke-width:1.5;stroke-dasharray:3 2}
+.plan-svg .rotation .bouton{fill:var(--panel);stroke:var(--accent);stroke-width:2.5;cursor:grab;pointer-events:all}
+#plan.visite .rotation{display:none}
+/* Caméras mémorisées (livraison 12) : menu « Vues » */
+#vues-menu{min-width:320px}
+.vue-form{display:flex;gap:6px;padding:4px 10px 8px}
+.vue-form input,.vue input{flex:1;min-width:0;font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:6px 8px}
+.menu .vue-form .btn{width:auto;flex:none;white-space:nowrap}
+.vue{display:flex;align-items:center;gap:2px;padding-right:4px}
+.vue .aller-vue{flex:1;min-width:0}
+.menu .vue .petit{width:auto;flex:none;padding:6px 9px;justify-content:center;color:var(--muted)}
+.menu .vue .petit.danger{color:var(--danger);font-weight:600}
+#vues-liste .vide{margin:2px 10px 8px;font-size:12.5px;color:var(--muted)}
+/* Annuler / rétablir et historique (étape 2), en tête du panneau */
+.histo{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:12px 14px 10px;border-bottom:1px solid var(--line)}
+.histo .btn:disabled{opacity:.45;cursor:default}
+.histo details{grid-column:1 / -1;font-size:13px}
+.histo summary{cursor:pointer;color:var(--muted);padding:2px 0}
+#h-liste{display:grid;gap:2px;max-height:180px;overflow:auto;margin-top:6px}
+#h-liste .vide{margin:2px 0;color:var(--muted);font-size:12.5px}
+.h-ligne{display:flex;gap:8px;align-items:baseline;text-align:left;border:0;background:none;padding:4px 6px;border-radius:6px;font-size:12.5px;color:var(--ink)}
+.h-ligne:hover{background:var(--accent-soft)}
+.h-ligne.annule{color:var(--muted);text-decoration:line-through}
+.h-heure{font-family:var(--font-data);font-size:11.5px;color:var(--muted);flex:none}
+/* Alertes de passage (étape 2) : liste en tête du panneau, meubles en rouge sur le plan */
+#alertes{padding:8px 14px 10px;border-bottom:1px solid var(--line);background:color-mix(in srgb,var(--danger) 8%,var(--panel))}
+#alertes-titre{font-weight:600;color:var(--danger);font-size:13px;margin-bottom:4px}
+#alertes-liste{display:grid;gap:2px;max-height:150px;overflow:auto}
+#alertes .alerte{text-align:left;border:0;background:none;padding:4px 6px;border-radius:6px;font-size:12.5px;color:var(--ink);line-height:1.35}
+#alertes .alerte.grave{color:var(--danger)}
+#alertes .alerte:hover{background:var(--accent-soft)}
+.plan-svg .meuble.alerte{fill:#f2c4bc;stroke:#a33a2c;stroke-width:2}
+/* Lumière du jour et vue éclatée (étape 2) : groupe Affichage du menu « Calques » */
+.menu .case.eclat input{width:auto;height:auto;flex:1;min-width:0}
+.menu .case.eclat output{font-family:var(--font-data);font-size:11.5px;color:var(--muted);min-width:5.5em;text-align:right}
+.menu .case.eclat span{flex:none}

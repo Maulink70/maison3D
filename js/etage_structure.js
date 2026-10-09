@@ -5,12 +5,13 @@ import * as THREE from 'three';
 import {ETAGE_FLOOR} from './config.js';
 import {boite, plafond} from './formes.js';
 import {yToitSud} from './rez_structure.js';
+import {textureDe} from './matieres.js';
 
 // Carrelage : carreaux carrés de « pas » mètres, couleur du carreau et du joint
 function texCarreau(carreau,joint){
   const c=document.createElement('canvas'); c.width=c.height=128;
   const x=c.getContext('2d'); x.fillStyle=joint; x.fillRect(0,0,128,128); x.fillStyle=carreau; x.fillRect(2,2,124,124);
-  const t=new THREE.CanvasTexture(c); t.wrapS=t.wrapT=THREE.RepeatWrapping; t.colorSpace=THREE.SRGBColorSpace; return t;
+  const t=textureDe(c); t.wrapS=t.wrapT=THREE.RepeatWrapping; t.colorSpace=THREE.SRGBColorSpace; return t;
 }
 // Lames de pin : 8 lames de 12 cm sur 0,96 m, longues de 2,4 m, joints décalés, veinage et nœuds (tirage fixe)
 function texPin(){
@@ -25,7 +26,7 @@ function texPin(){
     x.fillStyle='rgba(95,60,30,0.75)'; x.fillRect(0,y0,1024,1.5);
     const j=Math.round(r()*1024); x.fillRect(j,y0,1.5,32);
   }
-  const t=new THREE.CanvasTexture(c); t.wrapS=t.wrapT=THREE.RepeatWrapping; t.colorSpace=THREE.SRGBColorSpace; t.anisotropy=4; return t;
+  const t=textureDe(c); t.wrapS=t.wrapT=THREE.RepeatWrapping; t.colorSpace=THREE.SRGBColorSpace; t.anisotropy=4; return t;
 }
 
 // Plafond en pente sous le toit, de z0 à z1, abaissé de 3 cm sous le toit ; lames parallèles au faîte (axe x)
@@ -92,7 +93,7 @@ export function carrelerDouche(root){
   const y0=(2.50-1.86)*px, h=0.06*px;                                   // frise : bande noire à motif blanc
   x.fillStyle='#22262b'; x.fillRect(0,y0,256,h); x.strokeStyle='#d8dadc'; x.lineWidth=3; x.beginPath();
   for(let u=0;u<=256;u+=16){ x.lineTo(u,y0+(u/16%2?h*0.25:h*0.75)); } x.stroke();
-  const tex=new THREE.CanvasTexture(c); tex.wrapS=THREE.RepeatWrapping; tex.wrapT=THREE.ClampToEdgeWrapping; tex.colorSpace=THREE.SRGBColorSpace;
+  const tex=textureDe(c); tex.wrapS=THREE.RepeatWrapping; tex.wrapT=THREE.ClampToEdgeWrapping; tex.colorSpace=THREE.SRGBColorSpace;
   const mat=new THREE.MeshStandardMaterial({map:tex,roughness:0.35}), v=new THREE.Vector3(), n=new THREE.Vector3(), nm=new THREE.Matrix3();
   root.traverse(o=>{ if(!o.isMesh||o.material.name!=='Material_364') return;
     o.updateMatrixWorld(true); nm.getNormalMatrix(o.matrixWorld);

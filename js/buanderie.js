@@ -3,6 +3,7 @@
 import * as THREE from 'three';
 
 import {MAT, boite, lignes, copier, enFlottants} from './formes.js';
+import {textureDe} from './matieres.js';
 
 const {ceramique,sombre,chrome}=MAT, blanc=MAT.laqueCreme;   // meuble du lavabo crème (d'après Mauro)
 const hublot=new THREE.MeshStandardMaterial({color:0x5d666e,roughness:0.1,transparent:true,opacity:0.75});
@@ -70,7 +71,7 @@ export function carrelerSol(mesh){
   const c=document.createElement('canvas'); c.width=c.height=128;
   const x=c.getContext('2d'); x.fillStyle='#55595e'; x.fillRect(0,0,128,128);
   x.fillStyle='#3a3e43'; x.fillRect(2,2,124,124);
-  const tex=new THREE.CanvasTexture(c); tex.wrapS=tex.wrapT=THREE.RepeatWrapping; tex.colorSpace=THREE.SRGBColorSpace;
+  const tex=textureDe(c); tex.wrapS=tex.wrapT=THREE.RepeatWrapping; tex.colorSpace=THREE.SRGBColorSpace;
   // UV recalculés en coordonnées monde : un carreau tous les 30 cm
   mesh.updateMatrixWorld(true);
   const geo=mesh.geometry.clone(), p=geo.attributes.position, v=new THREE.Vector3(), uv=[];
@@ -90,7 +91,7 @@ function texFaience(){
   x.fillStyle='#b4b5b1'; x.fillRect(0,0,150,200);                                   // joint (≈ 4 mm, visible aussi en biais)
   const g=x.createLinearGradient(0,0,150,200); g.addColorStop(0,'#f8f8f5'); g.addColorStop(1,'#ececE8');
   x.fillStyle=g; x.fillRect(2,2,146,196);
-  const t=new THREE.CanvasTexture(c); t.wrapS=t.wrapT=THREE.RepeatWrapping; t.colorSpace=THREE.SRGBColorSpace; t.anisotropy=8; return t;
+  const t=textureDe(c); t.wrapS=t.wrapT=THREE.RepeatWrapping; t.colorSpace=THREE.SRGBColorSpace; t.anisotropy=8; return t;
 }
 // Découpe d'un polygone par le demi-espace q·axe ≥ val (sens +1) ou ≤ val (sens -1)
 function couper(poly,axe,val,sens){

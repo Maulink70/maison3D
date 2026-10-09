@@ -16,7 +16,7 @@ applyTheme();
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change',applyTheme);
 new MutationObserver(applyTheme).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
 
-scene.add(new THREE.HemisphereLight(0xffffff,0xd9d3c9,2.1));   // sol clair : plafonds blancs, pas gris
+const hemi=new THREE.HemisphereLight(0xffffff,0xd9d3c9,2.1); scene.add(hemi);   // sol clair : plafonds blancs, pas gris
 const sun=new THREE.DirectionalLight(0xffffff,1.3); sun.position.set(30,40,10); scene.add(sun);
 const fill=new THREE.DirectionalLight(0xffffff,0.5); fill.position.set(-20,15,-30); scene.add(fill);
 
@@ -35,7 +35,7 @@ scene.add(tc.getHelper?tc.getHelper():tc);
 const model=new THREE.Group(); model.name='appartement'; scene.add(model);
 
 export const app={
-  canvas, renderer, scene, camera, orbit, tc, CENTER, model,
+  canvas, renderer, scene, camera, orbit, tc, CENTER, model, lumieres:{hemi,sun,fill},
   mode:'orbit', level:'all', gizmoDrag:false,
   items:{}, selected:null, selBox:null,
   colliders:[], floors:[],   // copies DoubleSide des éléments fixes : murs (visite) et sols (hauteur)
