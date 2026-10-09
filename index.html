@@ -31,48 +31,53 @@
   </div>
 
   <header class="bar">
-    <div class="brand"><strong>Appartement Diolly</strong><span>2 niveaux · échelle 1:1 en mètres</span></div>
+    <div class="brand"><strong>Appart. Diolly</strong><span>2 niveaux · 1:1</span></div>
+    <!-- boutons à icône (icones.js) : le nom de chacun est dans aria-label, montré en infobulle -->
     <div class="seg" role="group" aria-label="Ce que l’on fait">
-      <button id="mo-visite" aria-pressed="true">Visite</button>
-      <button id="mo-editer" aria-pressed="false">Éditer</button>
+      <button class="ib" id="mo-visite" data-icone="eye" aria-label="Visite (rien n’est modifiable)" aria-pressed="true"></button>
+      <button class="ib" id="mo-editer" data-icone="pencil" aria-label="Éditer les meubles" aria-pressed="false"></button>
     </div>
     <div class="seg" role="group" aria-label="Vue">
-      <button id="m-orbit" aria-pressed="true">Maquette</button>
-      <button id="m-walk" aria-pressed="false">1re personne</button>
-      <button id="m-plan" aria-pressed="false">Plan</button>
+      <button class="ib" id="m-orbit" data-icone="box" aria-label="Maquette" aria-pressed="true"></button>
+      <button class="ib" id="m-walk" data-icone="footprints" aria-label="1re personne" aria-pressed="false"></button>
+      <button class="ib" id="m-plan" data-icone="map" aria-label="Plan 2D" aria-pressed="false"></button>
     </div>
     <div class="seg" id="plan-style" role="group" aria-label="Style du plan" hidden>
-      <button id="ps-archi" aria-pressed="true">Architecte</button>
-      <button id="ps-reel" aria-pressed="false">Réaliste</button>
+      <button class="ib" id="ps-archi" data-icone="drafting-compass" aria-label="Plan d’architecte" aria-pressed="true"></button>
+      <button class="ib" id="ps-reel" data-icone="image" aria-label="Plan réaliste (maquette vue de dessus)" aria-pressed="false"></button>
     </div>
     <div class="seg" role="group" aria-label="Niveau">
-      <button id="l-all" aria-pressed="true">Tout</button>
-      <button id="l-rez" aria-pressed="false">Rez</button>
-      <button id="l-etage" aria-pressed="false">Étage</button>
+      <button class="ib" id="l-all" data-icone="niv-tout" aria-label="Tout l’appartement" aria-pressed="true"></button>
+      <button class="ib" id="l-rez" data-icone="niv-rez" aria-label="Rez" aria-pressed="false"></button>
+      <button class="ib" id="l-etage" data-icone="niv-etage" aria-label="Étage" aria-pressed="false"></button>
     </div>
-    <div class="aller">
-      <button class="btn" id="aller" aria-haspopup="menu" aria-expanded="false" aria-controls="aller-menu">Aller à <span aria-hidden="true">▾</span></button>
-      <div id="aller-menu" class="menu" role="menu" aria-label="Aller à une pièce" hidden></div>
-    </div>
-    <div class="aller">
-      <button class="btn" id="vues" aria-haspopup="true" aria-expanded="false" aria-controls="vues-menu">Vues <span aria-hidden="true">▾</span></button>
-      <div id="vues-menu" class="menu" role="dialog" aria-label="Vues enregistrées" hidden></div>
-    </div>
-    <div class="aller">
-      <button class="btn" id="calques-bouton" aria-haspopup="true" aria-expanded="false" aria-controls="calques-menu">Calques <span aria-hidden="true">▾</span></button>
-      <div id="calques-menu" class="menu" role="dialog" aria-label="Calques" hidden></div>
-    </div>
-    <button class="btn" id="mesurer" aria-pressed="false">Mesurer</button>
-    <div class="aller">
-      <button class="btn" id="imprimer" aria-haspopup="true" aria-expanded="false" aria-controls="impr-menu">Imprimer <span aria-hidden="true">▾</span></button>
-      <div id="impr-menu" class="menu" role="dialog" aria-label="Imprimer en PDF" hidden></div>
+    <div class="seg outils" role="group" aria-label="Outils">
+      <div class="aller">
+        <button class="ib" id="aller" data-icone="navigation" aria-label="Aller à une pièce" aria-haspopup="menu" aria-expanded="false" aria-controls="aller-menu"></button>
+        <div id="aller-menu" class="menu" role="menu" aria-label="Aller à une pièce" hidden></div>
+      </div>
+      <div class="aller">
+        <button class="ib" id="vues" data-icone="bookmark" aria-label="Vues enregistrées" aria-haspopup="true" aria-expanded="false" aria-controls="vues-menu"></button>
+        <div id="vues-menu" class="menu" role="dialog" aria-label="Vues enregistrées" hidden></div>
+      </div>
+      <div class="aller">
+        <button class="ib" id="calques-bouton" data-icone="layers" aria-label="Calques et affichage" aria-haspopup="true" aria-expanded="false" aria-controls="calques-menu"></button>
+        <div id="calques-menu" class="menu" role="dialog" aria-label="Calques" hidden></div>
+      </div>
+      <button class="ib" id="mesurer" data-icone="ruler" aria-label="Mesurer (règle)" aria-pressed="false"></button>
+      <div class="aller">
+        <button class="ib" id="imprimer" data-icone="printer" aria-label="Imprimer en PDF" aria-haspopup="true" aria-expanded="false" aria-controls="impr-menu"></button>
+        <div id="impr-menu" class="menu" role="dialog" aria-label="Imprimer en PDF" hidden></div>
+      </div>
     </div>
     <span class="spacer"></span>
-    <button class="btn" id="portes" aria-pressed="false">Ouvrir les portes</button>
-    <button class="btn" id="auto" aria-pressed="true">Portes auto : oui</button>
-    <button class="btn" id="fenetres" aria-pressed="false">Ouvrir les fenêtres</button>
-    <button class="btn" id="toggle-panel" aria-expanded="true" hidden>Meubles</button>
-    <button class="btn primary" id="installer" hidden>Installer l’application</button>
+    <div class="seg" role="group" aria-label="Portes et fenêtres">
+      <button class="ib" id="portes" data-icone="door-open" aria-label="Ouvrir les portes" aria-pressed="false"></button>
+      <button class="ib" id="auto" data-icone="radar" aria-label="Portes automatiques : oui" aria-pressed="true"></button>
+      <button class="ib" id="fenetres" data-icone="wind" aria-label="Ouvrir les fenêtres" aria-pressed="false"></button>
+    </div>
+    <button class="ib seul" id="toggle-panel" data-icone="armchair" aria-label="Meubles (liste et outils)" aria-expanded="true" hidden></button>
+    <button class="ib seul primary" id="installer" data-icone="download" aria-label="Installer l’application" hidden></button>
   </header>
 
   <aside id="panel" aria-label="Mobilier" hidden>

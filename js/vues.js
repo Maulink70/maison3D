@@ -7,6 +7,7 @@ import {enterWalk} from './visite.js';
 import {select, openSheet, petitEcran} from './edition.js';
 import {toutOuvrir, toutesFenetres, portesAuto} from './portes.js';
 import {creerCiel} from './ciel.js';
+import {nommer, poserIcone} from './icones.js';
 import {entrerPlan, sortirPlan, niveauPlan, stylePlan, style as styleDuPlan} from './plan.js';
 
 const UI='maison3d-ui';
@@ -68,9 +69,11 @@ function majVitesse(v){ app.vitesse=Math.min(2,Math.max(0.5,+v||1)); $('vitesse'
   $('vitesse-val').textContent=(5.4*app.vitesse).toFixed(1).replace('.',',')+' km/h'; }
 // Boutons « Ouvrir les portes » / « Fermer les portes » ; « Portes auto : oui / non » (ouverture à l'approche en 1re personne) ;
 // « Ouvrir les fenêtres » / « Fermer les fenêtres » (jamais d'automatisme pour les fenêtres)
-function majPortesBouton(){ $('portes').setAttribute('aria-pressed',String(app.toutOuvert)); $('portes').textContent=app.toutOuvert?'Fermer les portes':'Ouvrir les portes';
-  $('auto').setAttribute('aria-pressed',String(app.portesAuto)); $('auto').textContent='Portes auto : '+(app.portesAuto?'oui':'non');
-  $('fenetres').setAttribute('aria-pressed',String(!!app.fenetresOuvertes)); $('fenetres').textContent=app.fenetresOuvertes?'Fermer les fenêtres':'Ouvrir les fenêtres'; }
+// boutons à icône : l'état est dans l'icône (porte ouverte / fermée), la pastille (aria-pressed) et le nom de l'infobulle
+function majPortesBouton(){ $('portes').setAttribute('aria-pressed',String(app.toutOuvert)); nommer($('portes'),app.toutOuvert?'Fermer les portes':'Ouvrir les portes');
+  poserIcone($('portes'),app.toutOuvert?'door-closed':'door-open');
+  $('auto').setAttribute('aria-pressed',String(app.portesAuto)); nommer($('auto'),'Portes automatiques : '+(app.portesAuto?'oui':'non'));
+  $('fenetres').setAttribute('aria-pressed',String(!!app.fenetresOuvertes)); nommer($('fenetres'),app.fenetresOuvertes?'Fermer les fenêtres':'Ouvrir les fenêtres'); }
 
 export function initVues(){
   $('mo-visite').onclick=()=>setEdition(false); $('mo-editer').onclick=()=>setEdition(true);

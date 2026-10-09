@@ -21,8 +21,9 @@ import {initAlertes, majAlertes} from './alertes.js';
 import {majLumiere} from './lumiere.js';
 import {majLampes} from './lampes.js';
 import {eclatActif, rendreEclate, suivreEclat} from './eclate.js';
+import {initIcones} from './icones.js';
 
-initVues(); initVisite(); initEdition(); initSauvegarde(); initAller(); initPlan(); initCalques(); initMesure(); initImpression(); initIsoler(); initCameras(); initHistorique(); initAlertes();
+initIcones(); initVues(); initVisite(); initEdition(); initSauvegarde(); initAller(); initPlan(); initCalques(); initMesure(); initImpression(); initIsoler(); initCameras(); initHistorique(); initAlertes();
 
 // Cercle posé au sol pendant un appui long (point de téléportation)
 const marque=new THREE.Mesh(new THREE.RingGeometry(0.16,0.25,40),new THREE.MeshBasicMaterial({color:new THREE.Color(css('--accent')||'#2c5a86'),transparent:true,opacity:0.9,depthTest:false,side:THREE.DoubleSide}));
