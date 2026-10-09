@@ -137,11 +137,33 @@ function arbres(){
   return groupes;
 }
 
+// Cage d'escalier de l'immeuble, derrière la porte d'entrée et la petite fenêtre du coin bureau (précisé par Mauro :
+// « l'intérieur de l'immeuble, une cage d'escalier avec ascenseur », fait simple). Boîte vue de l'intérieur (faces arrière) :
+// depuis l'appartement, on voit ses murs du fond à travers la porte ou la fenêtre, et non le paysage.
+function cageEscalier(){
+  const g=new THREE.Group(), x0=8.4, x1=12.66, z0=-20.905, z1=-16.4, H=6.2;
+  const lam=(c,o={})=>new THREE.MeshLambertMaterial({color:c,...o});
+  const mur=lam(0xe6e0d4,{side:THREE.BackSide}), sol=lam(0x8f8b85,{side:THREE.BackSide}), plafond=lam(0xf3f1ec,{side:THREE.BackSide});
+  const boite=new THREE.Mesh(new THREE.BoxGeometry(x1-x0,H,z1-z0),[mur,mur,plafond,sol,mur,mur]);
+  boite.position.set((x0+x1)/2,H/2,(z0+z1)/2); g.add(boite);
+  const pave=(m,a0,a1,b0,b1,c0,c1)=>{ const o=new THREE.Mesh(new THREE.BoxGeometry(a1-a0,b1-b0,c1-c0),m); o.position.set((a0+a1)/2,(b0+b1)/2,(c0+c1)/2); g.add(o); return o; };
+  // ascenseur sur le mur du fond, en face de la porte d'entrée : encadrement, deux vantaux en inox, bouton d'appel
+  const inox=lam(0xbcc2c8), cadre=lam(0x7f868e), pierre=lam(0x9b968e);
+  pave(cadre,10.45,11.75,0,2.22,z1-0.03,z1); pave(inox,10.55,11.09,0,2.12,z1-0.05,z1-0.03); pave(inox,11.11,11.65,0,2.12,z1-0.05,z1-0.03);
+  pave(cadre,11.88,11.98,1.0,1.18,z1-0.04,z1);
+  // volée d'escalier le long du mur ouest, du rez au palier de l'étage, et palier devant la petite fenêtre
+  const n=16, haut=2.9/n, giron=(z1-0.4-(z0+1.35))/n;
+  for(let i=0;i<n;i++) pave(pierre,x0,x0+1.2,0,(i+1)*haut,z1-0.4-(i+1)*giron,z1-0.4-i*giron);
+  pave(pierre,x0,x1,2.76,2.9,z0,z0+1.35);
+  pave(cadre,x0+1.2,x0+1.24,0.9,3.8,z0+1.35,z1-0.4).rotation.x=0;          // main courante (montant simple)
+  return g;
+}
+
 export function creerCiel(){
   const g=new THREE.Group(); g.name='ciel'; g.visible=false;
   const dome=new THREE.Mesh(new THREE.SphereGeometry(R_CIEL,48,24),new THREE.MeshBasicMaterial({map:texCiel(),side:THREE.BackSide,depthWrite:false}));
   dome.position.set(C.x,-20,C.z); dome.renderOrder=-1;
-  g.add(dome,...montagnes(),pelouse(),...arbres());
+  g.add(dome,...montagnes(),pelouse(),...arbres(),cageEscalier());
   g.traverse(o=>{ o.raycast=()=>{}; });                // le dehors ne gêne ni la sélection ni la marche
   app.scene.add(g); app.ciel=g;
   return g;
