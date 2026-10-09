@@ -53,7 +53,18 @@ export function bloque(v,marge=0.28,avecMeubles=true){
   }
   return false;
 }
-function avancer(v,marge,avecMeubles=true){ if(!v.length()||bloque(v,marge,avecMeubles)) return false; app.camera.position.add(v); return true; }
+// Sur les côtés du mouvement : le rayon de devant ne voit pas un mur longé presque parallèlement ; on s'en approchait
+// pas à pas jusqu'à passer au travers (Mauro sorti par la baie, 9 octobre 2026). Un pas est refusé s'il amène à moins
+// de 22 cm d'un mur, d'une vitre ou d'une porte sur le côté, sauf s'il en éloigne (on peut toujours se dégager)
+const COTE=0.22, nCote=new THREE.Vector3(), dCote=new THREE.Vector3(), qCote=new THREE.Vector3();
+function cote(p,d,obst){ rc.set(o.set(p.x,groundY+0.7,p.z),d); rc.far=COTE+0.05; const h=rc.intersectObjects(obst,false)[0]; return h?h.distance:Infinity; }
+function avancer(v,marge,avecMeubles=true){
+  if(!v.length()||bloque(v,marge,avecMeubles)) return false;
+  const c=app.camera.position, obst=[...app.colliders,...obstaclesPortes(),...app.fenetres.filter(visible)];
+  nCote.set(-v.z,0,v.x).normalize(); qCote.copy(c).add(v);
+  for(const s of [1,-1]){ dCote.copy(nCote).multiplyScalar(s); const apres=cote(qCote,dCote,obst); if(apres<COTE&&apres<cote(c,dCote,obst)-0.001) return false; }
+  c.add(v); return true;
+}
 
 // Après une téléportation : on s'écarte des murs et des meubles trop proches (40 cm), pour ne pas avoir le nez dessus
 function degager(){
