@@ -62,9 +62,12 @@ export function initAller(){
   addEventListener('pointerdown',e=>{ if(!m.hidden&&!m.contains(e.target)&&!bouton().contains(e.target)) ouvrir(false); });
   m.addEventListener('keydown',e=>{
     const items=[...m.querySelectorAll('[data-piece]')], i=items.indexOf(document.activeElement);
-    if(e.key==='Escape'){ ouvrir(false); bouton().focus(); e.preventDefault(); }
-    else if(e.key==='ArrowDown'||e.key==='ArrowUp'){ items[(i+(e.key==='ArrowDown'?1:-1)+items.length)%items.length].focus(); e.preventDefault(); }
+    // flèches et Échap restent dans le menu : en 1re personne, elles feraient aussi marcher
+    if(['Escape','ArrowDown','ArrowUp','ArrowLeft','ArrowRight'].includes(e.key)){ e.preventDefault(); e.stopPropagation(); }
+    if(e.key==='Escape'){ ouvrir(false); bouton().focus(); }
+    else if(e.key==='ArrowDown'||e.key==='ArrowUp') items[(i+(e.key==='ArrowDown'?1:-1)+items.length)%items.length].focus();
   });
-  // une action de l'utilisateur sur la vue arrête le cadrage en cours
+  // toucher la vue, ou changer de niveau ou de vue, arrête le cadrage en cours (celui de « Aller à » démarre après son changement de niveau)
   for(const t of ['pointerdown','wheel']) app.canvas.addEventListener(t,()=>{ anim=null; },{passive:true});
+  addEventListener('niveau',()=>{ anim=null; });
 }
