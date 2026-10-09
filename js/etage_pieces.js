@@ -140,17 +140,11 @@ function litChambre(){
   for(const [a,b] of [[x0+0.08,x0+0.66],[x1-0.66,x1-0.08]]) boite(g,a,b,F+0.50,F+0.63,z0+0.06,z0+0.42,MAT.drap);
   return g;
 }
-function chevetChambre(){
-  const g=groupe('etage__chevet_chambre');
-  boite(g,16.85,17.33,F,F+0.45,-26.55,-26.15,MAT.boisBrunClair,true);   // mélaminé brun clair
-  return g;
-}
-// Climatiseur mobile blanc dans l'angle nord-est, grille en façade et sur le dessus
-function climatiseur(){
-  const g=groupe('etage__climatiseur'), x0=18.95, x1=19.40, z0=-26.55, z1=-26.19, h=0.76;
-  boite(g,x0,x1,F+0.03,F+h,z0,z1,MAT.blanc,true);
-  lignes(g,x0+0.04,x1-0.04,F+0.40,F+h-0.05,z1+0.001,0.02);
-  for(const [x,z] of [[x0+0.05,z0+0.05],[x1-0.05,z0+0.05],[x0+0.05,z1-0.05],[x1-0.05,z1-0.05]]) sphere(g,x,F+0.025,z,0.025,MAT.sombre);
+// Deux tables de chevet identiques en mélaminé brun clair, de part et d'autre du lit (à droite du lit, Mauro précise le
+// 9 octobre 2026 que le meuble blanc pris pour un climatiseur mobile est le même chevet que celui de gauche)
+function chevetChambre(nom,x0){
+  const g=groupe(nom);
+  boite(g,x0,x0+0.48,F,F+0.45,-26.55,-26.15,MAT.boisBrunClair,true);   // mélaminé brun clair
   return g;
 }
 // Étagère ouverte en hêtre contre le mur ouest, à côté de la porte
@@ -227,6 +221,6 @@ export function construireEtage(root){
     applique('etage__spot_mezzanine_1',14.10,'x',-24.05,F+1.90,1,0.08,0.08), applique('etage__spot_mezzanine_2',16.70,'x',-24.60,F+1.90,-1,0.08,0.08),
     applique('etage__applique_bureau',-22.75,'z',11.85,F+1.70,1,0.20,0.20), applique('rez__applique_escalier',12.87,'x',-18.22,2.80,1,0.18,0.26),
     armoiresDressing(), buffetDressing(), portant(), applique('etage__applique_dressing',13.97,'x',-23.80,F+1.80,-1,0.32,0.18),
-    chevetChambre(), climatiseur(), etagereChambre(), ordinateurChambre(), chaiseBureau(), applique('etage__applique_chambre',19.44,'x',-23.75,F+1.95,-1,0.36,0.12),
+    chevetChambre('etage__chevet_chambre',16.85), chevetChambre('etage__chevet_chambre_2',18.95), etagereChambre(), ordinateurChambre(), chaiseBureau(), applique('etage__applique_chambre',19.44,'x',-23.75,F+1.95,-1,0.36,0.12),
     vasqueDouche()];
 }
