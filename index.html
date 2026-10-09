@@ -16,9 +16,9 @@
 <body>
 <div id="app">
   <canvas id="c" tabindex="0" aria-label="Vue 3D de l'appartement"></canvas>
-  <svg id="plan" hidden role="img" aria-label="Plan 2D vu de dessus"><g id="plan-monde"></g></svg>
-  <svg id="calques" hidden aria-label="Calques : noms, surfaces, hauteurs et cotes"></svg>
-  <svg id="mesures" hidden aria-label="Mesures"></svg>
+  <svg id="plan" class="plan-svg" hidden role="img" aria-label="Plan 2D vu de dessus"><g id="plan-monde"></g></svg>
+  <svg id="calques" class="calques-svg" hidden aria-label="Calques : noms, surfaces, hauteurs et cotes"></svg>
+  <svg id="mesures" class="mesures-svg" hidden aria-label="Mesures"></svg>
   <div id="bandeau-piece" role="status" hidden></div>
   <div id="bandeau-mesure" hidden><span id="mesure-texte" role="status"></span><span class="actions"><button class="btn" id="mesure-effacer" hidden>Tout effacer</button><button class="btn primary" id="mesure-terminer">Terminer</button></span></div>
 
@@ -51,6 +51,10 @@
       <div id="calques-menu" class="menu" role="dialog" aria-label="Calques" hidden></div>
     </div>
     <button class="btn" id="mesurer" aria-pressed="false">Mesurer</button>
+    <div class="aller">
+      <button class="btn" id="imprimer" aria-haspopup="true" aria-expanded="false" aria-controls="impr-menu">Imprimer <span aria-hidden="true">▾</span></button>
+      <div id="impr-menu" class="menu" role="dialog" aria-label="Imprimer en PDF" hidden></div>
+    </div>
     <span class="spacer"></span>
     <button class="btn" id="portes" aria-pressed="false">Ouvrir les portes</button>
     <button class="btn" id="auto" aria-pressed="true">Portes auto : oui</button>

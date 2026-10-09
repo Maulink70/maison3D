@@ -127,9 +127,9 @@ function aDessiner(niveaux){
 }
 
 // ---------- dessin (éléments SVG réutilisés d'une image à l'autre) ----------
-const pool=new Map();
+const pools={ecran:new Map()}, pool=pools.ecran;
 const el=(nom,attrs,parent)=>{ const n=document.createElementNS(NS,nom); for(const [k,v] of Object.entries(attrs)) n.setAttribute(k,v); parent?.append(n); return n; };
-function noeud(e,svg){
+function noeud(e,svg,pool){
   let n=pool.get(e.id); if(n&&n.type===e.type) return n;
   n?.g.remove();
   const g=el('g',{class:e.type==='cote'?'cote'+(e.distance?' distance':''):'etiquette'+(e.petit?' petit':''),'data-id':e.id},svg);
@@ -137,18 +137,18 @@ function noeud(e,svg){
   else n.texte=el('text',{},g);
   pool.set(e.id,n); return n;
 }
-function dessiner(liste,proj){
-  const svg=$('calques'), vus=new Set();
+function dessiner(liste,proj,svg=$('calques'),pool=pools.ecran,court=34){
+  const vus=new Set();
   for(const e of liste){
-    if(e.type==='etiquette'){ const p=proj(e.x,e.y,e.z); if(!p) continue; const n=noeud(e,svg); vus.add(e.id);
+    if(e.type==='etiquette'){ const p=proj(e.x,e.y,e.z); if(!p) continue; const n=noeud(e,svg,pool); vus.add(e.id);
       const cle=e.lignes.join('\n'); if(n.cle!==cle){ n.cle=cle; n.texte.replaceChildren(...e.lignes.map((t,k)=>{ const s=el('tspan',{x:0,dy:k?'1.25em':'0','class':k===0&&e.titre?'nom':''}); s.textContent=t; return s; })); }
       n.g.setAttribute('transform',`translate(${p.x.toFixed(1)} ${(p.y-(e.lignes.length-1)*7).toFixed(1)})`); continue; }
     const A=proj(e.a[0],e.y,e.a[1]), B=proj(e.b[0],e.y,e.b[1]); if(!A||!B) continue;
-    let ux=B.x-A.x, uy=B.y-A.y; const L=Math.hypot(ux,uy); if(L<34) continue; ux/=L; uy/=L;   // trop courte à l'écran : on zoome pour la voir
+    let ux=B.x-A.x, uy=B.y-A.y; const L=Math.hypot(ux,uy); if(L<court) continue; ux/=L; uy/=L;   // trop courte à l'écran : on zoome pour la voir
     let nx=-uy, ny=ux, d=e.decal||0;
     if(e.dedans){ const C=proj(e.dedans[0],e.y,e.dedans[1]); if(C&&(nx*(C.x-A.x)+ny*(C.y-A.y))<0){ nx=-nx; ny=-ny; } if(d<0){ nx=-nx; ny=-ny; d=-d; } }
     const a=[A.x+nx*d,A.y+ny*d], b=[B.x+nx*d,B.y+ny*d], t=5;
-    const n=noeud(e,svg); vus.add(e.id);
+    const n=noeud(e,svg,pool); vus.add(e.id);
     // trait, petites barres obliques aux extrémités (cote d'architecte) et lignes de rappel
     n.trait.setAttribute('d',`M${a[0].toFixed(1)} ${a[1].toFixed(1)}L${b[0].toFixed(1)} ${b[1].toFixed(1)}`+
       [a,b].map(q=>`M${(q[0]-(ux+nx)*t*0.7).toFixed(1)} ${(q[1]-(uy+ny)*t*0.7).toFixed(1)}L${(q[0]+(ux+nx)*t*0.7).toFixed(1)} ${(q[1]+(uy+ny)*t*0.7).toFixed(1)}`).join('')+
@@ -159,6 +159,14 @@ function dessiner(liste,proj){
   }
   for(const [id,n] of pool) if(!vus.has(id)){ n.g.remove(); pool.delete(id); }
 }
+
+// Impression (livraison 8) : les calques cochés d'un niveau, tout calculé tout de suite (surfaces libres, hauteurs),
+// dessinés dans le groupe svg ; proj(x, y, z) donne le point sur le papier, dans les unités du dessin
+export function calquesImpression(niv,svg,proj){
+  const b=budget; budget=Infinity; const liste=aDessiner([niv]); budget=b;
+  dessiner(liste,proj,svg,new Map());
+}
+export {versMur};
 
 // ---------- à chaque image ----------
 const v3=new THREE.Vector3();

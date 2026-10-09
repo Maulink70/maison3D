@@ -84,39 +84,39 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
 /* style architecte : le fond papier est celui du calque SVG lui-même (et non le fond de la 3D) : si un navigateur recolore
    la page, papier, murs et textes changent ensemble et restent lisibles */
 #plan:not(.reel){background:var(--panel)}
-#plan *{vector-effect:non-scaling-stroke}
-#plan .archi-seul{pointer-events:none}
-#plan .poche{fill:var(--ink);fill-rule:evenodd;stroke:none}
-#plan .meuble{fill:var(--plan-meuble);fill-rule:evenodd;stroke:var(--ink);stroke-width:1;stroke-linejoin:round}
-#plan .meuble.sel{fill:var(--accent-soft);stroke:var(--accent);stroke-width:2.5}
+.plan-svg *{vector-effect:non-scaling-stroke}
+.plan-svg .archi-seul{pointer-events:none}
+.plan-svg .poche{fill:var(--ink);fill-rule:evenodd;stroke:none}
+.plan-svg .meuble{fill:var(--plan-meuble);fill-rule:evenodd;stroke:var(--ink);stroke-width:1;stroke-linejoin:round}
+.plan-svg .meuble.sel{fill:var(--accent-soft);stroke:var(--accent);stroke-width:2.5}
 #plan:not(.visite) .meuble{pointer-events:fill;cursor:move}
 #plan.visite .meuble{pointer-events:none}
-#plan.reel .archi-seul{display:none}
-#plan.reel .meuble{fill:transparent;stroke:none}
-#plan.reel .meuble.sel{fill:none;stroke:var(--accent);stroke-width:2.5}
-#plan .porte{fill:none;stroke:var(--ink);stroke-width:1.5}
-#plan .arc{fill:none;stroke:var(--muted);stroke-width:.8;stroke-dasharray:4 3}
-#plan .fen{fill:var(--panel);stroke:var(--ink);stroke-width:1}
-#plan .fen-l{fill:none;stroke:var(--ink);stroke-width:.8}
-#plan .velux{fill:none;stroke:var(--muted);stroke-width:.8;stroke-dasharray:5 3}
-#plan .esc{fill:none;stroke:var(--ink);stroke-width:.8}
-#plan .esc-fleche{fill:none;stroke:var(--ink);stroke-width:1.2;stroke-linecap:round;stroke-linejoin:round}
-#plan .vide{fill:none;stroke:var(--muted);stroke-width:.8;stroke-dasharray:6 4}
-#plan .gc{fill:var(--panel);stroke:var(--ink);stroke-width:1}
+#plan.reel .archi-seul,.plan-svg.reel .archi-seul{display:none}
+#plan.reel .meuble,.plan-svg.reel .meuble{fill:transparent;stroke:none}
+#plan.reel .meuble.sel,.plan-svg.reel .meuble.sel{fill:none;stroke:var(--accent);stroke-width:2.5}
+.plan-svg .porte{fill:none;stroke:var(--ink);stroke-width:1.5}
+.plan-svg .arc{fill:none;stroke:var(--muted);stroke-width:.8;stroke-dasharray:4 3}
+.plan-svg .fen{fill:var(--panel);stroke:var(--ink);stroke-width:1}
+.plan-svg .fen-l{fill:none;stroke:var(--ink);stroke-width:.8}
+.plan-svg .velux{fill:none;stroke:var(--muted);stroke-width:.8;stroke-dasharray:5 3}
+.plan-svg .esc{fill:none;stroke:var(--ink);stroke-width:.8}
+.plan-svg .esc-fleche{fill:none;stroke:var(--ink);stroke-width:1.2;stroke-linecap:round;stroke-linejoin:round}
+.plan-svg .vide{fill:none;stroke:var(--muted);stroke-width:.8;stroke-dasharray:6 4}
+.plan-svg .gc{fill:var(--panel);stroke:var(--ink);stroke-width:1}
 /* Calques : noms, surfaces, hauteurs, cotes, en pixels d'écran au-dessus de la vue ; seules les valeurs des cotes se touchent */
 :root{--cote:#2c5a86;--cote-dist:#a3561d}
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--cote:#82b2df;--cote-dist:#e5a066}}
 :root[data-theme="dark"]{--cote:#82b2df;--cote-dist:#e5a066}
 #calques{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible}
 #calques[hidden]{display:none}
-#calques text{font-family:var(--font-ui);paint-order:stroke;stroke:var(--panel);stroke-width:3.5px;stroke-linejoin:round}
-#calques .etiquette text{font-size:12px;fill:var(--ink);text-anchor:middle;font-variant-numeric:tabular-nums}
-#calques .etiquette .nom{font-size:13.5px;font-weight:600}
-#calques .etiquette.petit text{font-size:11px;fill:var(--cote);font-family:var(--font-data)}
-#calques .cote .trait{fill:none;stroke:var(--cote);stroke-width:1}
-#calques .cote .valeur{font-family:var(--font-data);font-size:11px;fill:var(--cote);text-anchor:middle;dominant-baseline:middle;font-variant-numeric:tabular-nums;pointer-events:auto;cursor:pointer}
-#calques .cote.distance .trait{stroke:var(--cote-dist);stroke-dasharray:4 3}
-#calques .cote.distance .valeur{fill:var(--cote-dist)}
+.calques-svg text{font-family:var(--font-ui);paint-order:stroke;stroke:var(--panel);stroke-width:3.5px;stroke-linejoin:round}
+.calques-svg .etiquette text{font-size:12px;fill:var(--ink);text-anchor:middle;font-variant-numeric:tabular-nums}
+.calques-svg .etiquette .nom{font-size:13.5px;font-weight:600}
+.calques-svg .etiquette.petit text{font-size:11px;fill:var(--cote);font-family:var(--font-data)}
+.calques-svg .cote .trait{fill:none;stroke:var(--cote);stroke-width:1}
+.calques-svg .cote .valeur{font-family:var(--font-data);font-size:11px;fill:var(--cote);text-anchor:middle;dominant-baseline:middle;font-variant-numeric:tabular-nums;pointer-events:auto;cursor:pointer}
+.calques-svg .cote.distance .trait{stroke:var(--cote-dist);stroke-dasharray:4 3}
+.calques-svg .cote.distance .valeur{fill:var(--cote-dist)}
 #bandeau-piece{position:absolute;left:16px;top:120px;background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:6px 12px;font-size:13px;font-variant-numeric:tabular-nums;pointer-events:none;max-width:calc(100% - 32px)}
 #calques-menu{min-width:280px}
 .menu .case{display:flex;align-items:center;gap:10px;padding:7px 10px;border-radius:8px;cursor:pointer}
@@ -176,13 +176,26 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
 :root[data-theme="dark"]{--mesure:#d79be6}
 #mesures{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible}
 #mesures[hidden]{display:none}
-#mesures .trait{fill:none;stroke:var(--mesure);stroke-width:2;stroke-linecap:round}
-#mesures .bouts{fill:var(--panel);stroke:var(--mesure);stroke-width:2}
-#mesures .valeur{font-family:var(--font-data);font-size:12.5px;font-weight:500;fill:var(--mesure);text-anchor:middle;dominant-baseline:middle;font-variant-numeric:tabular-nums;paint-order:stroke;stroke:var(--panel);stroke-width:4px;stroke-linejoin:round}
-#mesures .en-cours .trait{stroke-dasharray:6 4}
+.mesures-svg .trait{fill:none;stroke:var(--mesure);stroke-width:2;stroke-linecap:round}
+.mesures-svg .bouts{fill:var(--panel);stroke:var(--mesure);stroke-width:2}
+.mesures-svg .valeur{font-family:var(--font-data);font-size:12.5px;font-weight:500;fill:var(--mesure);text-anchor:middle;dominant-baseline:middle;font-variant-numeric:tabular-nums;paint-order:stroke;stroke:var(--panel);stroke-width:4px;stroke-linejoin:round}
+.mesures-svg .en-cours .trait{stroke-dasharray:6 4}
 #app.mesure #mesures .mesure:not(.en-cours) .valeur{pointer-events:auto;cursor:pointer}
 #app.mesure #c,#app.mesure #plan{cursor:crosshair}
 #bandeau-mesure{position:absolute;left:16px;top:120px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--mesure);border-radius:var(--r);padding:6px 6px 6px 12px;font-size:13px;max-width:calc(100% - 32px)}
 #bandeau-mesure[hidden]{display:none}
 #bandeau-mesure #mesure-texte{flex:1 1 220px}
 #bandeau-mesure .actions{display:flex;gap:8px;margin-left:auto}
+/* Impression (livraison 8) : panneau « Imprimer » et dessin hors écran pour le PDF, toujours aux couleurs du thème clair */
+#impr-menu{min-width:340px}
+.impr-ligne{display:grid;grid-template-columns:86px 1fr;align-items:center;gap:8px;padding:4px 10px}
+.impr-ligne>span{font-size:13px;color:var(--muted)}
+.menu .seg button{display:inline-block;width:auto;padding:5px 10px;border-radius:7px;text-align:center;font-weight:500;color:var(--muted)}
+.menu .seg button[aria-pressed="true"]{background:var(--accent-soft);color:var(--accent)}
+.menu .seg{flex-wrap:wrap;justify-self:start}
+.menu .btn.primary{justify-content:center;background:var(--accent);color:var(--panel);border:1px solid var(--accent)}
+.menu .btn.primary:hover,.menu .btn.primary:focus-visible{background:var(--accent);color:var(--panel);outline:2px solid var(--accent);outline-offset:2px}
+.menu .btn.primary:disabled{opacity:.45;cursor:not-allowed}
+#impr-info{font-size:12.5px;line-height:1.4}
+.impression{position:fixed;left:-30000px;top:0;visibility:hidden;pointer-events:none;
+  --panel:#ffffff;--ink:#1c2227;--muted:#5b6670;--line:#d3d9de;--accent:#2c5a86;--accent-soft:#e1eaf3;--plan-meuble:#e9eef3;--cote:#2c5a86;--cote-dist:#a3561d;--mesure:#7b2f8f}

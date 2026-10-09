@@ -12,8 +12,9 @@ import {majCouvercles} from './coupes.js';
 import {initPlan, majPlan, camPlan} from './plan.js';
 import {initCalques, majCalques} from './calques.js';
 import {initMesure, majMesures, mesureToucher} from './mesure.js';
+import {initImpression} from './impression.js';
 
-initVues(); initVisite(); initEdition(); initSauvegarde(); initAller(); initPlan(); initCalques(); initMesure();
+initVues(); initVisite(); initEdition(); initSauvegarde(); initAller(); initPlan(); initCalques(); initMesure(); initImpression();
 
 // Cercle posé au sol pendant un appui long (point de téléportation)
 const marque=new THREE.Mesh(new THREE.RingGeometry(0.16,0.25,40),new THREE.MeshBasicMaterial({color:new THREE.Color(css('--accent')||'#2c5a86'),transparent:true,opacity:0.9,depthTest:false,side:THREE.DoubleSide}));

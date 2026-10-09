@@ -126,10 +126,10 @@ function majBandeau(){
 // ---------- dessin ----------
 const pool=new Map();
 const el=(nom,attrs,parent)=>{ const n=document.createElementNS(NS,nom); for(const [k,v] of Object.entries(attrs)) n.setAttribute(k,v); parent?.append(n); return n; };
+const creer=(classe,parent)=>{ const g=el('g',{class:classe},parent); return {g,trait:el('path',{class:'trait'},g),bouts:el('path',{class:'bouts'},g),texte:el('text',{class:'valeur'},g)}; };
 function noeud(id,classe){
   let n=pool.get(id); if(n) return n;
-  const g=el('g',{class:classe,'data-id':id},$('mesures'));
-  n={g,trait:el('path',{class:'trait'},g),bouts:el('path',{class:'bouts'},g),texte:el('text',{class:'valeur'},g)};
+  n=creer(classe,$('mesures')); n.g.dataset.id=id;
   pool.set(id,n); return n;
 }
 const rond=p=>`M${(p.x-4).toFixed(1)} ${p.y.toFixed(1)}a4 4 0 1 0 8 0a4 4 0 1 0 -8 0`;
@@ -159,6 +159,12 @@ export function majMesures(){
       if(seg) dessinerSegment(n,seg,texteMesure(premier,survol));
       else { n.trait.setAttribute('d',''); n.bouts.setAttribute('d',rond(A)); n.texte.textContent=''; } } }
   for(const [id,n] of pool) if(!vus.has(id)){ n.g.remove(); pool.delete(id); }
+}
+
+// Impression (livraison 8) : les mesures d'un niveau dans le groupe svg, proj(x, z) donne le point sur le papier
+export function mesuresImpression(niv,svg,proj){
+  for(const q of mesures){ if(niveauDuPoint(q.a)!==niv||niveauDuPoint(q.b)!==niv) continue;
+    dessinerSegment(creer('mesure',svg),{A:proj(q.a[0],q.a[2]),B:proj(q.b[0],q.b[2])},texteMesure(q.a,q.b)); }
 }
 
 // ---------- gestes ----------

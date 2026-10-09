@@ -22,7 +22,6 @@ const VIDE={x0:12.87,x1:19.44,z0:-21.11,z1:-14.34};   // salon en double hauteur
 let anim=null, niveau='rez', actif=false, contenu=null;
 export let style='archi';
 const svg=()=>$('plan'), monde=()=>$('plan-monde');
-const sol=()=>niveau==='etage'?ETAGE_FLOOR:0;
 
 // ---------- caméra, transformation du calque SVG ----------
 function taille(){ const r=svg().getBoundingClientRect(); return {W:r.width||innerWidth,H:r.height||innerHeight,r}; }
@@ -182,12 +181,16 @@ function dp(pts,tol){
 // ---------- contenu du calque SVG ----------
 const el=(nom,attrs,parent)=>{ const n=document.createElementNS(NS,nom); for(const [k,v] of Object.entries(attrs)) n.setAttribute(k,v); parent?.append(n); return n; };
 const f3=v=>(+v).toFixed(3);
-const meublesDuNiveau=()=>Object.values(app.items).filter(it=>it.meta.c==='meuble'&&it.lvl===(niveau==='etage'?'Étage':'Rez')&&it.home.y-sol()<COUPE);
+const meublesDuNiveau=niv=>Object.values(app.items).filter(it=>it.meta.c==='meuble'&&it.lvl===(niv==='etage'?'Étage':'Rez')&&it.home.y-(niv==='etage'?ETAGE_FLOOR:0)<COUPE);
 function construire(){
-  const m=monde(); m.replaceChildren(); contenu={niveau,meubles:new Map(),avecMobilier:app.mobilierPret};
-  const archi=el('g',{class:'archi-seul'},m);
-  el('path',{class:'poche',d:murs().chemin},archi);
-  if(niveau==='etage'){
+  const m=monde(); m.replaceChildren(); contenu={niveau,meubles:remplir(m,niveau),avecMobilier:app.mobilierPret};
+  majMeubles(true);
+}
+// dessin d'un niveau dans le groupe m (mètres) ; renvoie les meubles et leur chemin SVG
+function remplir(m,niv){
+  const meubles=new Map(), archi=el('g',{class:'archi-seul'},m);
+  el('path',{class:'poche',d:murs(niv).chemin},archi);
+  if(niv==='etage'){
     // vide sur le salon (double hauteur) et garde-corps vitré de la mezzanine
     const v=VIDE;
     el('path',{class:'vide',d:`M${v.x0} ${v.z0}L${v.x1} ${v.z1}M${v.x1} ${v.z0}L${v.x0} ${v.z1}`},archi);
@@ -201,7 +204,7 @@ function construire(){
   }
   // fenêtres (cadre et vitre) ; Velux au-dessus de la coupe : en pointillé
   for(const it of Object.values(app.items)){
-    if(it.meta.c!=='ouverture'||it.hidden||it.lvl!==(niveau==='etage'?'Étage':'Rez')||!/fenetre|baie|velux|element_mural/i.test(it.name)) continue;
+    if(it.meta.c!=='ouverture'||it.hidden||it.lvl!==(niv==='etage'?'Étage':'Rez')||!/fenetre|baie|velux|element_mural/i.test(it.name)) continue;
     const b=new THREE.Box3().setFromObject(it.g), lx=b.max.x-b.min.x, lz=b.max.z-b.min.z;
     if(/velux/i.test(it.name)){ el('rect',{class:'velux',x:f3(b.min.x),y:f3(b.min.z),width:f3(lx),height:f3(lz)},archi); continue; }
     el('rect',{class:'fen',x:f3(b.min.x),y:f3(b.min.z),width:f3(lx),height:f3(lz)},archi);
@@ -209,27 +212,40 @@ function construire(){
   }
   // meubles
   const gm=el('g',{class:'meubles'},m);
-  for(const it of meublesDuNiveau()){ const p=el('path',{class:'meuble','data-item':it.name,d:silhouette(it)},gm); p.append(Object.assign(document.createElementNS(NS,'title'),{textContent:it.meta.l})); contenu.meubles.set(it,{p,cle:''}); }
+  for(const it of meublesDuNiveau(niv)){ const p=el('path',{class:'meuble','data-item':it.name,d:silhouette(it)},gm); p.append(Object.assign(document.createElementNS(NS,'title'),{textContent:it.meta.l})); meubles.set(it,{p,cle:''}); }
   // portes : battant ouvert et arc d'ouverture (porte d'entrée et porte-fenêtre comprises)
   for(const pt of app.portes){
-    const d=pt.def; if(d.fenetre||(d.y0>1)!==(niveau==='etage')) continue;
+    const d=pt.def; if(d.fenetre||(d.y0>1)!==(niv==='etage')) continue;
     const h=d.axe==='x'?[d.plan,d.charniere]:[d.charniere,d.plan], autre=d.charniere===d.a0?d.a1:d.a0;
     const f=d.axe==='x'?[d.plan,autre]:[autre,d.plan], vx=f[0]-h[0], vz=f[1]-h[1], a=pt.ouvert, c=Math.cos(a), s=Math.sin(a);
     const o=[h[0]+vx*c+vz*s, h[1]-vx*s+vz*c], w=Math.hypot(vx,vz), sens=(vx*(o[1]-h[1])-vz*(o[0]-h[0]))>0?1:0;
     el('path',{class:'arc',d:`M${f3(f[0])} ${f3(f[1])}A${f3(w)} ${f3(w)} 0 0 ${sens} ${f3(o[0])} ${f3(o[1])}`},archi);
     el('path',{class:'porte',d:`M${f3(h[0])} ${f3(h[1])}L${f3(o[0])} ${f3(o[1])}`},archi);
   }
-  majMeubles(true);
+  return meubles;
 }
 // position, rotation, masquage et sélection des meubles (à chaque image, seulement s'ils ont changé)
+function placer(it,e){ const g=it.g;
+  e.p.setAttribute('transform',`translate(${g.position.x.toFixed(4)} ${g.position.z.toFixed(4)}) rotate(${(-g.rotation.y*180/Math.PI).toFixed(3)})`);
+  e.p.style.display=it.hidden?'none':''; e.p.classList.toggle('sel',app.selected===it); }
 function majMeubles(force=false){
   for(const [it,e] of contenu.meubles){
     const g=it.g, k=`${g.position.x.toFixed(4)} ${g.position.z.toFixed(4)} ${g.rotation.y.toFixed(4)} ${it.hidden} ${app.selected===it}`;
-    if(!force&&k===e.cle) continue; e.cle=k;
-    e.p.setAttribute('transform',`translate(${g.position.x.toFixed(4)} ${g.position.z.toFixed(4)}) rotate(${(-g.rotation.y*180/Math.PI).toFixed(3)})`);
-    e.p.style.display=it.hidden?'none':''; e.p.classList.toggle('sel',app.selected===it);
+    if(!force&&k===e.cle) continue; e.cle=k; placer(it,e);
   }
 }
+// Impression (livraison 8) : le plan d'architecte d'un niveau dans un groupe SVG en mètres (meubles à leur place
+// actuelle, masqués retirés), et l'emprise des murs du niveau
+export function dessinPlan(niv,g){
+  for(const [it,e] of remplir(g,niv)){ if(it.hidden) e.p.remove(); else placer(it,e); e.p.querySelector('title')?.remove(); }
+  return g;
+}
+export function emprisePlan(niv){
+  const m=murs(niv); let i0=Infinity, i1=-1, j0=Infinity, j1=-1;
+  for(let j=0;j<m.nz;j++) for(let i=0;i<m.nx;i++) if(m.plein[j*m.nx+i]){ if(i<i0) i0=i; if(i>i1) i1=i; if(j<j0) j0=j; if(j>j1) j1=j; }
+  return {x0:m.x0+i0*m.pas,x1:m.x0+(i1+1)*m.pas,z0:m.z0+j0*m.pas,z1:m.z0+(j1+1)*m.pas};
+}
+export const echellePlan=()=>vue.s;
 
 // ---------- entrée, sortie, niveau, style ----------
 export function entrerPlan(l){
