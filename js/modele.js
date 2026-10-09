@@ -17,6 +17,7 @@ import {installerPortes} from './portes.js';
 import {installerFenetres} from './fenetres.js';
 import {corrigerStructure, retirerPanneauxSurVitres, seuilBaie} from './corrections.js';
 import {habiller, habillerConstruits, habillerModele, poserCoordonnees} from './matieres.js';
+import {poserCouvercles} from './coupes.js';
 
 const loader=new GLTFLoader(); loader.setMeshoptDecoder(MeshoptDecoder);
 function charger(url,progres){
@@ -131,6 +132,7 @@ function installerMobilier(root){
     app.items[child.name]=it;
     if(/fenetre|baie|element_mural|velux/i.test(child.name)) app.fenetres.push(...it.mats);
   }
+  poserCouvercles();   // dessus des éléments coupés par les vues Rez / Étage (après app.fenetres : pas d'obstacle en plus)
 }
 
 function erreur(err,cible){ console.error(err); cible.textContent='Le modèle n’a pas pu être chargé ('+(err&&err.message?err.message:String(err))+'). Rechargez la page.'; }

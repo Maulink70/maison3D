@@ -7,6 +7,7 @@ import {ETAGE_FLOOR} from './config.js';
 import {PIECES, surface, bornes, pieceEn} from './pieces.js';
 import {allerA} from './visite.js';
 import {setLevel} from './vues.js';
+import {cadrerPlan} from './plan.js';
 
 let anim=null;
 const doux=matchMedia('(prefers-reduced-motion: reduce)');
@@ -32,6 +33,7 @@ export function majCadrage(dt){
 export function allerVers(id){
   const p=PIECES.find(q=>q.id===id); if(!p) return;
   if(app.mode==='walk') allerA(p.arrivee[0],p.arrivee[1],p.niveau,p.vers[0],p.vers[1],p.incl);
+  else if(app.mode==='plan'){ setLevel(p.niveau,false); cadrerPlan(bornes(p)); }
   else { setLevel(p.niveau,false); cadrer(p); }
 }
 

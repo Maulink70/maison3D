@@ -75,6 +75,31 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
 #pad [data-k="left"]{grid-area:2/1}
 #pad [data-k="back"]{grid-area:2/2}
 #pad [data-k="right"]{grid-area:2/3}
+/* Plan 2D : calque SVG au-dessus de la vue (meubles, portes, fenêtres, escalier), traits d'épaisseur fixe à l'écran */
+:root{--plan-meuble:#e9eef3}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--plan-meuble:#2b343b}}
+:root[data-theme="dark"]{--plan-meuble:#2b343b}
+#plan{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;cursor:grab}
+#plan[hidden]{display:none}
+#plan *{vector-effect:non-scaling-stroke}
+#plan .archi-seul{pointer-events:none}
+#plan .poche{fill:var(--ink);fill-rule:evenodd;stroke:none}
+#plan .meuble{fill:var(--plan-meuble);fill-rule:evenodd;stroke:var(--ink);stroke-width:1;stroke-linejoin:round}
+#plan .meuble.sel{fill:var(--accent-soft);stroke:var(--accent);stroke-width:2.5}
+#plan:not(.visite) .meuble{pointer-events:fill;cursor:move}
+#plan.visite .meuble{pointer-events:none}
+#plan.reel .archi-seul{display:none}
+#plan.reel .meuble{fill:transparent;stroke:none}
+#plan.reel .meuble.sel{fill:none;stroke:var(--accent);stroke-width:2.5}
+#plan .porte{fill:none;stroke:var(--ink);stroke-width:1.5}
+#plan .arc{fill:none;stroke:var(--muted);stroke-width:.8;stroke-dasharray:4 3}
+#plan .fen{fill:var(--panel);stroke:var(--ink);stroke-width:1}
+#plan .fen-l{fill:none;stroke:var(--ink);stroke-width:.8}
+#plan .velux{fill:none;stroke:var(--muted);stroke-width:.8;stroke-dasharray:5 3}
+#plan .esc{fill:none;stroke:var(--ink);stroke-width:.8}
+#plan .esc-fleche{fill:none;stroke:var(--ink);stroke-width:1.2;stroke-linecap:round;stroke-linejoin:round}
+#plan .vide{fill:none;stroke:var(--muted);stroke-width:.8;stroke-dasharray:6 4}
+#plan .gc{fill:var(--panel);stroke:var(--ink);stroke-width:1}
 /* « Aller à » : menu déroulant des pièces, rangées par niveau, avec leur surface */
 .aller{position:relative}
 .menu{position:absolute;top:calc(100% + 6px);left:0;z-index:20;min-width:230px;max-height:min(70vh,520px);overflow:auto;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:6px;box-shadow:0 8px 24px rgba(0,0,0,.16)}

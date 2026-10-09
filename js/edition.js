@@ -51,7 +51,8 @@ export function select(name){
   $('t-color').value=it.color||'#ffffff';
   $('t-hide').textContent=it.hidden?'Afficher':'Masquer';
   app.selBox=new THREE.BoxHelper(it.g,new THREE.Color(css('--accent')||'#2c5a86')); scene.add(app.selBox);
-  $('t-move').textContent='Déplacer'; $('t-move').classList.add('primary');
+  // sur le plan, on déplace en faisant glisser le meuble (pas de poignée 3D)
+  $('t-move').textContent=app.mode==='plan'?'Glissez-le sur le plan':'Déplacer'; $('t-move').disabled=app.mode==='plan'; $('t-move').classList.add('primary');
   majAngle(); majPorte();
   openSheet(true);
   document.querySelector('.row.sel')?.scrollIntoView({block:'nearest'});

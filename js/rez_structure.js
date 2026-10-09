@@ -4,7 +4,7 @@ import * as THREE from 'three';
 import {MAT, boite, plafond, fusionner} from './formes.js';
 
 // Escalier relevé dans le modèle : 14 marches de 28,3 cm, contremarches de 18,27 cm, 90 cm de large
-const ESC={x0:12.868, x1:13.768, zBas:-17.148, giron:0.2829, haut:0.18267, n:14, zHaut:-21.108};
+export const ESC={x0:12.868, x1:13.768, zBas:-17.148, giron:0.2829, haut:0.18267, n:14, zHaut:-21.108};
 
 // Remplace un élément du modèle par un groupe vide du même nom (l'élément peut être un simple maillage)
 function remplacer(node,root){ const g=new THREE.Group(); g.name=node.name; node.removeFromParent(); root.add(g); return g; }

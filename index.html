@@ -13,6 +13,7 @@
 <body>
 <div id="app">
   <canvas id="c" tabindex="0" aria-label="Vue 3D de l'appartement"></canvas>
+  <svg id="plan" hidden role="img" aria-label="Plan 2D vu de dessus"><g id="plan-monde"></g></svg>
 
   <header class="bar">
     <div class="brand"><strong>Appartement Diolly</strong><span>2 niveaux · échelle 1:1 en mètres</span></div>
@@ -23,6 +24,11 @@
     <div class="seg" role="group" aria-label="Vue">
       <button id="m-orbit" aria-pressed="true">Maquette</button>
       <button id="m-walk" aria-pressed="false">1re personne</button>
+      <button id="m-plan" aria-pressed="false">Plan</button>
+    </div>
+    <div class="seg" id="plan-style" role="group" aria-label="Style du plan" hidden>
+      <button id="ps-archi" aria-pressed="true">Architecte</button>
+      <button id="ps-reel" aria-pressed="false">Réaliste</button>
     </div>
     <div class="seg" role="group" aria-label="Niveau">
       <button id="l-all" aria-pressed="true">Tout</button>
