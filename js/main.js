@@ -11,8 +11,9 @@ import {initAller, majCadrage} from './aller.js';
 import {majCouvercles} from './coupes.js';
 import {initPlan, majPlan, camPlan} from './plan.js';
 import {initCalques, majCalques} from './calques.js';
+import {initMesure, majMesures, mesureToucher} from './mesure.js';
 
-initVues(); initVisite(); initEdition(); initSauvegarde(); initAller(); initPlan(); initCalques();
+initVues(); initVisite(); initEdition(); initSauvegarde(); initAller(); initPlan(); initCalques(); initMesure();
 
 // Cercle posé au sol pendant un appui long (point de téléportation)
 const marque=new THREE.Mesh(new THREE.RingGeometry(0.16,0.25,40),new THREE.MeshBasicMaterial({color:new THREE.Color(css('--accent')||'#2c5a86'),transparent:true,opacity:0.9,depthTest:false,side:THREE.DoubleSide}));
@@ -38,7 +39,7 @@ canvas.addEventListener('contextmenu',e=>e.preventDefault());
 canvas.addEventListener('pointerdown',e=>{
   if(pd){ pd.multi=true; clearTimeout(pd.minuterie); marque.visible=false; pd.tele=null; return; }
   pd={x:e.clientX,y:e.clientY,lx:e.clientX,ly:e.clientY,t:performance.now(),id:e.pointerId};
-  if(app.mode==='walk'&&app.mobilierPret) pd.minuterie=setTimeout(()=>{
+  if(app.mode==='walk'&&app.mobilierPret&&!app.mesure) pd.minuterie=setTimeout(()=>{
     if(!pd||pd.drag||pd.multi) return; const h=viser(pd.x,pd.y);
     if(h&&solSous(h.point)!==null){ pd.tele=h.point.clone(); marque.position.set(h.point.x,h.point.y+0.02,h.point.z); marque.visible=true; }
   },550);
@@ -53,7 +54,7 @@ canvas.addEventListener('pointerup',e=>{
   if(!pd||pd.id!==e.pointerId) return;
   const dt=performance.now()-pd.t;
   if(pd.tele) teleporter(pd.tele);
-  else if(!pd.drag&&!pd.multi&&dt<600&&!app.gizmoDrag&&app.mobilierPret) toucher(e);
+  else if(!pd.drag&&!pd.multi&&dt<600&&!app.gizmoDrag&&app.mobilierPret){ if(app.mesure) mesureToucher(e.clientX,e.clientY); else toucher(e); }
   fin();
 });
 canvas.addEventListener('pointercancel',fin);
@@ -69,6 +70,6 @@ app.renderer.setAnimationLoop(()=>{
   if(app.mode==='walk') walk(dt); else if(app.mode==='plan') majPlan(dt); else { majCadrage(dt); app.orbit.update(); }
   majPortes(dt); majCouvercles();
   if(app.selBox&&app.tc.object) app.selBox.update();
-  majCalques();
+  majCalques(); majMesures();
   app.renderer.render(app.scene,app.mode==='plan'?camPlan:app.camera);
 });

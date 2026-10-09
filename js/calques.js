@@ -11,9 +11,9 @@ import {versEcran, niveauDuPlan, murs, empreinte, boucles} from './plan.js';
 import {yToitSud, ESC} from './rez_structure.js';
 
 const OPTIONS=[['noms','Noms des pièces'],['surfaces','Surfaces (au sol et libre)'],['hauteurs','Hauteurs sous plafond'],
-  ['cPieces','Dimensions des pièces'],['cMurs','Longueur des murs'],['cMeuble','Meuble sélectionné et distances aux murs'],['cOuv','Portes et fenêtres']];
+  ['cPieces','Dimensions des pièces'],['cMurs','Longueur des murs'],['cMeuble','Meuble sélectionné et distances aux murs'],['cOuv','Portes et fenêtres'],['mesures','Mesures de la règle']];
 const CLE='maison3d-calques', NS='http://www.w3.org/2000/svg';
-export const etat={noms:true,surfaces:true,hauteurs:false,cPieces:false,cMurs:false,cMeuble:false,cOuv:false};
+export const etat={noms:true,surfaces:true,hauteurs:false,cPieces:false,cMurs:false,cMeuble:false,cOuv:false,mesures:true};
 const masquees=new Set();
 const m=v=>v.toFixed(2).replace('.',',')+' m', m2=v=>v.toFixed(1).replace('.',',')+' m²';
 const sol=niv=>niv==='etage'?ETAGE_FLOOR:0, niveauDe=it=>it.lvl==='Étage'?'etage':'rez';
@@ -165,7 +165,7 @@ const v3=new THREE.Vector3();
 let dernierBandeau=0;
 export function majCalques(){
   budget=1;
-  const actif=Object.values(etat).some(Boolean), svg=$('calques');
+  const actif=Object.entries(etat).some(([k,v])=>v&&k!=='mesures'), svg=$('calques');   // les mesures ont leur calque (mesure.js)
   if(app.mode==='walk'||!actif||!app.mobilierPret){ if(pool.size){ for(const n of pool.values()) n.g.remove(); pool.clear(); } svg.toggleAttribute('hidden',true); majBandeau(); return; }
   $('bandeau-piece').hidden=true; svg.toggleAttribute('hidden',false);
   let niveaux, proj;
@@ -192,7 +192,7 @@ export function initCalques(){
   relire();
   const bt=$('calques-bouton'), menu=$('calques-menu');
   const ouvrir=oui=>{ menu.hidden=!oui; bt.setAttribute('aria-expanded',String(oui)); if(oui){ majMenu(); caler(menu); } };
-  const groupes=[['Pièces',OPTIONS.slice(0,3)],['Cotes',OPTIONS.slice(3)]];
+  const groupes=[['Pièces',OPTIONS.slice(0,3)],['Cotes',OPTIONS.slice(3,7)],['Règle',OPTIONS.slice(7)]];
   for(const [titre,opts] of groupes){
     const g=document.createElement('div'); g.className='menu-groupe';
     const t=document.createElement('div'); t.className='menu-titre'; t.textContent=titre; g.append(t);

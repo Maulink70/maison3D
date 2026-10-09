@@ -33,7 +33,7 @@ function majVue(){
   monde().setAttribute('transform',`translate(${W/2-vue.cx*vue.s} ${H/2-vue.cz*vue.s}) scale(${vue.s})`);
 }
 // point de l'écran → (x, z) en mètres
-function versMonde(px,py){ const {W,H,r}=taille(); return {x:vue.cx+(px-r.left-W/2)/vue.s, z:vue.cz+(py-r.top-H/2)/vue.s}; }
+export function versMonde(px,py){ const {W,H,r}=taille(); return {x:vue.cx+(px-r.left-W/2)/vue.s, z:vue.cz+(py-r.top-H/2)/vue.s}; }
 // Cadre un rectangle (mètres) dans la partie libre de l'écran (sous la barre, à gauche du panneau)
 function cible(b,marge=0.6){
   const {W,H,r}=taille(), haut=Math.max(16,document.querySelector('.bar').getBoundingClientRect().bottom-r.top+12);
@@ -91,7 +91,8 @@ const contours=(...a)=>boucles(...a).map(b=>'M'+b.map(p=>p[0].toFixed(3)+' '+p[1
 // ---------- murs coupés à 1 m (grille de 1 cm, remplie depuis les pièces et l'extérieur) ----------
 const POCHE=0.01, poches={};
 function exclu(o){ while(o){ if(o.name==='toit_sud'||o.name==='rez__escalier') return true; o=o.parent; } return false; }
-// renvoie {chemin, plein, nx, nz, x0, z0, pas} (grille gardée pour les distances aux murs des cotes)
+// renvoie {chemin, plein, nx, nz, x0, z0, pas, segs} (grille gardée pour les distances aux murs des cotes, segments
+// [x1, z1, x2, z2] des faces coupées pour les coins de la règle de mesure)
 export function murs(niv=niveau){
   if(poches[niv]) return poches[niv];
   const h=(niv==='etage'?ETAGE_FLOOR:0)+COUPE, racine=app.model.children[0]; racine.updateMatrixWorld(true);
@@ -130,7 +131,7 @@ export function murs(niv=niveau){
   for(const p of PIECES.filter(q=>q.niveau===niv)) for(const [a,b,c,d] of p.rects){ const i=Math.floor(((a+c)/2-x0)/POCHE), j=Math.floor(((b+d)/2-z0)/POCHE); pousser(j*nx+i); }
   while(n){ const k=pile[--n], i=k%nx; if(i>0) pousser(k-1); if(i<nx-1) pousser(k+1); if(k>=nx) pousser(k-nx); if(k<nx*(nz-1)) pousser(k+nx); }
   const plein=new Uint8Array(nx*nz); for(let k=0;k<nx*nz;k++) plein[k]=vu[k]?0:1;
-  return poches[niv]={chemin:contours(plein,nx,nz,x0,z0,POCHE,0.006),plein,nx,nz,x0,z0,pas:POCHE};
+  return poches[niv]={chemin:contours(plein,nx,nz,x0,z0,POCHE,0.006),plein,nx,nz,x0,z0,pas:POCHE,segs};
 }
 
 // ---------- contour d'un meuble vu de dessus (grille de 2 cm, repère du meuble), calculé une fois ----------
@@ -267,7 +268,7 @@ export function initPlan(){
     s.setPointerCapture(e.pointerId); doigts.set(e.pointerId,{x:e.clientX,y:e.clientY}); anim=null;
     if(doigts.size===2){ if(geste?.type==='meuble'&&geste.bouge) save(); geste={type:'pince',d:ecart(),m:milieu(),s:vue.s}; return; }
     if(doigts.size>2) return;
-    const cibleMeuble=app.edition&&e.target.closest?.('[data-item]');
+    const cibleMeuble=app.edition&&!app.mesure&&e.target.closest?.('[data-item]');
     if(cibleMeuble){ const it=app.items[cibleMeuble.dataset.item]; if(app.selected!==it) select(it.name);
       geste={type:'meuble',it,x:e.clientX,y:e.clientY,gx:it.g.position.x,gz:it.g.position.z,bouge:false}; }
     else geste={type:'pan',x:e.clientX,y:e.clientY,cx:vue.cx,cz:vue.cz,bouge:false};
@@ -284,7 +285,7 @@ export function initPlan(){
   const fin=e=>{
     if(!doigts.delete(e.pointerId)) return;
     if(geste?.type==='meuble'&&geste.bouge) save();
-    else if(geste?.type==='pan'&&!geste.bouge&&app.edition&&app.selected&&e.type==='pointerup') select(null);   // toucher le vide désélectionne
+    else if(geste?.type==='pan'&&!geste.bouge&&app.edition&&app.selected&&!app.mesure&&e.type==='pointerup') select(null);   // toucher le vide désélectionne
     if(doigts.size===1){ const [p]=doigts.values(); geste={type:'pan',x:p.x,y:p.y,cx:vue.cx,cz:vue.cz,bouge:true}; } else if(!doigts.size) geste=null;
   };
   s.addEventListener('pointerup',fin); s.addEventListener('pointercancel',fin);

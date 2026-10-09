@@ -170,3 +170,19 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
 .filtres input[type=search]{flex:1;min-width:140px;font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:var(--r);padding:7px 10px}
 .filtres input[type=search]:focus{outline:2px solid var(--accent);outline-offset:-1px}
 .list mark{background:var(--accent-soft);color:inherit;border-radius:3px}
+/* Règle de mesure (livraison 7) : traits violets, valeur au milieu ; en mode « Mesurer », toucher une valeur l'efface */
+:root{--mesure:#7b2f8f}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--mesure:#d79be6}}
+:root[data-theme="dark"]{--mesure:#d79be6}
+#mesures{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible}
+#mesures[hidden]{display:none}
+#mesures .trait{fill:none;stroke:var(--mesure);stroke-width:2;stroke-linecap:round}
+#mesures .bouts{fill:var(--panel);stroke:var(--mesure);stroke-width:2}
+#mesures .valeur{font-family:var(--font-data);font-size:12.5px;font-weight:500;fill:var(--mesure);text-anchor:middle;dominant-baseline:middle;font-variant-numeric:tabular-nums;paint-order:stroke;stroke:var(--panel);stroke-width:4px;stroke-linejoin:round}
+#mesures .en-cours .trait{stroke-dasharray:6 4}
+#app.mesure #mesures .mesure:not(.en-cours) .valeur{pointer-events:auto;cursor:pointer}
+#app.mesure #c,#app.mesure #plan{cursor:crosshair}
+#bandeau-mesure{position:absolute;left:16px;top:120px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--mesure);border-radius:var(--r);padding:6px 6px 6px 12px;font-size:13px;max-width:calc(100% - 32px)}
+#bandeau-mesure[hidden]{display:none}
+#bandeau-mesure #mesure-texte{flex:1 1 220px}
+#bandeau-mesure .actions{display:flex;gap:8px;margin-left:auto}

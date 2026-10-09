@@ -18,7 +18,9 @@
   <canvas id="c" tabindex="0" aria-label="Vue 3D de l'appartement"></canvas>
   <svg id="plan" hidden role="img" aria-label="Plan 2D vu de dessus"><g id="plan-monde"></g></svg>
   <svg id="calques" hidden aria-label="Calques : noms, surfaces, hauteurs et cotes"></svg>
+  <svg id="mesures" hidden aria-label="Mesures"></svg>
   <div id="bandeau-piece" role="status" hidden></div>
+  <div id="bandeau-mesure" hidden><span id="mesure-texte" role="status"></span><span class="actions"><button class="btn" id="mesure-effacer" hidden>Tout effacer</button><button class="btn primary" id="mesure-terminer">Terminer</button></span></div>
 
   <header class="bar">
     <div class="brand"><strong>Appartement Diolly</strong><span>2 niveaux · échelle 1:1 en mètres</span></div>
@@ -48,6 +50,7 @@
       <button class="btn" id="calques-bouton" aria-haspopup="true" aria-expanded="false" aria-controls="calques-menu">Calques <span aria-hidden="true">▾</span></button>
       <div id="calques-menu" class="menu" role="dialog" aria-label="Calques" hidden></div>
     </div>
+    <button class="btn" id="mesurer" aria-pressed="false">Mesurer</button>
     <span class="spacer"></span>
     <button class="btn" id="portes" aria-pressed="false">Ouvrir les portes</button>
     <button class="btn" id="auto" aria-pressed="true">Portes auto : oui</button>
