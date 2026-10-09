@@ -194,6 +194,10 @@ But : voir la pièce **en vrai** avec le nouveau meuble, en complément de la 3D
 - Mauro fournit de **vraies photos** de chaque pièce (galerie par pièce, stockée avec le projet).
 - Dans l'éditeur, on place le meuble, on cale la caméra 3D sur l'angle de la vraie photo, puis bouton **« Rendu réaliste »**.
 - **Mode « Image »**, distinct de l'édition 3D : on modifie la photo, pas la maquette. Dans ce mode, un **trombone ou un bouton « Ajouter un objet »** permet d'importer une image prise sur Internet (fichier, ou collage depuis le presse-papiers), de saisir ses dimensions, et de lancer directement le processus de rendu décrit ci-dessus (placement approximatif sur la photo, confirmation, appel kie.ai). Résultat dans l'historique de la pièce et dans Familia, comme les autres rendus.
+- **Idées de Mauro du 9 octobre 2026 pour le mode « Image »** (à faire à l'étape 5 seulement, rien avant) :
+  - **Choisir un meuble dans des boutiques en ligne** : depuis le mode « Image », des liens vers plusieurs boutiques (recherche déjà remplie) ; on clique sur un produit, on récupère sa photo, et le site l'adapte (fond retiré, dimensions). Pistes : coller le lien du produit, n8n lit la page et prend la photo principale (balise `og:image`) et, si elles y sont, les dimensions ; sur la tablette, l'application installable peut apparaître dans le menu « Partager » d'Android (Web Share Target) pour envoyer la photo ou le lien depuis l'appli de la boutique. Une page ne peut pas lire directement les images d'une autre boutique (sécurité des navigateurs), d'où le passage par n8n.
+  - **Avant / après** : en touchant un rendu, comparaison avec la photo d'origine, au choix en **image partagée en deux avec une barre à glisser**, ou en alternance.
+  - **Plein écran en diaporama** : voir les photos et rendus en grand, en les faisant défiler.
 - Le site envoie à kie.ai : la vraie photo de la pièce, la photo du meuble (site marchand), la capture 3D qui montre l'emplacement et l'échelle, et un prompt du type « insère ce meuble à cet endroit, à cette taille, sans changer le reste ». Modèle : `nano-banana-pro`, qui accepte plusieurs images de référence.
 - **Toujours demander confirmation avant chaque rendu** (chaque appel consomme des crédits kie.ai).
 - **Historique des rendus** conservé : pour chaque pièce, on fait défiler les rendus précédents avec une petite flèche, rien n'est écrasé.
@@ -283,6 +287,7 @@ Rendre la maquette conforme à la réalité pièce par pièce, d'après les phot
 ## À rappeler à Mauro
 
 - **À la fin du projet, avant la vidéo** : parler du **rendu**. Mauro le trouve plat et voudrait, en plus du mode photo (rendu kie.ai de l'étape 5), un rendu en direct plus proche de la réalité dans la 3D. À étudier quand tout fonctionnera, et à essayer d'abord sur une copie du site (demande du 8 octobre 2026).
+- **À l'étape 5 (mode photo)** : reprendre les idées du 9 octobre 2026 notées sous « Mode « Image » » (boutiques en ligne, avant / après avec barre, plein écran en diaporama).
 - **À la fin du projet** : parler de la création d'une **vidéo** de quelqu'un qui marche dans l'appartement et entre dans toutes les pièces (demande de Mauro du 8 octobre 2026, notée pour ne pas l'oublier).
 
 ## Problèmes connus
