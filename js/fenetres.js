@@ -36,7 +36,7 @@ export const FENETRES=[
 // Baie vitrée : le panneau ouest (poignée) coulisse devant le panneau fixe et s'arrête à hauteur de la télévision
 export const BAIE={nom:'rez__baie_vitree', int:-14.347, ext:-14.111, a:[12.888,18.588], y:[0.02,2.72], mobile:[13.11,15.72], fixe:[15.60,18.52],
   bas:0.06, haut:2.38, course:1.38};
-// Velux : pivot au milieu ; le haut part vers l'extérieur, le bas vient vers l'intérieur, 30 % de l'ouverture (précisé par Mauro)
+// Velux : charnière en haut côté extérieur, tout l'ouvrant part vers l'extérieur, le bas se soulève, 30 % de l'ouverture (précisé par Mauro)
 export const VELUX=[{nom:'etage__Velux', x:[15.363,16.118]}, {nom:'etage__Velux_2', x:[12.733,13.488]}];
 const VELUX_BAS=new THREE.Vector3(0,3.567,-26.990), VELUX_HAUT=new THREE.Vector3(0,4.699,-26.357);
 
