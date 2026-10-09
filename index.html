@@ -29,6 +29,10 @@
       <button id="l-rez" aria-pressed="false">Rez</button>
       <button id="l-etage" aria-pressed="false">Étage</button>
     </div>
+    <div class="aller">
+      <button class="btn" id="aller" aria-haspopup="menu" aria-expanded="false" aria-controls="aller-menu">Aller à <span aria-hidden="true">▾</span></button>
+      <div id="aller-menu" class="menu" role="menu" aria-label="Aller à une pièce" hidden></div>
+    </div>
     <span class="spacer"></span>
     <button class="btn" id="portes" aria-pressed="false">Ouvrir les portes</button>
     <button class="btn" id="auto" aria-pressed="true">Portes auto : oui</button>
@@ -74,6 +78,7 @@
     <button data-k="back" aria-label="Reculer">▼</button>
     <button data-k="right" aria-label="Aller à droite">▶</button>
   </div>
+  <div id="vitesse-box" hidden><label for="vitesse">Vitesse</label><input type="range" id="vitesse" min="0.5" max="2" step="0.25" value="1"><output id="vitesse-val" for="vitesse">5,4 km/h</output></div>
   <div id="hint"></div>
   <div id="charge" role="status" hidden>Meubles en cours de chargement <span class="num" id="charge-pct">0 %</span></div>
   <div id="loading"><div><span>Chargement de la maquette…</span><span class="meter"><i id="bar"></i></span><span class="num" id="pct">0 %</span></div></div>

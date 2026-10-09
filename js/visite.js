@@ -21,6 +21,14 @@ export function enterWalk(floor){
   pitch=-0.05; camera.rotation.set(pitch,yaw,0,'YXZ');
 }
 
+// « Aller à » : arrivée au point (x, z) d'un niveau, regard vers (vx, vz) ; on s'écarte d'un mur ou d'un meuble trop proche
+export function allerA(x,z,floor,vx,vz,incl=-0.05){
+  const {camera,renderer}=app;
+  renderer.clippingPlanes=[]; cible=null; groundY=floor==='etage'?ETAGE_FLOOR:0;
+  camera.position.set(x,groundY+EYE,z); yaw=Math.atan2(-(vx-x),-(vz-z)); pitch=incl;
+  camera.rotation.set(pitch,yaw,0,'YXZ'); degager(); majNiveau(floor);
+}
+
 export function regarder(dx,dy){ yaw-=dx*0.005; pitch-=dy*0.005; pitch=Math.max(-1.3,Math.min(1.3,pitch)); }
 
 const rc=new THREE.Raycaster(), down=new THREE.Vector3(0,-1,0), o=new THREE.Vector3();
@@ -103,7 +111,7 @@ export function walk(dt){
   if(f||s){
     cible=null;
     const fw=new THREE.Vector3(-Math.sin(yaw),0,-Math.cos(yaw)), rt=new THREE.Vector3(Math.cos(yaw),0,-Math.sin(yaw));
-    const mv=fw.multiplyScalar(f).add(rt.multiplyScalar(s)).normalize().multiplyScalar(1.5*dt);
+    const mv=fw.multiplyScalar(f).add(rt.multiplyScalar(s)).normalize().multiplyScalar(1.5*app.vitesse*dt);
     // pas bloqué : demi-pas puis quart de pas (on s'approche au plus près, quelle que soit la vitesse d'affichage),
     // sinon on glisse le long de l'obstacle
     const essayer=v=>avancer(v)||avancer(v.clone().multiplyScalar(0.5))||avancer(v.clone().multiplyScalar(0.25));
@@ -111,7 +119,7 @@ export function walk(dt){
   } else if(cible){
     const d=new THREE.Vector3(cible.x-camera.position.x,0,cible.z-camera.position.z), dist=d.length();
     if(dist<0.03) cible=null;
-    else { vitesse=Math.min(1.6,0.3+dist*1.3,vitesse+2.5*dt); const pas=Math.min(dist,vitesse*dt);
+    else { const k=app.vitesse; vitesse=Math.min(1.6*k,(0.3+dist*1.3)*k,vitesse+2.5*k*dt); const pas=Math.min(dist,vitesse*dt);
       if(!avancer(d.setLength(pas),0.55)) cible=null; }
   }
   rc.set(o.set(camera.position.x,groundY+0.75,camera.position.z),down); rc.far=4;

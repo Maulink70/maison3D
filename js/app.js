@@ -42,6 +42,7 @@ export const app={
   fenetres:[], portes:[], battants:[], toutOuvert:false, portesAuto:true,   // fenêtres et battants : obstacles qui suivent l'élément
   edition:false,             // Visite (rien n'est modifiable) ou Éditer
   fovVisite:85,              // zoom de la 1re personne : champ de vision horizontal en degrés (35 à 95)
+  vitesse:1,                 // vitesse de marche réglable : facteur de 0,5 à 2 (1 = 1,5 m/s au clavier et au pavé)
   mobilierPret:false
 };
 

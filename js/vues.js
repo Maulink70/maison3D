@@ -1,5 +1,5 @@
-// Ce que l'on fait (Visite / Éditer), comment on regarde (Maquette / 1re personne) et niveau (tout / rez / étage).
-// Les choix sont mémorisés dans le navigateur.
+// Ce que l'on fait (Visite / Éditer), comment on regarde (Maquette / 1re personne), niveau (tout / rez / étage) et
+// vitesse de marche. Les choix sont mémorisés dans le navigateur.
 import * as THREE from 'three';
 import {app, $, champVisite} from './app.js';
 import {ETAGE_FLOOR, REZ_CUT, ROOF_CUT, ETAGE_CUT} from './config.js';
@@ -9,12 +9,12 @@ import {toutOuvrir, toutesFenetres, portesAuto} from './portes.js';
 import {creerCiel} from './ciel.js';
 
 const UI='maison3d-ui';
-function memoriser(){ try{ localStorage.setItem(UI,JSON.stringify({edition:app.edition,vue:app.mode,niveau:app.level})); }catch{} }
+function memoriser(){ try{ localStorage.setItem(UI,JSON.stringify({edition:app.edition,vue:app.mode,niveau:app.level,vitesse:app.vitesse})); }catch{} }
 export function prefs(){ try{ return JSON.parse(localStorage.getItem(UI)||'{}')||{}; }catch{ return {}; } }
 
 const AIDE={
-  vo:'Visite : glisser pour tourner autour, molette ou pincement pour zoomer, deux doigts pour décaler. Touchez une porte ou une fenêtre pour l’ouvrir ou la fermer. Pour modifier un meuble, passez en « Éditer ».',
-  vw:'Visite : glisser pour regarder, flèches, WASD (ZQSD sur clavier français) ou boutons pour marcher. Touchez le sol pour faire un pas, appui long pour vous téléporter. Molette ou pincement : zoom. Les portes s’ouvrent à votre approche (bouton « Portes auto ») ; touchez une porte ou une fenêtre pour l’ouvrir ou la fermer.',
+  vo:'Visite : glisser pour tourner autour, molette ou pincement pour zoomer, deux doigts pour décaler. Touchez une porte ou une fenêtre pour l’ouvrir ou la fermer. « Aller à » cadre une pièce. Pour modifier un meuble, passez en « Éditer ».',
+  vw:'Visite : glisser pour regarder, flèches, WASD (ZQSD sur clavier français) ou boutons pour marcher. Touchez le sol pour faire un pas, appui long pour vous téléporter. « Aller à » mène à la porte d’une pièce ; la vitesse se règle en bas à gauche. Molette ou pincement : zoom. Les portes s’ouvrent à votre approche (bouton « Portes auto ») ; touchez une porte ou une fenêtre pour l’ouvrir ou la fermer.',
   eo:'Éditer : touchez un meuble pour le déplacer, le tourner, changer sa couleur ou le masquer. Glisser pour tourner autour.',
   ew:'Éditer en 1re personne : touchez un meuble pour le modifier. Touchez le sol pour faire un pas, appui long pour vous téléporter.'
 };
@@ -27,7 +27,8 @@ export function setEdition(on){
   majAide(); memoriser();
 }
 
-export function setLevel(l){
+// recadrer : remettre la caméra sur tout le niveau (non pour « Aller à », qui cadre la pièce lui-même)
+export function setLevel(l,recadrer=true){
   const {renderer,orbit,camera,CENTER}=app;
   app.level=l; for(const k of ['all','rez','etage']) $('l-'+k).setAttribute('aria-pressed',String(k===l));
   dispatchEvent(new CustomEvent('niveau'));
@@ -37,13 +38,14 @@ export function setLevel(l){
   if(l==='rez') plans.push(new THREE.Plane(new THREE.Vector3(0,-1,0),REZ_CUT));
   if(l==='etage') plans.push(new THREE.Plane(new THREE.Vector3(0,-1,0),ROOF_CUT),new THREE.Plane(new THREE.Vector3(0,1,0),-ETAGE_CUT));
   renderer.clippingPlanes=plans;
+  if(!recadrer){ memoriser(); return; }
   if(l==='all'){ orbit.target.copy(CENTER); camera.position.set(CENTER.x+11,14,CENTER.z+13); }
   else { const y=l==='rez'?0.4:ETAGE_FLOOR+0.4; orbit.target.set(CENTER.x,y,CENTER.z); camera.position.set(CENTER.x+3,y+15,CENTER.z+6); }
   orbit.update(); memoriser();
 }
 export function setMode(m){
   app.mode=m; $('m-orbit').setAttribute('aria-pressed',String(m==='orbit')); $('m-walk').setAttribute('aria-pressed',String(m==='walk'));
-  $('l-all').disabled=m==='walk'; $('pad').hidden=m!=='walk';
+  $('l-all').disabled=m==='walk'; $('pad').hidden=m!=='walk'; $('vitesse-box').hidden=m!=='walk';
   app.orbit.enabled=m==='orbit';
   // 1re personne : ciel et sol dehors, champ de vision propre (zoom par molette ou pincement)
   (app.ciel||creerCiel()).visible=m==='walk';
@@ -52,6 +54,9 @@ export function setMode(m){
   else setLevel(app.level==='all'||!app.level?'all':app.level);
   majAide(); memoriser();
 }
+// Vitesse de marche : facteur 0,5 à 2, affiché en km/h (1 = 1,5 m/s = 5,4 km/h)
+function majVitesse(v){ app.vitesse=Math.min(2,Math.max(0.5,+v||1)); $('vitesse').value=String(app.vitesse);
+  $('vitesse-val').textContent=(5.4*app.vitesse).toFixed(1).replace('.',',')+' km/h'; }
 // Boutons « Ouvrir les portes » / « Fermer les portes » ; « Portes auto : oui / non » (ouverture à l'approche en 1re personne) ;
 // « Ouvrir les fenêtres » / « Fermer les fenêtres » (jamais d'automatisme pour les fenêtres)
 function majPortesBouton(){ $('portes').setAttribute('aria-pressed',String(app.toutOuvert)); $('portes').textContent=app.toutOuvert?'Fermer les portes':'Ouvrir les portes';
@@ -65,11 +70,12 @@ export function initVues(){
   $('portes').onclick=()=>{ toutOuvrir(!app.toutOuvert); majPortesBouton(); };
   $('auto').onclick=()=>{ portesAuto(!app.portesAuto); majPortesBouton(); };
   $('fenetres').onclick=()=>{ toutesFenetres(!app.fenetresOuvertes); majPortesBouton(); };
-  majPortesBouton();
+  $('vitesse').oninput=e=>{ majVitesse(e.target.value); memoriser(); };
+  majPortesBouton(); majVitesse(1);
 }
 // Au chargement : reprend les derniers choix (Visite et Maquette la première fois)
 export function demarrerVues(){
-  const p=prefs(); setEdition(!!p.edition);
+  const p=prefs(); majVitesse(p.vitesse); setEdition(!!p.edition);
   if(p.niveau==='rez'||p.niveau==='etage') app.level=p.niveau;
   setMode(p.vue==='walk'?'walk':'orbit');
 }

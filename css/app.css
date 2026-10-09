@@ -75,6 +75,22 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
 #pad [data-k="left"]{grid-area:2/1}
 #pad [data-k="back"]{grid-area:2/2}
 #pad [data-k="right"]{grid-area:2/3}
+/* « Aller à » : menu déroulant des pièces, rangées par niveau, avec leur surface */
+.aller{position:relative}
+.menu{position:absolute;top:calc(100% + 6px);left:0;z-index:20;min-width:230px;max-height:min(70vh,520px);overflow:auto;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:6px;box-shadow:0 8px 24px rgba(0,0,0,.16)}
+.menu-groupe+.menu-groupe{border-top:1px solid var(--line);margin-top:4px;padding-top:4px}
+.menu-titre{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:500;padding:6px 10px 2px}
+.menu button{display:flex;width:100%;align-items:baseline;gap:12px;justify-content:space-between;border:0;background:none;text-align:left;padding:8px 10px;border-radius:8px}
+.menu button:hover,.menu button:focus-visible{background:var(--accent-soft);color:var(--accent);outline:none}
+.menu button[aria-current]{font-weight:600}
+.menu button[aria-current]::after{content:"vous êtes ici";font-size:11px;color:var(--accent);font-weight:500;margin-left:auto}
+.menu .m2{font-family:var(--font-data);font-size:11.5px;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
+.menu button[aria-current] .m2{display:none}
+/* Vitesse de marche (1re personne), sous le pavé */
+#vitesse-box{position:absolute;left:16px;bottom:16px;display:flex;align-items:center;gap:8px;background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:6px 12px;width:174px}
+#vitesse-box label{font-weight:500}
+#vitesse-box input{flex:1;min-width:0;accent-color:var(--accent)}
+#vitesse-box output{font-family:var(--font-data);font-size:11.5px;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap;min-width:5.5em;text-align:right}
 #loading{position:absolute;inset:0;display:grid;place-items:center;background:var(--bg)}
 #loading div{display:flex;flex-direction:column;gap:10px;align-items:center;color:var(--muted)}
 #loading .meter{width:220px;height:4px;background:var(--line);border-radius:2px;overflow:hidden}
@@ -87,8 +103,10 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
   .seg button{padding:6px 9px}
   #panel{top:auto;left:0;right:0;bottom:0;width:auto;max-width:none;max-height:55%;border-radius:14px 14px 0 0;border-left:0;border-right:0;border-bottom:0;padding-bottom:env(safe-area-inset-bottom,0px)}
   #hint{display:none}
-  #pad{bottom:16px}
-  body.sheet-open #pad{display:none}
+  #pad{bottom:62px}
+  body.sheet-open #pad,body.sheet-open #vitesse-box{display:none}
+  .aller{position:static}
+  .menu{left:0;right:0;min-width:0;max-height:min(58vh,520px)}
 }
 /* plus de texte d'aide à l'écran (PC compris) : il cachait le pavé de marche (Mauro, 9 octobre 2026) ; les textes restent
    dans vues.js (AIDE) pour la rubrique « Aide » prévue à la fin du projet */

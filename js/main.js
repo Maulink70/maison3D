@@ -7,8 +7,9 @@ import {initVisite, walk, regarder, teleporter, solSous} from './visite.js';
 import {initEdition, toucher, viser, buildList} from './edition.js';
 import {initSauvegarde, restore} from './sauvegarde.js';
 import {majPortes} from './portes.js';
+import {initAller, majCadrage} from './aller.js';
 
-initVues(); initVisite(); initEdition(); initSauvegarde();
+initVues(); initVisite(); initEdition(); initSauvegarde(); initAller();
 
 // Cercle posé au sol pendant un appui long (point de téléportation)
 const marque=new THREE.Mesh(new THREE.RingGeometry(0.16,0.25,40),new THREE.MeshBasicMaterial({color:new THREE.Color(css('--accent')||'#2c5a86'),transparent:true,opacity:0.9,depthTest:false,side:THREE.DoubleSide}));
@@ -62,7 +63,7 @@ chargerModele({
 const clock=new THREE.Clock();
 app.renderer.setAnimationLoop(()=>{
   const dt=Math.min(clock.getDelta(),0.1);
-  if(app.mode==='walk') walk(dt); else app.orbit.update();
+  if(app.mode==='walk') walk(dt); else { majCadrage(dt); app.orbit.update(); }
   majPortes(dt);
   if(app.selBox&&app.tc.object) app.selBox.update();
   app.renderer.render(app.scene,app.camera);
