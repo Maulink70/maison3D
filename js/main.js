@@ -29,8 +29,10 @@ import {initComparer, comparaisonActive, rendreComparaison} from './comparer.js'
 import {initPartage} from './partage.js';
 import {initObjets} from './objets.js';
 import {initRevetements, majRevetements} from './revetements.js';
+import {initGalerie} from './galerie.js';
+import {initCalage, majCalage, calageActif, fovCalage, zoomCalage, toucherCalage} from './calage.js';
 
-initIcones(); initCompte(); initSynchro(); initVariantes(); initComparer(); initVues(); initVisite(); initEdition(); initSauvegarde(); initAller(); initPlan(); initCalques(); initMesure(); initImpression(); initIsoler(); initCameras(); initHistorique(); initPartage(); initAlertes(); initObjets(); initRevetements();
+initIcones(); initCompte(); initSynchro(); initVariantes(); initComparer(); initVues(); initVisite(); initEdition(); initSauvegarde(); initAller(); initPlan(); initCalques(); initMesure(); initImpression(); initIsoler(); initCameras(); initHistorique(); initPartage(); initAlertes(); initObjets(); initRevetements(); initGalerie(); initCalage();
 
 // Cercle posé au sol pendant un appui long (point de téléportation)
 const marque=new THREE.Mesh(new THREE.RingGeometry(0.16,0.25,40),new THREE.MeshBasicMaterial({color:new THREE.Color(css('--accent')||'#2c5a86'),transparent:true,opacity:0.9,depthTest:false,side:THREE.DoubleSide}));
@@ -39,13 +41,14 @@ marque.rotation.x=-Math.PI/2; marque.renderOrder=10; marque.visible=false; marqu
 // Zoom en 1re personne : molette (PC) ou pincement à deux doigts (tablette) ; on change le champ de vision
 // (champVisite : 35° à 95° en largeur), on ne bouge pas : zoomer en arrière montre plus de la pièce
 const {canvas}=app;
-canvas.addEventListener('wheel',e=>{ if(app.mode!=='walk') return; e.preventDefault(); champVisite(app.fovVisite*Math.exp(e.deltaY*0.0012)); },{passive:false});
+// calage d'une photo (calage.js) : le zoom règle l'angle de vue de la photo
+canvas.addEventListener('wheel',e=>{ if(app.mode!=='walk') return; e.preventDefault(); const k=Math.exp(e.deltaY*0.0012); if(calageActif()) zoomCalage(fovCalage()*k); else champVisite(app.fovVisite*k); },{passive:false});
 const doigts=new Map(); let pince=null;
 const ecart=()=>{ const [a,b]=[...doigts.values()]; return Math.hypot(a.x-b.x,a.y-b.y); };
 canvas.addEventListener('pointerdown',e=>{ doigts.set(e.pointerId,{x:e.clientX,y:e.clientY});
-  if(doigts.size===2&&app.mode==='walk') pince={d:ecart(),fov:app.fovVisite}; });
+  if(doigts.size===2&&app.mode==='walk') pince={d:ecart(),fov:calageActif()?fovCalage():app.fovVisite}; });
 canvas.addEventListener('pointermove',e=>{ if(!doigts.has(e.pointerId)) return; doigts.set(e.pointerId,{x:e.clientX,y:e.clientY});
-  if(pince&&doigts.size===2) champVisite(pince.fov*pince.d/Math.max(20,ecart())); });
+  if(pince&&doigts.size===2){ const f=pince.fov*pince.d/Math.max(20,ecart()); if(calageActif()) zoomCalage(f); else champVisite(f); } });
 for(const t of ['pointerup','pointercancel']) canvas.addEventListener(t,e=>{ doigts.delete(e.pointerId); if(doigts.size<2) pince=null; });
 
 // Pointeur : glisser = regarder (1re personne) ; toucher bref = porte, sol ou meuble selon le mode ;
@@ -71,7 +74,7 @@ canvas.addEventListener('pointerup',e=>{
   if(!pd||pd.id!==e.pointerId) return;
   const dt=performance.now()-pd.t;
   if(pd.tele) teleporter(pd.tele);
-  else if(!pd.drag&&!pd.multi&&dt<600&&!app.gizmoDrag&&app.mobilierPret&&!eclatActif()&&!comparaisonActive()){ if(app.mesure) mesureToucher(e.clientX,e.clientY); else toucher(e); }   // vue éclatée : rien à toucher
+  else if(!pd.drag&&!pd.multi&&dt<600&&!app.gizmoDrag&&app.mobilierPret&&!eclatActif()&&!comparaisonActive()){ if(app.mesure) mesureToucher(e.clientX,e.clientY); else if(calageActif()) toucherCalage(e); else toucher(e); }   // vue éclatée : rien à toucher
   fin();
 });
 canvas.addEventListener('pointercancel',fin);
@@ -108,5 +111,6 @@ app.renderer.setAnimationLoop(()=>{
   const bas=barre.getBoundingClientRect().bottom-$('app').getBoundingClientRect().top;
   $('bandeaux').style.top=(bas+8)+'px';   // bandeaux sous la barre, même sur téléphone
   $('panel').style.top=innerWidth>760?(bas+10)+'px':'';   // panneau des meubles sous la barre (qui peut tenir sur 2 lignes)
+  majCalage();   // après les bandeaux : cadre de la photo sous eux, caméra à l'angle de vue de la photo
   rendre();
 });

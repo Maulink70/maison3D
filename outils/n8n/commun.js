@@ -1,6 +1,6 @@
 // ---- Maison3D : constantes communes (base Airtable, tables, jeton) ----
 const BASE='https://api.airtable.com/v0/app6QXMQrN6IwgbXq/';
-const T={personnes:'tblP1uims1UXACAp4',variantes:'tblR2iq9raoIrVk7W',historique:'tbl8jnnrX1urdbarb',vues:'tblFUrGS3InCPIti0',mesures:'tbl20tv71DsYNuPk6',fichiers:'tblDKrJYPrObrSheL'};
+const T={personnes:'tblP1uims1UXACAp4',variantes:'tblR2iq9raoIrVk7W',historique:'tbl8jnnrX1urdbarb',vues:'tblFUrGS3InCPIti0',mesures:'tbl20tv71DsYNuPk6',fichiers:'tblDKrJYPrObrSheL',photos:'tblWEkyaIKNVEn8b6'};
 // étape 4 : contenu d'un fichier (photo, modèle 3D) envoyé dans la pièce jointe « Fichier » de la table Fichiers
 const CONTENU=id=>'https://content.airtable.com/v0/app6QXMQrN6IwgbXq/'+id+'/fld2e2XnT7xEgZ5RD/uploadAttachment';
 const TYPES=['image/webp','image/png','image/jpeg','model/gltf-binary','application/octet-stream'];

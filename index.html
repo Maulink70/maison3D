@@ -29,9 +29,17 @@
   <div id="bandeau-isole" hidden><span id="isole-texte" role="status"></span><span class="actions"><span class="seg" role="group" aria-label="Le reste de l’appartement"><button id="isole-pale" aria-pressed="true">Pâle</button><button id="isole-masque" aria-pressed="false">Masqué</button></span><button class="btn primary" id="isole-fin">Tout afficher</button></span></div>
   <div id="bandeau-comparer" hidden><span id="comparer-texte" role="status"></span><span class="actions"><span class="seg" role="group" aria-label="Façon de comparer"><button id="cmp-barre" aria-pressed="true">Barre</button><button id="cmp-fondu" aria-pressed="false">Fondu</button></span><label id="cmp-fondu-box" hidden><span class="visuel">A</span><input type="range" id="cmp-t" min="0" max="100" value="50" aria-label="Fondu entre les deux variantes"><span class="visuel">B</span></label><button class="btn primary" id="cmp-fin">Terminer</button></span></div>
   <div id="bandeau-remplacer" hidden><span id="remplacer-texte" role="status"></span><span class="actions"><button class="btn primary" id="remplacer-choisir">Choisir</button><button class="btn" id="remplacer-annuler">Annuler</button></span></div>
+  <div id="bandeau-calage" hidden>
+    <div class="cal-ligne"><span id="calage-texte" role="status"></span>
+      <label class="cal-transp"><span>Photo</span><input type="range" id="calage-opacite" min="0" max="100" value="50" aria-label="Transparence de la photo : à gauche la photo, à droite la maquette"><span>Maquette</span></label>
+      <span class="actions"><button class="btn" id="calage-recaler" hidden>Recaler</button><button class="btn primary" id="calage-valider">Valider</button><button class="btn" id="calage-fermer">Annuler</button></span></div>
+    <p class="cal-aide" id="calage-aide">Marchez jusqu’à l’endroit d’où la photo a été prise (touchez le sol, appui long, pavé), puis ajustez avec les boutons jusqu’à ce que la maquette tombe sur la photo.</p>
+    <div class="cal-fins" id="calage-fins" role="group" aria-label="Réglages fins"></div>
+  </div>
   <div id="bandeau-mesure" hidden><span id="mesure-texte" role="status"></span><span class="actions"><button class="btn" id="mesure-effacer" hidden>Tout effacer</button><button class="btn primary" id="mesure-terminer">Terminer</button></span></div>
   </div>
 
+  <div id="calage-cadre" hidden aria-hidden="true"><img id="calage-img" alt=""></div>
   <div id="comparer-barre" hidden aria-label="Barre de comparaison : faites-la glisser"><span class="cmp-g"></span><span class="cmp-poignee" aria-hidden="true">⟷</span><span class="cmp-d"></span></div>
   <header class="bar">
     <div class="brand"><strong>Appart. Diolly</strong><span>2 niveaux · 1:1</span></div>
@@ -76,6 +84,7 @@
         <button class="ib" id="imprimer" data-icone="printer" aria-label="Imprimer en PDF" aria-haspopup="true" aria-expanded="false" aria-controls="impr-menu"></button>
         <div id="impr-menu" class="menu" role="dialog" aria-label="Imprimer en PDF" hidden></div>
       </div>
+      <button class="ib" id="photos" data-icone="images" aria-label="Photos des pièces" aria-haspopup="dialog" aria-expanded="false"></button>
     </div>
     <span class="spacer"></span>
     <div class="seg" role="group" aria-label="Portes et fenêtres">

@@ -6,7 +6,7 @@ const sortie=reqs=>reqs.length?reqs.map(req=>({json:{ctx,req}})):[{json:{ctx,req
 const refus=(erreur,code)=>{ ctx.reponse={ok:false,erreur,code:code||400}; return sortie([]); };
 if(!corps||typeof corps!=='object') return refus('Demande illisible');
 ctx.moi=lireJeton(corps.jeton);
-const PRIVE=['charger','etat','enregistrer','variante','vue','mesure','historique','motdepasse','fichier'];   // tout sauf la connexion : le site est fermé sans compte
+const PRIVE=['charger','etat','enregistrer','variante','vue','mesure','historique','motdepasse','fichier','photo'];   // tout sauf la connexion : le site est fermé sans compte
 if(PRIVE.includes(ctx.action)&&!ctx.moi) return refus('Connexion nécessaire',401);
 const tri=(champ,sens)=>'sort%5B0%5D%5Bfield%5D='+enc(champ)+'&sort%5B0%5D%5Bdirection%5D='+(sens||'asc');
 const parId=(t,id)=>({method:'GET',url:url(t,'?'+formule('{Id}='+texte(id))+'&maxRecords=10')});
@@ -50,6 +50,12 @@ switch(ctx.action){
       if(typeof corps.donnees!=='string'||corps.donnees.length>6900000) return refus('Morceau de fichier trop gros (5 Mo au plus)');
       if(!TYPES.includes(corps.type)) return refus('Type de fichier refusé');
       return sortie([]); }
+    return refus('Opération inconnue');
+  case 'photo':   // étape 5 : vraies photos des pièces (galerie) ; le fichier est dans la table Fichiers
+    if(corps.op==='liste') return sortie([{method:'GET',url:url('photos','?'+tri('Ordre')+'&sort%5B1%5D%5Bfield%5D='+enc('Créée le')+'&sort%5B1%5D%5Bdirection%5D=asc'+
+      (typeof corps.offset==='string'&&/^[\w/.-]{1,200}$/.test(corps.offset)?'&offset='+enc(corps.offset):''))}]);
+    if(corps.op==='enregistrer') return corps.photo&&typeof corps.photo.id==='string'&&corps.photo.id.length<=60?sortie([]):refus('Photo sans identifiant');
+    if(corps.op==='supprimer') return sortie([parId('photos',corps.id)]);
     return refus('Opération inconnue');
   default: return refus('Action inconnue');
 }

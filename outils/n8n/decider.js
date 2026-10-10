@@ -16,6 +16,8 @@ const vueDe=r=>({rid:r.id,id:r.fields['Id'],nom:r.fields['Nom']||'',reglage:json
 const point=s=>String(s||'').split(';').map(Number);
 const mesureDe=r=>({rid:r.id,id:r.fields['Id'],a:point(r.fields['A']),b:point(r.fields['B']),creeePar:r.fields['Créée par']||''});
 const resume=s=>String(s||'').slice(0,250);
+const photoDe=r=>({rid:r.id,id:r.fields['Id'],nom:r.fields['Nom']||'',piece:r.fields['Pièce']||'',image:json(r.fields['Image'],null),vignette:r.fields['Vignette']||'',
+  calage:json(r.fields['Calage'],null),ordre:r.fields['Ordre']||0,creeePar:r.fields['Créée par']||'',creeeLe:r.fields['Créée le']||null,modifieePar:r.fields['Modifiée par']||'',modifieeLe:r.fields['Modifiée le']||null});
 switch(ctx.action){
   case 'connexion': {
     const p=lignes(0)[0];
@@ -86,6 +88,24 @@ switch(ctx.action){
       'Type':c.type==='glb'?'glb':'photo','Taille':Math.max(0,+c.taille||0),'Créé par':moi.n,'Créé le':maintenant}}],typecast:true}}]);
     const k=Math.max(0,Math.min(20,c.part|0));
     return sortie({ok:true},[{method:'POST',url:CONTENU(c.id),body:{contentType:c.type,file:c.donnees,filename:String(c.nom||'fichier').replace(/[^\w.-]+/g,'_').slice(0,80)+'.part'+k}}]);
+  }
+  case 'photo': {
+    if(c.op==='liste') return sortie({ok:true,photos:lignes(0).map(photoDe),offset:(lus[0]&&lus[0].body&&lus[0].body.offset)||null});
+    if(c.op==='enregistrer'){
+      // seuls les champs envoyés sont écrits (un calage n'oblige pas à renvoyer la vignette)
+      const p=c.photo, f={'Id':String(p.id).slice(0,60),'Modifiée par':moi.n,'Modifiée le':maintenant};
+      if('nom' in p) f['Nom']=String(p.nom||'Photo').slice(0,120);
+      if('piece' in p) f['Pièce']=String(p.piece||'').replace(/[^a-z_]/g,'').slice(0,40);
+      if(p.image&&typeof p.image==='object'&&estId(p.image.id)) f['Image']=JSON.stringify({id:p.image.id,n:Math.max(1,Math.min(8,p.image.n|0)),type:String(p.image.type||'').slice(0,30),w:p.image.w|0,h:p.image.h|0});
+      if(typeof p.vignette==='string'&&/^data:image\/(jpeg|webp|png);base64,[A-Za-z0-9+/=]+$/.test(p.vignette)&&p.vignette.length<90000) f['Vignette']=p.vignette;
+      if('calage' in p) f['Calage']=p.calage&&typeof p.calage==='object'&&JSON.stringify(p.calage).length<4000?JSON.stringify(p.calage):'';
+      if('ordre' in p) f['Ordre']=+p.ordre||0;
+      if(p.nouvelle){ f['Créée par']=moi.n; f['Créée le']=maintenant; }
+      return sortie({ok:true,modifieePar:moi.n,modifieeLe:maintenant},[{method:'PATCH',url:url('photos'),body:{performUpsert:{fieldsToMergeOn:['Id']},typecast:true,records:[{fields:f}]}}]);
+    }
+    // supprimer : la ligne et son fichier
+    const recs=lignes(0), fic=recs.map(r=>json(r.fields['Image'],null)).filter(i=>i&&estId(i.id)).map(i=>i.id);
+    return sortie({ok:true,supprimees:recs.length},effacer('photos',recs.map(r=>r.id)).concat(effacer('fichiers',fic)));
   }
   case 'motdepasse': {
     const p=lus[0]&&lus[0].body; if(!p||!p.fields) return echec('Compte introuvable',404);

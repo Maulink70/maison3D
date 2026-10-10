@@ -6,6 +6,7 @@ import {ETAGE_FLOOR, EYE} from './config.js';
 import {obstaclesPortes} from './portes.js';
 
 let yaw=Math.PI, pitch=0, groundY=0, cible=null, vitesse=0;
+let hauteur=EYE, roulis=0;   // calage d'une photo (calage.js) : hauteur des yeux et inclinaison de côté réglables
 export const keys={fwd:0,back:0,left:0,right:0};
 
 function majNiveau(floor){
@@ -36,6 +37,18 @@ export function reprendreVisite(e){
   camera.position.set(e.x,groundY+EYE,e.z); yaw=e.yaw; pitch=e.pitch; camera.rotation.set(pitch,yaw,0,'YXZ');
   majNiveau(groundY>ETAGE_FLOOR-0.8?'etage':'rez');
 }
+// Calage d'une photo (étape 5, calage.js) : position et orientation exactes de la prise de vue, réglées finement
+export function etatCalage(){ const c=app.camera.position; return {x:c.x,y:c.y,z:c.z,sol:groundY,yaw,pitch,roll:roulis}; }
+export function poserCalage(e){
+  const {camera,renderer}=app; renderer.clippingPlanes=[]; cible=null; groundY=e.sol; hauteur=THREE.MathUtils.clamp(e.y-e.sol,0.3,2.5);
+  yaw=e.yaw; pitch=e.pitch; roulis=e.roll||0; camera.position.set(e.x,groundY+hauteur,e.z); camera.rotation.set(pitch,yaw,roulis,'YXZ');
+  majNiveau(groundY>ETAGE_FLOOR-0.8?'etage':'rez');
+}
+export function ajusterCalage({yaw:dy=0,pitch:dp=0,roll:dr=0,avant=0,cote=0,hauteur:dh=0}){
+  cible=null; yaw+=dy; pitch=THREE.MathUtils.clamp(pitch+dp,-1.3,1.3); roulis=THREE.MathUtils.clamp(roulis+dr,-0.5,0.5); hauteur=THREE.MathUtils.clamp(hauteur+dh,0.3,2.5);
+  const c=app.camera.position; c.x+=-Math.sin(yaw)*avant+Math.cos(yaw)*cote; c.z+=-Math.cos(yaw)*avant-Math.sin(yaw)*cote;
+}
+export function finCalage(){ hauteur=EYE; roulis=0; }
 export function regarder(dx,dy){ yaw-=dx*0.005; pitch-=dy*0.005; pitch=Math.max(-1.3,Math.min(1.3,pitch)); }
 
 const rc=new THREE.Raycaster(), down=new THREE.Vector3(0,-1,0), o=new THREE.Vector3();
@@ -132,8 +145,8 @@ export function walk(dt){
   rc.set(o.set(camera.position.x,groundY+0.75,camera.position.z),down); rc.far=4;
   const h=rc.intersectObjects(floors,false)[0];
   if(h) groundY+= (h.point.y-groundY)*Math.min(1,dt*10);
-  camera.position.y=groundY+EYE;
-  camera.rotation.set(pitch,yaw,0,'YXZ');
+  camera.position.y=groundY+hauteur;
+  camera.rotation.set(pitch,yaw,roulis,'YXZ');
   majNiveau(groundY>ETAGE_FLOOR-0.8?'etage':'rez');
 }
 export function enMouvement(){ return !!cible; }
