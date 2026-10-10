@@ -31,10 +31,20 @@ switch(ctx.action){
   case 'etat':
     return sortie({ok:true,variantes:lignes(0).map(r=>({id:r.id,nom:r.fields['Nom']||'',version:r.fields['Version']||0,modifieePar:r.fields['Modifiée par']||'',modifieeLe:r.fields['Modifiée le']||null}))});
   case 'enregistrer': {
+    // un élément : position, rotation, masqué, couleur ; taille s, matières m, objet ajouté a (étape 4) ; seuls les champs présents
+    const propre=e=>{ const r={};
+      for(const k of ['x','z','r']) if(k in e) r[k]=+e[k]||0;
+      if('h' in e) r.h=!!e.h; if('c' in e) r.c=typeof e.c==='string'?e.c.slice(0,9):null;
+      if(Array.isArray(e.s)&&e.s.length===3) r.s=e.s.map(v=>Math.min(50,Math.max(0.01,+v||1)));
+      if(e.m&&typeof e.m==='object'){ const m={}; for(const [k,v] of Object.entries(e.m).slice(0,40)) if(v&&typeof v==='object')
+        m[String(k).slice(0,60)]={i:v.i==null?null:String(v.i).slice(0,40),c:typeof v.c==='string'?v.c.slice(0,9):null,...(v.n?{n:String(v.n).slice(0,60)}:{})}; r.m=m; }
+      if(e.a&&typeof e.a==='object'&&JSON.stringify(e.a).length<6000) r.a=e.a;
+      if(Array.isArray(e.g)){ const g=e.g.slice(0,300); if(JSON.stringify(g).length<40000) r.g=g; }   // alertes ignorées
+      return r; };
     const r=lus[0]&&lus[0].body; if(!r||!r.fields) return echec('Variante introuvable',404);
     if(r.fields['Supprimée']) return echec('Cette variante a été supprimée',409);
     const d=json(r.fields['Disposition'],{}), ch=c.changements&&typeof c.changements==='object'?c.changements:{};
-    for(const [n,e] of Object.entries(ch)){ if(e===null) delete d[n]; else if(e&&typeof e==='object') d[n]={x:+e.x||0,z:+e.z||0,r:+e.r||0,h:!!e.h,c:e.c||null}; }
+    for(const [n,e] of Object.entries(ch)){ if(e===null) delete d[n]; else if(e&&typeof e==='object') d[String(n).slice(0,80)]=propre(e); }
     const version=(r.fields['Version']||0)+1;
     const ecr=[{method:'PATCH',url:url('variantes'),body:{records:[{id:r.id,fields:{'Disposition':JSON.stringify(d),'Version':version,'Modifiée par':moi.n,'Modifiée le':maintenant}}]}}];
     const h=(Array.isArray(c.historique)?c.historique:[]).slice(0,50).map(l=>({fields:{'Résumé':resume(l.texte),'Quand':new Date(+l.t||Date.now()).toISOString(),'Personne':moi.n,'Variante':r.fields['Nom']||'','Variante id':r.id,'Détail':JSON.stringify(l.ch||[]).slice(0,90000)}}));

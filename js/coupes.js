@@ -91,5 +91,6 @@ export function poserCouvercles(){
 export function majCouvercles(){
   const plans=app.renderer.clippingPlanes;
   const rez=plans.some(p=>p.normal.y<0&&Math.abs(p.constant-REZ_CUT)<1e-6), etage=plans.some(p=>p.normal.y<0&&Math.abs(p.constant-ROOF_CUT)<1e-6);
-  for(const m of couvercles) m.visible=m.userData.coupe==='rez'?rez:etage;
+  // un meuble redimensionné (étape 4) n'a plus la section calculée : pas de couvercle
+  for(const m of couvercles){ const e=m.parent?.scale; m.visible=(m.userData.coupe==='rez'?rez:etage)&&(!e||(e.x===1&&e.y===1&&e.z===1)); }
 }

@@ -31,8 +31,9 @@ function majAide(){ $('hint').textContent=AIDE[(app.edition?'e':'v')+(app.mode==
 export function setEdition(on,demande=true){
   if(on&&!connecte()){ if(demande) demanderConnexion('Connectez-vous pour modifier l’appartement.',()=>setEdition(true)); on=false; }
   app.edition=on; $('mo-visite').setAttribute('aria-pressed',String(!on)); $('mo-editer').setAttribute('aria-pressed',String(on));
-  $('toggle-panel').hidden=!on;
+  $('toggle-panel').hidden=!on; $('ajouter-boite').hidden=!on;
   if(!on){ select(null); openSheet(false); } else openSheet(!petitEcran());
+  dispatchEvent(new CustomEvent('edition'));
   majAide(); memoriser();
 }
 

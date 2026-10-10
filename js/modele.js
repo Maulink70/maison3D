@@ -114,7 +114,7 @@ function teinter(root){
 
 function installerMobilier(root){
   corrigerVitres(root); retirerPanneauxSurVitres(root); teinter(root); seuilBaie(root);
-  app.model.add(root); root.updateMatrixWorld(true);
+  app.model.add(root); root.updateMatrixWorld(true); app.mobilier=root;   // racine du mobilier : les objets ajoutés y sont rangés
   const etagere=root.getObjectByName('rez__armoire'); if(etagere) remplacerEtagere(etagere,root);
   const buffet=root.getObjectByName('rez__meuble_salon'); if(buffet) remplacerBuffet(buffet,root);
   for(const n of [...construireBuanderie(root),...construireCuisine(),...construireSalon(),...construirePieces(root),...construireEtage(root)]) root.add(fusionner(n));

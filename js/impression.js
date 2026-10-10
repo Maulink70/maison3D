@@ -235,7 +235,7 @@ function imageMeuble(it){
     ok({url:cv.toDataURL('image/jpeg',0.92),w:cv.width,h:cv.height}); }; im.src=url; });
 }
 const MATIERE={cuir:'cuir',tissu:'tissu',tapis:'tapis',bois:'bois',pierre:'pierre',peinture:'peinture',inox:'inox brossé'};
-function nomMatiere(mt){ if(MATIERE[mt.userData?.motif]) return MATIERE[mt.userData.motif]; if(mt.transparent&&mt.opacity<0.9) return 'verre';
+function nomMatiere(mt){ if(mt.userData?.matiere) return mt.userData.matiere.toLowerCase(); if(MATIERE[mt.userData?.motif]) return MATIERE[mt.userData.motif]; if(mt.transparent&&mt.opacity<0.9) return 'verre';
   if((mt.metalness||0)>0.5) return 'métal'; if(mt.map) return 'texture du modèle'; return 'lisse'; }
 // couleurs et matières du meuble, par surface (les plus présentes d'abord)
 function matieres(it){

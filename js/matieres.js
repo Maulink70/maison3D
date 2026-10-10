@@ -77,13 +77,85 @@ const MOTIFS={
     return {map:toile(N,(x,y)=>gris(0.975+0.025*f[y*N+x])), bump:toile(N,(x,y)=>gris(f[y*N+x]))}; }, bumpScale:0.6},
   // inox brossé : stries fines dans un sens
   inox:{taille:0.30, dessin(){ const a=graine(19), lignes=new Float32Array(N).map(()=>a()), f=fbm(N,2,a,8);
-    return {map:toile(N,(x,y)=>gris(0.9+0.08*lignes[y]+0.03*f[y*N+x])), bump:toile(N,(x,y)=>gris(lignes[y]))}; }, bumpScale:0.15}
+    return {map:toile(N,(x,y)=>gris(0.9+0.08*lignes[y]+0.03*f[y*N+x])), bump:toile(N,(x,y)=>gris(lignes[y]))}; }, bumpScale:0.15},
+
+  // ---- bibliothèque de matières (étape 4) ----
+  // lin : toile à gros fils irréguliers (flammes)
+  lin:{taille:0.12, dessin(){ const a=graine(23), f=fbm(N,3,a,8), fils=24, ix=new Float32Array(N).map(()=>0.8+0.4*a()), iy=new Float32Array(N).map(()=>0.8+0.4*a());
+    const v=(x,y)=>{ const u=(x/N*fils)%1, w=(y/N*fils)%1, tr=Math.pow(Math.abs(Math.sin(u*Math.PI)),0.6)*ix[x], ch=Math.pow(Math.abs(Math.sin(w*Math.PI)),0.6)*iy[y];
+      return ((x/N*fils|0)+(y/N*fils|0))%2?tr:ch; };
+    return {map:toile(N,(x,y)=>gris(0.8+0.14*v(x,y)+0.06*(f[y*N+x]-0.5))), bump:toile(N,(x,y)=>gris(Math.min(1,v(x,y))))}; }, bumpScale:1.0},
+  // velours : doux, légères marques d'écrasement
+  velours:{taille:0.30, dessin(){ const a=graine(29), f=fbm(N,4,a,4), g=fbm(N,2,a,64);
+    return {map:toile(N,(x,y)=>gris(0.87+0.11*f[y*N+x]+0.03*(g[y*N+x]-0.5))), bump:toile(N,(x,y)=>gris(0.5+0.5*(g[y*N+x]-0.5)))}; }, bumpScale:0.3},
+  // bouclette : petites boucles de laine serrées
+  bouclette:{taille:0.15, dessin(){ const a=graine(31), h=new Float32Array(N*N);
+    for(let i=0;i<2600;i++){ const cx=a()*N, cy=a()*N, r=2+a()*2.5;
+      for(let dy=-5;dy<=5;dy++) for(let dx=-5;dx<=5;dx++){ const v=Math.max(0,1-Math.abs(Math.hypot(dx,dy)-r)/1.3); if(v<=0) continue;
+        const k=((Math.round(cy+dy)%N+N)%N)*N+((Math.round(cx+dx)%N+N)%N); if(v>h[k]) h[k]=v; } }
+    return {map:toile(N,(x,y)=>gris(0.8+0.18*h[y*N+x])), bump:toile(N,(x,y)=>gris(h[y*N+x]))}; }, bumpScale:1.6},
+  // moquette : poil ras et dense
+  moquette:{taille:0.20, dessin(){ const a=graine(67), g=fbm(N,2,a,64), f=fbm(N,3,a,4);
+    return {map:toile(N,(x,y)=>gris(0.86+0.1*(g[y*N+x]-0.5)+0.06*(f[y*N+x]-0.5))), bump:toile(N,(x,y)=>gris(g[y*N+x]))}; }, bumpScale:1.2},
+  // marbre : veines sinueuses fines et larges, sans relief
+  marbre:{taille:0.90, dessin(){ const a=graine(37), f=fbm(N,5,a,2), g=fbm(N,3,a,6);
+    const v=(x,y)=>{ const i=y*N+x, k=(x+y)/N*2+f[i]*3.2, veine=Math.exp(-Math.abs(Math.sin(k*Math.PI))*14), fine=Math.exp(-Math.abs(Math.sin((k*3+g[i]*2)*Math.PI))*22);
+      return 0.97-0.3*veine-0.12*fine+0.03*(g[i]-0.5); };
+    return {map:toile(N,(x,y)=>gris(v(x,y))), bump:toile(N,()=>gris(0.5))}; }, bumpScale:0},
+  // béton : nuages de teinte et petites bulles
+  beton:{taille:0.80, dessin(){ const a=graine(41), f=fbm(N,4,a,4), m=fbm(N,2,a,32), p=new Float32Array(N*N).map(()=>a());
+    const v=i=>0.86+0.12*(f[i]-0.5)+0.05*(m[i]-0.5)-(p[i]>0.993?0.18:0);
+    return {map:toile(N,(x,y)=>gris(v(y*N+x))), bump:toile(N,(x,y)=>gris(0.5+0.3*(m[y*N+x]-0.5)-(p[y*N+x]>0.993?0.35:0)))}; }, bumpScale:0.8},
+  // terrazzo : éclats de pierre sombres et blancs dans un liant clair
+  terrazzo:{taille:0.50, dessin(){ const a=graine(59), base=fbm(N,2,a,16), h=new Float32Array(N*N).fill(-1);
+    for(let i=0;i<420;i++){ const cx=a()*N, cy=a()*N, r=1.5+a()*a()*7, ton=a()<0.5?0.5+a()*0.25:0.99, an=a()*Math.PI, e=0.5+a()*0.5, co=Math.cos(an), si=Math.sin(an);
+      for(let dy=-8;dy<=8;dy++) for(let dx=-8;dx<=8;dx++){ const X=dx*co+dy*si, Y=(-dx*si+dy*co)/e; if(X*X+Y*Y>r*r) continue;
+        h[((Math.round(cy+dy)%N+N)%N)*N+((Math.round(cx+dx)%N+N)%N)]=ton; } }
+    return {map:toile(N,(x,y)=>{ const i=y*N+x; return gris(h[i]>=0?h[i]:0.88+0.06*(base[i]-0.5)); }), bump:toile(N,()=>gris(0.5))}; }, bumpScale:0},
+  // carrelage : 2 × 2 carreaux à joints fins (dalle : joints plus fins pour les grands carreaux)
+  carrelage:{taille:0.60, dessin(){ return carreaux(43,2); }, bumpScale:1.2},
+  dalle:{taille:1.20, dessin(){ return carreaux(44,1); }, bumpScale:1.2},
+  // parquet : lames de 15 cm, décalées, une teinte par lame, fil du bois
+  parquet:{taille:1.20, dessin(){ const a=graine(47), cols=8, w=N/cols, coupes=new Float32Array(cols).map(()=>Math.floor(a()*N)), tons=new Float32Array(cols).map(()=>0.86+0.12*a()), f=fbm(N,3,a,2), fin=fbm(N,2,a,32);
+    const v=(x,y)=>{ const c=Math.floor(x/w), lx=x-c*w, ly=(y-coupes[c]+N)%N, i=y*N+x;
+      if(lx<1||ly<1) return 0.55;
+      const cerne=Math.exp(-Math.abs(Math.sin((lx/w*2.5+(f[i]-0.5)*1.2+c*0.37)*Math.PI))*9); return tons[c]*(0.95-0.07*cerne+0.03*(fin[i]-0.5)); };
+    return boisDe(v); }, bumpScale:0.5},
+  // parquet en chevron (point de Hongrie) : lames à 45°, une colonne sur deux dans l'autre sens
+  chevron:{taille:0.80, dessin(){ const a=graine(53), C=N/2, W=32, tons=new Float32Array(64).map(()=>0.84+0.14*a()), f=fbm(N,3,a,2), fin=fbm(N,2,a,32);
+    const v=(x,y)=>{ const c=Math.floor(x/C), lx=x-c*C, s=c%2?lx:C-lx, u=(y+s)%N, k=Math.floor(u/W), lu=u%W, i=y*N+x;
+      if(lu<1||lx<1) return 0.55;
+      const cerne=Math.exp(-Math.abs(Math.sin((lu/W*2+(f[i]-0.5))*Math.PI))*8); return tons[(k+c*13)%64]*(0.95-0.06*cerne+0.03*(fin[i]-0.5)); };
+    return boisDe(v); }, bumpScale:0.5},
+  // lambris : lames verticales de 12 cm à rainure
+  lambris:{taille:0.48, dessin(){ const a=graine(73), cols=4, w=N/cols, tons=new Float32Array(cols).map(()=>0.9+0.08*a()), f=fbm(N,3,a,2), fin=fbm(N,2,a,32);
+    const v=(x,y)=>{ const c=Math.floor(x/w), lx=x%w, i=y*N+x; if(lx<3) return 0.62;
+      const cerne=Math.exp(-Math.abs(Math.sin((lx/w*2.2+(f[i]-0.5)*1.2+c*0.4)*Math.PI))*9); return tons[c]*(0.95-0.07*cerne+0.03*(fin[i]-0.5)); };
+    return boisDe(v); }, bumpScale:0.6},
+  // brique : briques de 25 × 6 cm à joints clairs, une rangée sur deux décalée
+  brique:{taille:0.50, dessin(){ const a=graine(71), f=fbm(N,3,a,8), tons=new Float32Array(64).map(()=>0.8+0.18*a()), H=32, L=128, M=4;
+    const joint=(x,y)=>{ const r=Math.floor(y/H), xx=(x+(r%2?L/2:0))%N; return xx%L<M||y%H<M; };
+    const v=(x,y)=>{ const r=Math.floor(y/H), b=Math.floor(((x+(r%2?L/2:0))%N)/L); return joint(x,y)?0.95:tons[(r*3+b)%64]*(0.92+0.1*(f[y*N+x]-0.5)); };
+    return {map:toile(N,(x,y)=>gris(v(x,y))), bump:toile(N,(x,y)=>gris(joint(x,y)?0.15:0.7+0.2*f[y*N+x]))}; }, bumpScale:1.6},
+  // rotin, cannage : brins tressés
+  rotin:{taille:0.12, dessin(){ const a=graine(61), f=fbm(N,2,a,16), B=32;
+    const v=(x,y)=>{ const bx=Math.floor(x/B), by=Math.floor(y/B), lx=x%B, ly=y%B; if(lx<2||ly<2) return 0.3;
+      const brin=(bx+by)%2?Math.abs(Math.sin(lx/B*4*Math.PI)):Math.abs(Math.sin(ly/B*4*Math.PI)); return 0.72+0.22*brin+0.05*(f[y*N+x]-0.5); };
+    return {map:toile(N,(x,y)=>gris(v(x,y))), bump:toile(N,(x,y)=>gris(v(x,y)))}; }, bumpScale:1.4}
 };
+// carreaux : 2 × 2 par motif, joints de j pixels de chaque côté, légère différence de teinte d'un carreau à l'autre
+function carreaux(s,j){ const a=graine(s), f=fbm(N,3,a,8), tons=[0,1,2,3].map(()=>0.93+0.05*a()), T=N/2;
+  const joint=(x,y)=>{ const tx=x%T, ty=y%T; return tx<j||ty<j||tx>=T-j||ty>=T-j; };
+  return {map:toile(N,(x,y)=>gris(joint(x,y)?0.62:tons[(x>=T?1:0)+(y>=T?2:0)]+0.03*(f[y*N+x]-0.5))), bump:toile(N,(x,y)=>gris(joint(x,y)?0.2:0.75))}; }
+// bois en lames : teinte chaude, relief du fil
+const boisDe=v=>({map:toile(N,(x,y)=>{ const g=v(x,y); return [g*255,g*247,g*236].map(Math.round); }), bump:toile(N,(x,y)=>gris(v(x,y)))});
 const cache={};
 export function motif(nom){
-  if(!cache[nom]){ const m=MOTIFS[nom], d=m.dessin(); cache[nom]={taille:m.taille, bumpScale:m.bumpScale, map:texture(d.map,true), bump:texture(d.bump,false)}; }
+  if(!cache[nom]){ const m=MOTIFS[nom], d=m.dessin(); cache[nom]={taille:m.taille, bumpScale:m.bumpScale, map:texture(d.map,true), bump:texture(d.bump,false), pixels:d.map}; }
   return cache[nom];
 }
+export const motifExiste=nom=>!!MOTIFS[nom];
+export const motifPret=nom=>!!cache[nom];
 
 // Habille un matériau d'un motif (le matériau garde sa couleur, qui teinte le motif)
 export function habiller(mat,nom,{couleur,rugosite}={}){

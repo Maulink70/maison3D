@@ -138,7 +138,9 @@ const PAS=0.02;
 function silhouette(it){
   if(it.plan) return it.plan;
   const g=it.g; g.updateMatrixWorld(true);
-  const inv=g.matrixWorld.clone().invert(), m=new THREE.Matrix4(), v=new THREE.Vector3();
+  // repère du meuble sans sa taille (étape 4 : un meuble agrandi garde son contour en vraies dimensions)
+  const P=new THREE.Vector3(), Q=new THREE.Quaternion(), S=new THREE.Vector3(); g.matrixWorld.decompose(P,Q,S);
+  const inv=new THREE.Matrix4().compose(P,Q,new THREE.Vector3(1,1,1)).invert(), m=new THREE.Matrix4(), v=new THREE.Vector3();
   const hx=it.size.x/2+0.04, hz=it.size.z/2+0.04, nx=Math.max(2,Math.ceil(2*hx/PAS)), nz=Math.max(2,Math.ceil(2*hz/PAS));
   const plein=new Uint8Array(nx*nz), mark=(x,z)=>{ const i=Math.floor((x+hx)/PAS), j=Math.floor((z+hz)/PAS); if(i>=0&&j>=0&&i<nx&&j<nz) plein[j*nx+i]=1; };
   g.traverse(o=>{
@@ -259,6 +261,8 @@ export function emprisePlan(niv){
   return {x0:m.x0+i0*m.pas,x1:m.x0+(i1+1)*m.pas,z0:m.z0+j0*m.pas,z1:m.z0+(j1+1)*m.pas};
 }
 export const echellePlan=()=>vue.s;
+// un meuble ajouté, retiré, refait ou agrandi (étape 4) : le plan est redessiné à la prochaine image
+export function invaliderPlan(){ contenu=null; }
 // caméras mémorisées : cadrage actuel, et retour animé à un cadrage enregistré
 export const vuePlan=()=>({cx:vue.cx,cz:vue.cz,s:vue.s});
 export function allerVuePlan(v){ allerVue({cx:v.cx,cz:v.cz,s:THREE.MathUtils.clamp(v.s,SMIN,SMAX)}); }

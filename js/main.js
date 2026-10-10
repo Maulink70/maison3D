@@ -27,8 +27,10 @@ import {initSynchro, demarrerSynchro} from './synchro.js';
 import {initVariantes} from './variantes.js';
 import {initComparer, comparaisonActive, rendreComparaison} from './comparer.js';
 import {initPartage} from './partage.js';
+import {initObjets} from './objets.js';
+import {initRevetements, majRevetements} from './revetements.js';
 
-initIcones(); initCompte(); initSynchro(); initVariantes(); initComparer(); initVues(); initVisite(); initEdition(); initSauvegarde(); initAller(); initPlan(); initCalques(); initMesure(); initImpression(); initIsoler(); initCameras(); initHistorique(); initPartage(); initAlertes();
+initIcones(); initCompte(); initSynchro(); initVariantes(); initComparer(); initVues(); initVisite(); initEdition(); initSauvegarde(); initAller(); initPlan(); initCalques(); initMesure(); initImpression(); initIsoler(); initCameras(); initHistorique(); initPartage(); initAlertes(); initObjets(); initRevetements();
 
 // Cercle posé au sol pendant un appui long (point de téléportation)
 const marque=new THREE.Mesh(new THREE.RingGeometry(0.16,0.25,40),new THREE.MeshBasicMaterial({color:new THREE.Color(css('--accent')||'#2c5a86'),transparent:true,opacity:0.9,depthTest:false,side:THREE.DoubleSide}));
@@ -99,7 +101,7 @@ function rendre(){
 app.renderer.setAnimationLoop(()=>{
   const dt=Math.min(clock.getDelta(),0.1);
   if(app.mode==='walk') walk(dt); else if(app.mode==='plan') majPlan(dt); else { majCadrage(dt); suivreEclat(); app.orbit.update(); }
-  majPortes(dt); majCouvercles(); majTransparence(); majAlertes(); majLumiere(); majLampes();
+  majPortes(dt); majCouvercles(); majTransparence(); majRevetements(); majAlertes(); majLumiere(); majLampes();
   if(app.selected&&eclatActif()) select(null);   // vue éclatée : pas de sélection (la poignée suivrait mal le meuble soulevé)
   if(app.selBox&&app.tc.object) app.selBox.update();
   majCalques(); majMesures();

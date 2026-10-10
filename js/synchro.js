@@ -13,6 +13,7 @@ import {leJournal, changerJournal} from './historique.js';
 import {lesVues, remplacerVues} from './cameras.js';
 import {lesMesures, remplacerMesures} from './mesure.js';
 import {etatEnregistrement} from './compte.js';
+import {egaux, normaliser} from './etats.js';
 
 const CACHE='maison3d-cache', ATTENTE='maison3d-attente', DELAI=2000, FUSION=1500, VEILLE=120000;
 let variantes=[], courante=null, base={}, version=0, pret=false;
@@ -22,12 +23,12 @@ const lire=(k,d)=>{ try{ return JSON.parse(localStorage.getItem(k)||'null')??d; 
 const ecrire=(k,v)=>{ try{ localStorage.setItem(k,JSON.stringify(v)); }catch{} };
 const garderAttente=()=>ecrire(ATTENTE,attente);
 const garderCache=()=>ecrire(CACHE,{variantes,courante,version,connus});
-const egal=(a,b)=>!!a&&!!b&&Math.abs(a.x-b.x)<1e-4&&Math.abs(a.z-b.z)<1e-4&&Math.abs((a.r||0)-(b.r||0))<1e-5&&!!a.h===!!b.h&&(a.c||null)===(b.c||null);
-// éléments qui diffèrent entre deux dispositions (null = revenu à sa place d'origine)
+// éléments qui diffèrent entre deux dispositions (null = revenu à son état d'origine, ou objet ajouté retiré) ;
+// état complet (etats.js) : position, rotation, masqué, couleur, taille, matières, objet ajouté, sol et murs
 function difference(de,vers){
   const ch={};
   for(const n of new Set([...Object.keys(de),...Object.keys(vers)])){ const a=de[n], b=vers[n];
-    if(!b){ if(a) ch[n]=null; } else if(!egal(a,b)) ch[n]={x:+b.x.toFixed(4),z:+b.z.toFixed(4),r:+(+b.r||0).toFixed(5),h:!!b.h,c:b.c||null}; }
+    if(!b){ if(a) ch[n]=null; } else if(!a||!egaux(n,a,b)) ch[n]=normaliser(n,b); }
   return ch;
 }
 const appliquerSur=(d,ch)=>{ const r={...d}; for(const [n,e] of Object.entries(ch)){ if(e===null) delete r[n]; else r[n]=e; } return r; };

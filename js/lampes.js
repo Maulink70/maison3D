@@ -32,11 +32,16 @@ function briller(it,oui){
   for(const o of parties(it)){
     if(!o.userData.orig){ if(!oui) continue; o.userData.orig=o.material; o.material=o.material.clone(); }   // éteinte et jamais allumée : rien à faire
     const m=o.material, b=o.userData.orig; if(!m.emissive) continue;
-    if(oui){ m.emissive.copy(CHAUD); m.emissiveIntensity=etat.lumiere==='nuit'?2.2:1.6; } else { m.emissive.copy(b.emissive||new THREE.Color(0)); m.emissiveIntensity=b.emissiveIntensity??1; }
+    // éteinte : l'éclat propre du matériau (matière choisie dans la bibliothèque, sinon celui d'origine)
+    const nat=m.userData.emissif;
+    if(oui){ m.emissive.copy(CHAUD); m.emissiveIntensity=etat.lumiere==='nuit'?2.2:1.6; }
+    else if(nat){ m.emissive.setHex(nat.h); m.emissiveIntensity=nat.i; } else { m.emissive.copy(b.emissive||new THREE.Color(0)); m.emissiveIntensity=b.emissiveIntensity??1; }
   }
 }
 function centre(it){ const b=new THREE.Box3(); for(const o of parties(it)) b.expandByObject(o); return b.isEmpty()?new THREE.Box3().setFromObject(it.g).getCenter(new THREE.Vector3()):b.getCenter(new THREE.Vector3()); }
 
+// matériau d'une partie changé (bibliothèque de matières, étape 4) : la lampe garde son état allumé ou éteint
+addEventListener('apparence',e=>{ const it=e.detail.it; if(estLampe(it)||it.parties) briller(it,soirOuNuit()&&estAllumee(it)&&!it.hidden); });
 export function basculerLampe(it,oui=!estAllumee(it)){ if(!estLampe(it)) return; choix[it.name]={...choix[it.name],allumee:oui}; garder(); dernier=0; allume=null; majPanneauLampe(); }
 export function marquerLampe(it,oui){ choix[it.name]={...choix[it.name],lampe:oui}; if(!oui) briller(it,false); it.parties=null; garder(); dernier=0; allume=null; majPanneauLampe(); }
 export function majPanneauLampe(){

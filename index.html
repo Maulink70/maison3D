@@ -82,6 +82,10 @@
       <button class="ib" id="auto" data-icone="radar" aria-label="Portes automatiques : oui" aria-pressed="true"></button>
       <button class="ib" id="fenetres" data-icone="wind" aria-label="Ouvrir les fenêtres" aria-pressed="false"></button>
     </div>
+    <div class="aller" id="ajouter-boite" hidden>
+      <button class="ib seul" id="ajouter" data-icone="plus" aria-label="Ajouter un objet" aria-haspopup="true" aria-expanded="false" aria-controls="ajouter-menu"></button>
+      <div id="ajouter-menu" class="menu" role="dialog" aria-label="Ajouter un objet" hidden></div>
+    </div>
     <button class="ib seul" id="toggle-panel" data-icone="armchair" aria-label="Meubles (liste et outils)" aria-expanded="true" hidden></button>
     <button class="ib seul primary" id="installer" data-icone="download" aria-label="Installer l’application" hidden></button>
     <div class="aller">
@@ -114,9 +118,23 @@
         <div class="colorrow"><label for="t-color">Couleur</label><input type="color" id="t-color" value="#ffffff"><button class="btn" id="t-color-clear">Origine</button></div>
         <button class="btn" id="t-hide">Masquer</button>
         <button class="btn" id="t-reset">Remettre en place</button>
+        <button class="btn danger" id="t-suppr" hidden>Supprimer cet objet</button>
         <button class="btn wide" id="t-close">Désélectionner</button>
       </div>
+      <label class="ajout-nom" id="t-nom-ligne" hidden><span>Nom</span><input type="text" id="t-nom" maxlength="60" autocomplete="off"></label>
+      <details class="volet" id="t-dims"><summary>Dimensions</summary><div class="volet-corps" id="t-dims-corps"></div></details>
+      <details class="volet" id="t-mats"><summary>Matières</summary><div class="volet-corps" id="t-mats-corps"></div></details>
     </section>
+    <section class="sec" id="surf" hidden>
+      <div class="eyebrow">Sols et murs</div>
+      <h2 id="surf-nom">—</h2>
+      <p class="mat-aide" id="surf-etat"></p>
+      <div id="surf-mat"></div>
+      <button class="btn wide" id="surf-fermer">Fermer</button>
+    </section>
+    <details class="volet sm" id="sm"><summary>Sols et murs des pièces</summary>
+      <div class="volet-corps"><p class="mat-aide">Choisissez une pièce, ou touchez un sol ou un mur dans la vue.</p><div id="sm-liste"></div></div>
+    </details>
     <div class="filtres">
       <div class="seg" role="group" aria-label="Niveaux affichés dans la liste">
         <button id="f-tout" aria-pressed="true">Tout</button>

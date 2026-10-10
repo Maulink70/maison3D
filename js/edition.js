@@ -7,6 +7,9 @@ import {glisserVers} from './visite.js';
 import {basculerPorte, basculerElement, ouvrantsDe} from './portes.js';
 import {dansIsolement} from './isoler.js';
 import {estLampe, soirOuNuit, basculerLampe, marquerLampe, majPanneauLampe} from './lampes.js';
+import {majApparence, appliquerEtat, origineDe} from './etats.js';
+import {surfaceChoisie, surfaceEn, choisirSurface} from './revetements.js';
+import {matieresOuvertes, choisirPartie} from './objets.js';
 
 const rc=new THREE.Raycaster();
 
@@ -31,8 +34,11 @@ export function toucher(e){
     return;
   }
   const name=h?.object.userData.item;
-  if(name&&!app.items[name].hidden){ select(name); return; }
+  if(name&&!app.items[name].hidden){ if(app.selected?.name===name&&matieresOuvertes()) choisirPartie(h.object); else select(name); return; }
+  // sols et murs (étape 4) : liste « Sols et murs » ouverte ou une surface déjà choisie : toucher choisit le sol ou les murs
+  if(h&&(surfaceChoisie()||$('sm').open)){ const s=surfaceEn(h); if(s){ choisirSurface(s); return; } }
   if(app.selected){ select(null); return; }
+  if(surfaceChoisie()){ choisirSurface(null); return; }
   if(h&&app.mode==='walk') glisserVers(h.point);
 }
 
@@ -59,11 +65,12 @@ export function select(name){
   const {scene,tc,items}=app;
   if(app.selBox){scene.remove(app.selBox);app.selBox=null;} tc.detach();
   app.selected=name?items[name]:null;
+  if(app.selected&&surfaceChoisie()) choisirSurface(null);
   $('sel').hidden=!app.selected;
   for(const r of document.querySelectorAll('.row')) r.classList.toggle('sel',r.dataset.n===name);
-  if(!app.selected) return;
+  if(!app.selected){ dispatchEvent(new CustomEvent('selection')); return; }
   const it=app.selected;
-  $('sel-cat').textContent=CAT_LABEL[it.meta.c]+' · '+it.lvl;
+  $('sel-cat').textContent=(it.ajout?'Objet ajouté':CAT_LABEL[it.meta.c])+' · '+it.lvl;
   $('sel-name').textContent=it.meta.l;
   $('sel-dims').textContent='L '+fmt(it.size.x)+' × P '+fmt(it.size.z)+' × H '+fmt(it.size.y)+' m';
   $('t-color').value=it.color||'#ffffff';
@@ -74,18 +81,14 @@ export function select(name){
   majAngle(); majPorte(); majPanneauLampe();
   openSheet(true);
   document.querySelector('.row.sel')?.scrollIntoView({block:'nearest'});
+  dispatchEvent(new CustomEvent('selection'));   // nom, dimensions, matières (objets.js)
 }
 
-export function paint(it,hex){
-  it.color=hex;
-  for(const m of it.mats){
-    if(m.userData.vitre) continue;
-    if(!m.userData.orig){ m.userData.orig=m.material; m.material=m.material.clone(); }
-    if(hex){ m.material.color.set(hex); } else { m.material.color.copy(m.userData.orig.color); }
-  }
-}
+// couleur générale de l'objet (les matières choisies partie par partie gardent leur motif, prennent cette couleur)
+export function paint(it,hex){ it.color=hex||null; majApparence(it); }
 export function setHidden(it,h){ it.hidden=h; it.g.visible=!h; const row=document.querySelector('.row[data-n="'+CSS.escape(it.name)+'"]'); if(row){row.classList.toggle('off',h); row.querySelector('.eye').textContent=h?'Afficher':'Masquer';} }
-export function resetItem(it){ it.g.position.copy(it.home); it.g.rotation.set(0,0,0); paint(it,null); setHidden(it,false); }
+// tout l'élément à son état d'origine (place, rotation, couleur, taille, matières, affiché)
+export function resetItem(it){ if(!it.ajout) appliquerEtat(it,origineDe(it.name)); }
 
 // Liste rangée par étage (celui où l'on se trouve d'abord), puis mobilier / portes et fenêtres, par ordre alphabétique.
 // Filtres : niveau (Tout / Rez / Étage) et recherche sur le nom (sans tenir compte des accents ni des majuscules).
@@ -111,7 +114,7 @@ export function buildList(){
       const c=document.createElement('div'); c.className='eyebrow group-title'; c.textContent=CAT_LABEL[cat]; box.appendChild(c);
       for(const it of its){
         total++;
-        const row=document.createElement('div'); row.className='row'+(it.hidden?' off':'')+(app.selected===it?' sel':''); row.dataset.n=it.name;
+        const row=document.createElement('div'); row.className='row'+(it.hidden?' off':'')+(app.selected===it?' sel':'')+(it.ajout?' ajout':''); row.dataset.n=it.name;
         const b=document.createElement('button'); b.className='name'; b.textContent=it.meta.l; b.onclick=()=>{ if(it.hidden) setHidden(it,false); select(it.name); save(); };
         const eye=document.createElement('button'); eye.className='eye'; eye.textContent=it.hidden?'Afficher':'Masquer';
         eye.setAttribute('aria-label',(it.hidden?'Afficher ':'Masquer ')+it.meta.l);
@@ -149,7 +152,9 @@ export function initEdition(){
   $('t-color').oninput=e=>{ if(!app.selected) return; paint(app.selected,e.target.value); save(); };
   $('t-color-clear').onclick=()=>{ if(!app.selected) return; paint(app.selected,null); $('t-color').value='#ffffff'; save(); };
   $('t-hide').onclick=()=>{ if(!app.selected) return; const it=app.selected; setHidden(it,!it.hidden); select(null); save(); };
-  $('t-reset').onclick=()=>{ if(!app.selected) return; resetItem(app.selected); app.selBox&&app.selBox.update(); majAngle(); save(); };
+  // remettre en place : place et rotation d'origine, couleur d'origine, affiché (taille et matières ont leurs propres boutons)
+  $('t-reset').onclick=()=>{ const it=app.selected; if(!it) return; it.g.position.copy(it.home); it.g.rotation.set(0,0,0); paint(it,null); setHidden(it,false);
+    app.selBox&&app.selBox.update(); majAngle(); $('t-color').value='#ffffff'; save(); };
   $('t-close').onclick=()=>select(null);
   $('toggle-panel').onclick=()=>openSheet($('panel').hidden);
   addEventListener('niveau',()=>{ if(app.mobilierPret) buildList(); });

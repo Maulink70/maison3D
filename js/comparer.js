@@ -7,19 +7,32 @@
 // Pendant la comparaison, toucher la vue ne sélectionne ni n'ouvre rien.
 import * as THREE from 'three';
 import {app, $} from './app.js';
-import {paint, select} from './edition.js';
+import {select} from './edition.js';
 import {lesVariantes, varianteCourante} from './synchro.js';
 import {stylePlan, style as styleDuPlan} from './plan.js';
+import {lireDisposition} from './sauvegarde.js';
+import {normaliser, egaux, origineDe, echelonner, majApparence, estSurface} from './etats.js';
+import {creerAjout, supprimerAjout} from './ajouts.js';
+import {appliquerSurface, nomsSurfaces} from './revetements.js';
 
-let comp=null;   // {a, b, mode:'barre'|'fondu', part, t, diff:[{it, A, B}], styleAvant}
+let comp=null;   // {a, b, mode:'barre'|'fondu', part, t, diff, temp, styleAvant}
 export const comparaisonActive=()=>!!comp;
 
-const etatDe=it=>({x:it.g.position.x,z:it.g.position.z,r:it.g.rotation.y,h:!!it.hidden,c:it.color||null});
-const origine=it=>({x:it.home.x,z:it.home.z,r:0,h:false,c:null});
-const meme=(a,b)=>Math.abs(a.x-b.x)<1e-4&&Math.abs(a.z-b.z)<1e-4&&Math.abs(a.r-b.r)<1e-5&&a.h===b.h&&a.c===b.c;
-function poser(it,s){ it.g.position.x=s.x; it.g.position.z=s.z; it.g.rotation.y=s.r; it.g.visible=!s.h; if((it.color||null)!==s.c) paint(it,s.c); }
-const versB=()=>{ for(const d of comp.diff) poser(d.it,d.B); app.model.updateMatrixWorld(true); };
-const versA=()=>{ for(const d of comp.diff) poser(d.it,d.A); app.model.updateMatrixWorld(true); };
+// Différences entre la variante affichée (A) et B, élément par élément (état complet, etats.js) : meubles (place,
+// couleur, taille, matières), sols et murs, objets ajoutés. Un objet ajouté seulement dans B (ou refait autrement) est
+// créé à part le temps de la comparaison (it.temp, hors de la liste), caché sauf pendant le rendu de B.
+function poser(d,quoi){
+  const s=d[quoi];
+  if(d.surface){ appliquerSurface(d.n,s); return; }
+  if(d.seulA){ d.it.g.visible=quoi==='A'&&!d.it.hidden; return; }
+  if(d.seulB){ d.it.g.visible=quoi==='B'; return; }
+  const it=d.it; it.g.position.x=s.x; it.g.position.z=s.z; it.g.rotation.set(0,s.r||0,0);
+  if(!it.ajout) echelonner(it,s.s||[1,1,1],true);
+  it.color=s.c||null; it.matieres=s.m?JSON.parse(JSON.stringify(s.m)):{}; majApparence(it); it.g.visible=!s.h;
+}
+const versB=()=>{ for(const d of comp.diff) poser(d,'B'); app.model.updateMatrixWorld(true); };
+const versA=()=>{ for(const d of comp.diff) poser(d,'A'); app.model.updateMatrixWorld(true); };
+function nettoyer(){ if(!comp) return; for(const it of comp.temp){ app.items[it.name]=it; supprimerAjout(it.name); } comp.temp=[]; }
 
 // ---------- fondu : deux rendus dans des textures, mélangés ----------
 let rtA=null, rtB=null, quad=null;
@@ -56,23 +69,31 @@ export function rendreComparaison(cam,base){
 // ---------- début, fin, réglages ----------
 export function comparer(idB){
   const a=varianteCourante(), b=lesVariantes().find(v=>v.id===idB); if(!a||!b||a.id===b.id) return false;
-  select(null);
-  const dB=b.disposition||{}, diff=[];
-  for(const it of Object.values(app.items)){
-    const A=etatDe(it), s=dB[it.name], B=s?{x:+s.x,z:+s.z,r:+s.r||0,h:!!s.h,c:s.c||null}:origine(it);
-    if(!meme(A,B)) diff.push({it,A,B});
+  select(null); nettoyer();
+  const dA=lireDisposition(), dB=b.disposition||{}, diff=[], temp=[];
+  const noms=new Set([...Object.keys(dA),...Object.keys(dB),...Object.keys(app.items),...nomsSurfaces()]);
+  for(const n of noms){
+    const A=normaliser(n,dA[n])||origineDe(n), B=normaliser(n,dB[n])||origineDe(n);
+    if(n==='alertes'||egaux(n,A,B)) continue;   // les alertes ignorées ne se voient pas
+    if(estSurface(n)){ diff.push({n,surface:true,A,B}); continue; }
+    const it=app.items[n];
+    if(it&&!it.ajout){ diff.push({n,it,A,B}); continue; }
+    const memeObjet=A&&B&&JSON.stringify(A.a)===JSON.stringify(B.a);
+    if(memeObjet){ diff.push({n,it,A,B}); continue; }
+    if(A&&it) diff.push({n,it,seulA:true});
+    if(B?.a){ const t=creerAjout(n+'__b',B); if(t){ delete app.items[t.name]; t.temp=true; t.g.visible=false; t.mats.forEach(o=>{ o.userData.item=null; }); temp.push(t); diff.push({n,it:t,seulB:true}); } }
   }
-  comp={a,b,mode:comp?.mode||'barre',part:0.5,t:0.5,diff,styleAvant:null};
+  comp={a,b,mode:comp?.mode||'barre',part:0.5,t:0.5,diff,temp,styleAvant:null};
   app.comparaison=true; majBandeau(); return true;
 }
 export function finComparaison(){
-  if(!comp) return; const s=comp.styleAvant; comp=null; app.comparaison=false;
+  if(!comp) return; versA(); nettoyer(); const s=comp.styleAvant; comp=null; app.comparaison=false;
   if(s) stylePlan(s);
   $('bandeau-comparer').hidden=true; $('comparer-barre').hidden=true;
 }
 function majBandeau(){
   const b=$('bandeau-comparer'); b.hidden=!comp; if(!comp) return;
-  const n=comp.diff.length;
+  const n=new Set(comp.diff.map(d=>d.n)).size;
   const diff=n?n+' élément'+(n>1?'s':'')+' différent'+(n>1?'s':''):'aucune différence';
   $('comparer-texte').textContent=comp.mode==='barre'?`« ${comp.a.nom} » à gauche de la barre, « ${comp.b.nom} » à droite · ${diff}`:`Fondu de « ${comp.a.nom} » (A) vers « ${comp.b.nom} » (B) · ${diff}`;
   for(const k of ['barre','fondu']) $('cmp-'+k).setAttribute('aria-pressed',String(comp.mode===k));

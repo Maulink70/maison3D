@@ -142,7 +142,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
 .calques-svg .cote .valeur{font-family:var(--font-data);font-size:11px;fill:var(--cote);text-anchor:middle;dominant-baseline:middle;font-variant-numeric:tabular-nums;pointer-events:auto;cursor:pointer}
 .calques-svg .cote.distance .trait{stroke:var(--cote-dist);stroke-dasharray:4 3}
 .calques-svg .cote.distance .valeur{fill:var(--cote-dist)}
-#bandeaux{position:absolute;left:16px;top:120px;display:flex;flex-direction:column;align-items:flex-start;gap:6px;pointer-events:none;max-width:calc(100% - 32px)}
+#bandeaux{position:absolute;left:16px;top:120px;display:flex;flex-direction:column;align-items:flex-start;gap:6px;pointer-events:none;max-width:calc(100% - 32px);z-index:6}   /* au-dessus de la barre de comparaison */
 #bandeaux>*{pointer-events:auto;max-width:100%}
 #bandeau-piece{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:6px 12px;font-size:13px;font-variant-numeric:tabular-nums;pointer-events:none!important}
 #calques-menu{min-width:280px}
@@ -320,3 +320,59 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
 /* « Tout décocher » : petite icône en haut à droite du menu Calques */
 #calques-menu #cq-raz{position:absolute;top:6px;right:6px;width:32px;height:32px;display:grid;padding:0;justify-content:center}
 #calques-menu #cq-raz .ico{width:20px;height:20px}
+/* Étape 4 : objets ajoutés, dimensions, bibliothèque de matières, sols et murs */
+#panel>.sec{flex:0 1 auto;overflow:auto;min-height:0}
+#panel>.list{flex:1 1 90px;min-height:90px}
+#panel>.sec:not([hidden]){flex:1 1 auto;min-height:min(50%,340px)}
+/* téléphone : un objet, un sol ou des murs choisis : leurs outils prennent la place de la liste (Désélectionner la rend) */
+@media (max-width:760px){ #panel:has(>.sec:not([hidden]))>.filtres, #panel:has(>.sec:not([hidden]))>.sm, #panel:has(>.sec:not([hidden]))>.list{display:none} }
+.row.ajout .name::after{content:"ajouté";font-size:10.5px;font-weight:500;color:var(--accent);background:var(--accent-soft);border-radius:5px;padding:1px 5px;margin-left:6px;vertical-align:1px}
+.btn.danger.arme{background:var(--danger);border-color:var(--danger);color:var(--panel)}
+.ajout-nom{display:flex;align-items:center;gap:8px;margin-top:10px;font-weight:500}
+.ajout-nom input{flex:1;min-width:0;font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:6px 8px}
+.volet{border:1px solid var(--line);border-radius:var(--r);margin-top:10px}
+.volet>summary{cursor:pointer;padding:8px 12px;font-weight:600;font-size:13.5px;list-style:none;display:flex;align-items:center;gap:8px}
+.volet>summary::-webkit-details-marker{display:none}
+.volet>summary::before{content:"";width:7px;height:7px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(-45deg);transition:transform .15s}
+.volet[open]>summary::before{transform:rotate(45deg)}
+.volet-corps{padding:2px 12px 12px;display:grid;gap:8px}
+.volet.sm{margin:8px 8px 0;flex:none}
+.volet.sm[open] .volet-corps{max-height:min(34vh,280px);overflow:auto}
+.dimrow{display:flex;align-items:center;gap:8px}
+.dimrow>span:first-child{flex:1;font-weight:500}
+.dimrow input{width:76px;font:inherit;font-family:var(--font-data);font-variant-numeric:tabular-nums;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:5px 6px;text-align:right}
+.dimrow .unite{color:var(--muted);font-size:12.5px;min-width:22px}
+.mat-aide{margin:0;font-size:12px;color:var(--muted)}
+.mat-parties{display:flex;flex-direction:column;gap:3px}
+.mat-partie{display:flex;align-items:center;gap:8px;border:1px solid transparent;background:none;border-radius:8px;padding:5px 8px;text-align:left;font-size:13px}
+.mat-partie:hover{background:var(--accent-soft)}
+.mat-partie.sel{border-color:var(--accent);background:var(--accent-soft);color:var(--accent);font-weight:600}
+.pastille{width:14px;height:14px;border-radius:4px;border:1px solid var(--line);flex:none}
+.mat-familles{display:flex;flex-wrap:wrap;gap:4px}
+.mat-familles button{border:1px solid var(--line);background:var(--panel);border-radius:999px;padding:4px 10px;font-size:12px}
+.mat-familles button[aria-selected="true"]{background:var(--accent);border-color:var(--accent);color:var(--panel)}
+.mat-grille{display:grid;grid-template-columns:repeat(auto-fill,minmax(74px,1fr));gap:6px}
+.mat-vignette{display:flex;flex-direction:column;align-items:center;gap:3px;border:2px solid transparent;background:none;border-radius:9px;padding:3px;font-size:11px;line-height:1.2;text-align:center}
+.mat-vignette:hover{background:var(--accent-soft)}
+.mat-vignette.sel{border-color:var(--accent);background:var(--accent-soft)}
+.mat-image{display:block;width:56px;height:56px;border-radius:7px;overflow:hidden;background:var(--line)}
+.mat-image canvas{display:block;width:56px;height:56px}
+.mat-nom{color:var(--ink)}
+.mat-pied{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.mat-pied input[type=text]{flex:1 1 100%;font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:6px 8px}
+.mat-couleur{display:flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:var(--r);padding:3px 6px 3px 10px;font-weight:500;font-size:13px}
+.mat-couleur input{width:34px;height:26px;border:0;background:none;padding:0}
+#surf-mat{display:grid;gap:8px;margin:8px 0 10px}
+.sm-ligne{display:flex;align-items:center;gap:6px;padding:3px 0}
+.sm-ligne span{flex:1;font-size:13px}
+.btn.petit{padding:4px 10px;font-size:12.5px}
+.alerte-ligne{display:flex;align-items:flex-start;gap:6px}
+.alerte-ligne .alerte{flex:1;min-width:0}
+.alerte-ignorer{border:1px solid var(--line);background:var(--panel);border-radius:7px;padding:2px 8px;font-size:11.5px;color:var(--muted);flex:none;margin-top:3px}
+.alerte-ignorer:hover{color:var(--ink);border-color:var(--muted)}
+#alertes .alerte.ignoree{color:var(--muted);text-decoration:none;opacity:.85}
+.alertes-ignorees{border:0;background:none;text-align:left;padding:6px 0 2px;font-size:12px;font-weight:600;color:var(--muted)}
+.alertes-ignorees::before{content:"▸ "}
+.alertes-ignorees[aria-expanded="true"]::before{content:"▾ "}
+#alertes.calme{background:var(--panel)}
+#alertes.calme #alertes-titre{color:var(--muted)}

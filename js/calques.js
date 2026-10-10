@@ -61,7 +61,7 @@ const texteHauteur=h=>h===undefined?'h. …':!h?'':Math.abs(h.mx-h.mn)<0.05?'h. 
 const libres=new Map();
 function meublesPoses(niv){ return Object.values(app.items).filter(it=>it.meta.c==='meuble'&&!it.hidden&&niveauDe(it)===niv&&it.home.y-sol(niv)<1.0&&it.size.y>=0.05); }
 function surfaceLibre(p){
-  const items=meublesPoses(p.niveau), sig=items.map(it=>`${it.name}${it.g.position.x.toFixed(3)}${it.g.position.z.toFixed(3)}${it.g.rotation.y.toFixed(3)}`).join('|');
+  const items=meublesPoses(p.niveau), sig=items.map(it=>`${it.name}${it.g.position.x.toFixed(3)}${it.g.position.z.toFixed(3)}${it.g.rotation.y.toFixed(3)}${it.size.x.toFixed(3)}${it.size.z.toFixed(3)}`).join('|');
   const c=libres.get(p.id), t=performance.now(); if(c&&(c.sig===sig||t-c.t<300||budget<=0)) return c.v;
   if(budget<=0) return null; budget--;
   const P=0.05, emp=items.map(it=>({it,e:empreinte(it),c:Math.cos(it.g.rotation.y),s:Math.sin(it.g.rotation.y),x:it.g.position.x,z:it.g.position.z,r:Math.hypot(it.size.x,it.size.z)/2+0.05}));
