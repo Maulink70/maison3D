@@ -28,6 +28,7 @@
   <div id="bandeau-piece" role="status" hidden></div>
   <div id="bandeau-isole" hidden><span id="isole-texte" role="status"></span><span class="actions"><span class="seg" role="group" aria-label="Le reste de l’appartement"><button id="isole-pale" aria-pressed="true">Pâle</button><button id="isole-masque" aria-pressed="false">Masqué</button></span><button class="btn primary" id="isole-fin">Tout afficher</button></span></div>
   <div id="bandeau-comparer" hidden><span id="comparer-texte" role="status"></span><span class="actions"><span class="seg" role="group" aria-label="Façon de comparer"><button id="cmp-barre" aria-pressed="true">Barre</button><button id="cmp-fondu" aria-pressed="false">Fondu</button></span><label id="cmp-fondu-box" hidden><span class="visuel">A</span><input type="range" id="cmp-t" min="0" max="100" value="50" aria-label="Fondu entre les deux variantes"><span class="visuel">B</span></label><button class="btn primary" id="cmp-fin">Terminer</button></span></div>
+  <div id="bandeau-remplacer" hidden><span id="remplacer-texte" role="status"></span><span class="actions"><button class="btn primary" id="remplacer-choisir">Choisir</button><button class="btn" id="remplacer-annuler">Annuler</button></span></div>
   <div id="bandeau-mesure" hidden><span id="mesure-texte" role="status"></span><span class="actions"><button class="btn" id="mesure-effacer" hidden>Tout effacer</button><button class="btn primary" id="mesure-terminer">Terminer</button></span></div>
   </div>
 
@@ -118,11 +119,13 @@
         <button class="btn wide" id="t-allumer" hidden>Éteindre la lampe (le soir)</button>
         <div class="colorrow"><label for="t-color">Couleur</label><input type="color" id="t-color" value="#ffffff"><button class="btn" id="t-color-clear">Origine</button></div>
         <button class="btn" id="t-hide">Masquer</button>
+        <button class="btn" id="t-remplacer">Remplacer…</button>
         <button class="btn" id="t-reset">Remettre en place</button>
         <button class="btn danger" id="t-suppr" hidden>Supprimer cet objet</button>
         <button class="btn wide" id="t-close">Désélectionner</button>
       </div>
       <label class="ajout-nom" id="t-nom-ligne" hidden><span>Nom</span><input type="text" id="t-nom" maxlength="60" autocomplete="off"></label>
+      <p class="mat-aide" id="t-origine" hidden></p>
       <details class="volet" id="t-dims"><summary>Dimensions</summary><div class="volet-corps" id="t-dims-corps"></div></details>
       <details class="volet" id="t-mats"><summary>Matières</summary><div class="volet-corps" id="t-mats-corps"></div></details>
     </section>

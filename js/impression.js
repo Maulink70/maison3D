@@ -8,6 +8,7 @@
 // Vue à l'écran : image de la 3D rendue plus finement, avec le plan, les calques et les mesures par-dessus, en vectoriel.
 // Fiche : image du meuble seul, dimensions, position (pièce, distances aux murs), couleur et matières, vue de dessus.
 import * as THREE from 'three';
+import {texteOrigine} from './import3d.js';
 import {app, $} from './app.js';
 import {ETAGE_FLOOR} from './config.js';
 import {pieceEn, bornes} from './pieces.js';
@@ -296,6 +297,9 @@ async function pdfFiche(o){
     doc.setFillColor(e.hex); doc.setDrawColor(180,186,192); doc.setLineWidth(0.2); doc.rect(MARGE,y-3.2,4,4,'FD');
     doc.setFont('IBM Plex Sans','normal'); doc.setFontSize(9); doc.setTextColor(...ENCRE); doc.text(e.nom,MARGE+6,y);
     doc.setFont('IBM Plex Mono','normal'); doc.setTextColor(...GRIS); doc.text(`${e.hex.toUpperCase()}  ${Math.round(e.part*100)} %`,MARGE+gauche,y,{align:'right'}); y+=5; }
+  // modèle du catalogue : titre, auteur, licence (à citer pour les licences « Attribution »), adresse de la page
+  const og=it.ajout?.o; if(og){ y+=2; doc.setFont('IBM Plex Sans','normal'); doc.setFontSize(8.5); doc.setTextColor(...GRIS);
+    for(const t of doc.splitTextToSize('Modèle '+texteOrigine(og)+(og.lien?' — '+og.lien:''),gauche)){ doc.text(t,MARGE,y); y+=4.2; } }
   // vue de dessus, cotée
   const yv=Math.max(y+6,yc), hv=H-MARGE-BAS-yv-6, lv=lg, sx=it.size.x, sz=it.size.z;
   doc.setFont('IBM Plex Sans','bold'); doc.setFontSize(10); doc.setTextColor(...ENCRE); doc.text('Vue de dessus',MARGE,yv);

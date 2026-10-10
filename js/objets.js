@@ -2,13 +2,15 @@
 // l'élément sélectionné : nom (objet ajouté), dimensions saisies en cm (cadenas des proportions, « Taille d'origine » pour
 // un meuble du modèle, options de la forme, hauteur de pose), matières partie par partie (bibliothèque), suppression d'un
 // objet ajouté (deux touchers, annulable). Un objet ajouté apparaît dans la pièce regardée, posé au sol, sélectionné.
+// Remplacer (livraison 3) : le nouvel objet prend la place et l'orientation de l'ancien, qui est masqué (pas supprimé) ;
+// une forme simple prend aussi ses dimensions ; une seule ligne d'historique, annulable.
 import * as THREE from 'three';
 import {app, $} from './app.js';
 import {FORMES, parametres} from './formes_simples.js';
 import {creerAjout, supprimerAjout, nouveauNom} from './ajouts.js';
 import {etatDe, normaliser, appliquerEtat, majApparence, echelonner} from './etats.js';
 import {selecteur, partiesDe, couleurPartie, cleDe} from './bibliotheque.js';
-import {select, majAngle} from './edition.js';
+import {select, majAngle, setHidden} from './edition.js';
 import {save} from './sauvegarde.js';
 import {PIECES, pieceEn, bornes} from './pieces.js';
 import {ETAGE_FLOOR} from './config.js';
@@ -17,7 +19,8 @@ import {solSous} from './visite.js';
 import {caler} from './calques.js';
 import {css} from './app.js';
 import {ouvrirPhoto} from './photo.js';
-import {ouvrirImport} from './import3d.js';
+import {ouvrirImport, texteOrigine} from './import3d.js';
+import {ouvrirCatalogue} from './catalogue.js';
 
 const el=(nom,attrs={},texte)=>{ const n=document.createElement(nom); for(const [k,v] of Object.entries(attrs)) n.setAttribute(k,v); if(texte!==undefined) n.textContent=texte; return n; };
 const cm=v=>Math.round(v*1000)/10;   // mètres → cm, au mm
@@ -62,29 +65,52 @@ function lieu(L,P){
   const y=solSous(new THREE.Vector3(x,base,z))??base;
   return {x,z,y,niv};
 }
-// ajoute un objet (définition a sans niveau ni position : forme, photo, fichier 3D), posé dans la pièce regardée
+// ajoute un objet (définition a sans niveau ni position : forme, photo, fichier 3D, catalogue), posé dans la pièce regardée,
+// ou à la place de l'élément à remplacer
 export function ajouterObjet(a){
-  const o=lieu(a.p.L,a.p.P), nom=nouveauNom();
-  const e=normaliser(nom,{x:o.x,z:o.z,r:0,h:false,c:null,a:{...a,v:o.niv,y:+o.y.toFixed(4),e:0}});
+  const ancien=remplacement&&app.items[remplacement];
+  let o, r=0;
+  if(ancien){ const niv=ancien.lvl==='Étage'?'etage':'rez', base=niv==='etage'?ETAGE_FLOOR:0, x=ancien.g.position.x, z=ancien.g.position.z;
+    o={x,z,niv,y:solSous(new THREE.Vector3(x,base,z))??base}; r=ancien.g.rotation.y; }
+  else o=lieu(a.p.L,a.p.P);
+  const nom=nouveauNom();
+  const e=normaliser(nom,{x:o.x,z:o.z,r,h:false,c:null,a:{...a,v:o.niv,y:+o.y.toFixed(4),e:0}});
   const it=creerAjout(nom,e); if(!it) return null;
+  if(ancien) setHidden(ancien,true); if(remplacement) finRemplacement();
   dispatchEvent(new CustomEvent('meubles'));
-  select(nom); $('t-dims').open=true; save();
+  select(nom); $('t-dims').open=true; save();   // un seul enregistrement : une ligne d'historique « remplacé par »
   return it;
 }
-export const ajouterForme=f=>ajouterObjet({t:'forme',f,p:parametres(f),n:FORMES[f].nom});
+export function ajouterForme(f){
+  const ancien=remplacement&&app.items[remplacement], p=parametres(f);
+  if(ancien){ const s=ancien.size; if(FORMES[f].rond){ p.L=p.P=+((s.x+s.z)/2).toFixed(4); } else { p.L=+s.x.toFixed(4); p.P=+s.z.toFixed(4); } p.H=+s.y.toFixed(4); }
+  return ajouterObjet({t:'forme',f,p,n:FORMES[f].nom});
+}
+
+// ---------- remplacer un élément : on choisit ensuite le nouvel objet dans le menu « + » ----------
+let remplacement=null;   // nom de l'élément à remplacer
+export function remplacer(it){
+  if(!it||it.meta.c==='ouverture') return;
+  remplacement=it.name; const b=$('bandeau-remplacer'); b.hidden=false;
+  $('remplacer-texte').textContent=`Remplacer « ${it.meta.l} » : choisissez le nouvel objet dans le menu « + ». Il prendra sa place et l’ancien sera masqué.`;
+  ouvrirMenu(true);
+}
+function finRemplacement(){ remplacement=null; $('bandeau-remplacer').hidden=true; if(!$('ajouter-menu').hidden) ouvrirMenu(true); }
 
 // ---------- menu « Ajouter » ----------
 function ouvrirMenu(oui){
   const m=$('ajouter-menu'); m.hidden=!oui; $('ajouter').setAttribute('aria-expanded',String(oui)); if(!oui) return;
-  m.replaceChildren(el('div',{class:'menu-titre'},'N’importe quel objet'));
-  for(const [k,t,d,f] of [['photo','D’après une photo…','coller ou choisir une image',ouvrirPhoto],['glb','Fichier 3D (.glb)…','Tripo, fabricant…',ouvrirImport]]){
+  const ancien=remplacement&&app.items[remplacement];
+  m.replaceChildren(el('div',{class:'menu-titre'},ancien?`Remplacer « ${ancien.meta.l} » par`:'N’importe quel objet'));
+  for(const [k,t,d,f] of [['catalogue','Catalogue 3D…','Poly Haven, Sketchfab',ouvrirCatalogue],['photo','D’après une photo…','image, Tripo',ouvrirPhoto],['glb','Fichier 3D (.glb)…','Tripo, fabricant',ouvrirImport]]){
     const b=el('button',{type:'button','data-ajout':k}); b.append(el('span',{},t),el('span',{class:'m2'},d)); b.onclick=()=>{ ouvrirMenu(false); f(true); }; m.append(b); }
   const g=el('div',{class:'menu-groupe'}); g.append(el('div',{class:'menu-titre'},'Formes simples')); m.append(g);
   for(const [f,d] of Object.entries(FORMES)){
     const b=el('button',{type:'button','data-forme':f}); b.append(el('span',{},d.nom),el('span',{class:'m2'},d.rond?`⌀ ${cmT(d.L)} × H ${cmT(d.H)} cm`:`${cmT(d.L)} × ${cmT(d.P)} × ${cmT(d.H)} cm`));
     b.onclick=()=>{ ouvrirMenu(false); ajouterForme(f); }; g.append(b);
   }
-  m.append(el('div',{class:'menu-pied'},'')); m.lastChild.append(el('p',{},'L’objet apparaît dans la pièce que vous regardez. Ses dimensions et ses matières se règlent ensuite dans le panneau.'));
+  m.append(el('div',{class:'menu-pied'},'')); m.lastChild.append(el('p',{},ancien?'Le nouvel objet prend la place et l’orientation de l’ancien (une forme simple prend aussi ses dimensions) ; l’ancien est masqué, « Annuler » le rétablit.'
+    :'L’objet apparaît dans la pièce que vous regardez. Ses dimensions et ses matières se règlent ensuite dans le panneau.'));
   caler(m);
 }
 
@@ -159,6 +185,9 @@ function majPanneau(){
   const it=app.selected; if(!it) return;
   const a=it.ajout;
   $('t-nom-ligne').hidden=!a; if(a) $('t-nom').value=a.n||'';
+  // modèle du catalogue : titre, auteur, licence et lien vers la page d'origine
+  const og=$('t-origine'); og.hidden=!a?.o; og.replaceChildren(); if(a?.o){ og.append(texteOrigine(a.o)+' '); if(/^https:\/\//.test(a.o.lien||'')){ const l=el('a',{href:a.o.lien,target:'_blank',rel:'noopener'},'voir la page'); og.append(l); } }
+  $('t-remplacer').hidden=it.meta.c==='ouverture';
   $('t-dims').hidden=it.meta.c==='ouverture';   // portes et fenêtres : leurs ouvrants sont réglés sur le modèle
   $('t-suppr').hidden=!a; $('t-reset').hidden=!!a; $('t-suppr').textContent='Supprimer cet objet'; $('t-suppr').classList.remove('arme');
   partie=null; majDimensions(); majMatieres();
@@ -172,6 +201,10 @@ export function initObjets(){
   $('t-mats').addEventListener('toggle',()=>majMatieres());
   $('t-nom').onkeydown=e=>{ e.stopPropagation(); if(e.key==='Enter') e.target.blur(); };
   $('t-nom').onchange=e=>{ const it=app.selected; if(!it?.ajout) return; const n=e.target.value.trim().slice(0,60)||FORMES[it.ajout.f]?.nom||'Objet'; changerAjout(it,{...it.ajout,n}); };
+  $('t-remplacer').onclick=()=>{ if(app.selected) remplacer(app.selected); };
+  $('remplacer-annuler').onclick=()=>finRemplacement();
+  $('remplacer-choisir').onclick=()=>ouvrirMenu(true);
+  addEventListener('edition',()=>{ if(!app.edition&&remplacement) finRemplacement(); });
   let arme=0;
   $('t-suppr').onclick=()=>{ const it=app.selected; if(!it?.ajout) return; const s=$('t-suppr');
     if(Date.now()-arme>4000){ arme=Date.now(); s.textContent='Confirmer la suppression'; s.classList.add('arme'); setTimeout(()=>{ if(Date.now()-arme>=3900){ s.textContent='Supprimer cet objet'; s.classList.remove('arme'); } },4000); return; }

@@ -209,11 +209,11 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
 .mesures-svg .en-cours .trait{stroke-dasharray:6 4}
 #app.mesure #mesures .mesure:not(.en-cours) .valeur{pointer-events:auto;cursor:pointer}
 #app.mesure #c,#app.mesure #plan{cursor:crosshair}
-#bandeau-mesure,#bandeau-isole,#bandeau-comparer{display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--mesure);border-radius:var(--r);padding:6px 6px 6px 12px;font-size:13px}
-#bandeau-isole,#bandeau-comparer{border-left-color:var(--accent)}
+#bandeau-mesure,#bandeau-isole,#bandeau-comparer,#bandeau-remplacer{display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--mesure);border-radius:var(--r);padding:6px 6px 6px 12px;font-size:13px}
+#bandeau-isole,#bandeau-comparer,#bandeau-remplacer{border-left-color:var(--accent)}
 #bandeau-isole .seg button,#bandeau-comparer .seg button{padding:5px 10px}
-#bandeau-mesure[hidden],#bandeau-isole[hidden],#bandeau-comparer[hidden]{display:none}
-#bandeau-mesure #mesure-texte,#isole-texte{flex:1 1 220px}
+#bandeau-mesure[hidden],#bandeau-isole[hidden],#bandeau-comparer[hidden],#bandeau-remplacer[hidden]{display:none}
+#bandeau-mesure #mesure-texte,#isole-texte,#remplacer-texte{flex:1 1 220px}
 #bandeau-mesure .actions,#bandeau-isole .actions,#bandeau-comparer .actions{display:flex;gap:8px;margin-left:auto;align-items:center}
 /* Impression (livraison 8) : panneau « Imprimer » et dessin hors écran pour le PDF, toujours aux couleurs du thème clair */
 #impr-menu{min-width:340px}
@@ -396,6 +396,23 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
 .ph-recadrer[hidden],.ph-gomme[hidden],.ph-fond[hidden],.ph-ia[hidden],.ph-tripo[hidden]{display:none}
 .ph-tripo p{margin:0}
 .ph-final{display:grid;gap:8px}
+/* catalogue de meubles 3D (livraison 3) */
+.cat-carte-fen{width:min(760px,100%)}
+.cat-sources{justify-self:start}
+.cat-recherche{display:flex;gap:8px}
+.cat-recherche input{flex:1;min-width:0;font:inherit;padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:var(--panel);color:var(--ink)}
+.cat-idees{display:flex;flex-wrap:wrap;gap:6px}
+.cat-idee{font:inherit;font-size:12.5px;padding:4px 10px;border:1px solid var(--line);border-radius:999px;background:var(--panel);color:var(--ink);cursor:pointer}
+.cat-idee:hover{border-color:var(--accent)}
+.cat-grille{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;max-height:min(52dvh,520px);overflow:auto;padding:2px}
+.cat-carte{display:grid;gap:3px;text-align:left;font:inherit;padding:6px;border:1px solid var(--line);border-radius:12px;background:var(--panel);color:var(--ink);cursor:pointer}
+.cat-carte:hover:not(:disabled),.cat-carte.choisi{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft)}
+.cat-carte:disabled{opacity:.5;cursor:not-allowed}
+.cat-image{display:block;aspect-ratio:1;border-radius:8px;overflow:hidden;background:#f1f0ec}
+.cat-image img{width:100%;height:100%;object-fit:cover;display:block}
+.cat-titre{font-size:13px;font-weight:500;line-height:1.25;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.cat-info{font-size:11.5px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#t-origine a{color:var(--accent)}
 .ph-ia,.ph-tripo{display:grid}
 .ph-gomme input,.ph-fond input{accent-color:var(--accent);vertical-align:middle}
 .ph-zone{position:relative;display:grid;place-items:center;border-radius:10px;overflow:hidden;

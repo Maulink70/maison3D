@@ -182,3 +182,41 @@ if TRIPO_CRED:
   r=req('POST',B+'/'+iT+'/activate'); print('workflow',iT,'(Tripo) actif',r.get('active'))
 else:
   print('workflow Tripo non publié : TRIPO_CRED (id de la clé « Tripo Maison3D » dans n8n) manquant')
+
+# ---------- workflow « Maison3D Catalogue » (étape 4, livraison 3) : téléchargements Sketchfab ----------
+# POST /webhook/maison3d-catalogue (texte JSON) : verifier → {nom} ; telecharger {id} → {url, taille} (adresse temporaire du
+# .glb) ; fichier {url} → le .glb lui-même. Clé Sketchfab : identifiant « Sketchfab Maison3D » (type « Header Auth » :
+# Name = Authorization, Value = Token <clé API Sketchfab>) créé par Mauro dans n8n : SKETCHFAB_CRED=<id> (sans lui : non publié).
+SKETCHFAB_CRED=os.environ.get('SKETCHFAB_CRED','')
+if SKETCHFAB_CRED:
+  SKF={'httpHeaderAuth':{'id':SKETCHFAB_CRED,'name':os.environ.get('SKETCHFAB_NOM','Sketchfab Maison3D')}}
+  idc=lambda nom:str(uuid.uuid5(uuid.NAMESPACE_DNS,'m3dcat-'+nom))
+  def codeC(nom,f,x,y,avecLib=False): return {'id':idc(nom),'name':nom,'type':'n8n-nodes-base.code','typeVersion':2,'position':[x,y],'parameters':{'jsCode':((lib if avecLib else '')+lire(f)).replace('__SECRET__',sec)}}
+  def siC(nom,x,y,expr): n=si(nom,x); n['id']=idc(nom); n['position']=[x,y]; n['parameters']['conditions']['conditions'][0]['leftValue']=expr; return n
+  def repC(nom,x,y,binaire=False):
+    n=repondre(nom,x); n['id']=idc(nom); n['position']=[x,y]
+    if binaire: n['parameters']={'respondWith':'binary','options':{'responseHeaders':{'entries':[{'name':'Content-Type','value':'model/gltf-binary'},{'name':'Cache-Control','value':'no-store'}]}}}
+    return n
+  sfC={'id':idc('sketchfab'),'name':'Sketchfab','type':'n8n-nodes-base.httpRequest','typeVersion':4.2,'position':[880,-100],'credentials':SKF,
+    'parameters':{'method':'={{ $json.req.method }}','url':'={{ $json.req.url }}','authentication':'genericCredentialType','genericAuthType':'httpHeaderAuth',
+      'options':{'response':{'response':{'fullResponse':True,'neverError':True}},'timeout':60000}}}
+  dlC={'id':idc('fichier'),'name':'Télécharger le fichier','type':'n8n-nodes-base.httpRequest','typeVersion':4.2,'position':[880,200],
+    'parameters':{'url':'={{ $json.url }}','options':{'response':{'response':{'responseFormat':'file'}},'timeout':300000}}}
+  nodesC=[
+   {'id':idc('webhook'),'name':'Demande du site','type':'n8n-nodes-base.webhook','typeVersion':2,'position':[0,0],'webhookId':'4a2f5d0e-6c1b-4c8e-9f3a-maison3d0005',
+    'parameters':{'httpMethod':'POST','path':'maison3d-catalogue','responseMode':'responseNode','options':{'allowedOrigins':ORIGINES}}},
+   codeC('Analyser','catalogue_analyser.js',220,0,True), siC('Valide ?',440,0,'={{ $json.req != null }}'), repC('Refus',660,300),
+   siC('Fichier ?',660,0,'={{ $json.op === "fichier" }}'), dlC, repC('Fichier',1100,200,True),
+   sfC, codeC('Réponse','catalogue_reponse.js',1100,-100), repC('Réponse au site',1320,-100)]
+  conC={'Demande du site':{'main':[[mm('Analyser')]]},'Analyser':{'main':[[mm('Valide ?')]]},'Valide ?':{'main':[[mm('Fichier ?')],[mm('Refus')]]},
+   'Fichier ?':{'main':[[mm('Télécharger le fichier')],[mm('Sketchfab')]]},'Télécharger le fichier':{'main':[[mm('Fichier')]]},
+   'Sketchfab':{'main':[[mm('Réponse')]]},'Réponse':{'main':[[mm('Réponse au site')]]}}
+  wfC={'name':'Maison3D Catalogue','nodes':nodesC,'connections':conC,'settings':{'executionOrder':'v1','saveDataSuccessExecution':'none','saveDataErrorExecution':'all'}}
+  exC=[w for w in req('GET',B+'?limit=200')['data'] if w['name']=='Maison3D Catalogue']
+  if exC:
+    iC=exC[0]['id']; req('POST',B+'/'+iC+'/deactivate'); req('PUT',B+'/'+iC,wfC)
+  else:
+    iC=req('POST',B,wfC)['id']
+  r=req('POST',B+'/'+iC+'/activate'); print('workflow',iC,'(catalogue) actif',r.get('active'))
+else:
+  print('workflow Catalogue non publié : SKETCHFAB_CRED (id de la clé « Sketchfab Maison3D » dans n8n) manquant')

@@ -29,6 +29,10 @@ const json=v=>JSON.stringify(v??null);
 function decrire(ch){
   if(ch.length>1){
     if(ch.every(c=>!c.apres&&c.avant?.a)) return `${ch.length} objets supprimés`;
+    // « Remplacer » : un objet ajouté et l'ancien masqué, dans le même enregistrement
+    const neuf=ch.find(c=>!c.avant&&c.apres?.a), cache=ch.find(c=>c.avant&&c.apres&&!c.avant.h&&c.apres.h);
+    if(ch.length===2&&neuf&&cache){ const n1=app.items[cache.n]?.meta.l||cache.avant.a?.n||cache.n, n2=neuf.apres.a.n||FORMES[neuf.apres.a.f]?.nom||'Objet';
+      return `${n1} : remplacé par ${n2}`; }
     return ch.every(c=>c.apres&&origine(c.n,c.apres))?`${ch.length} éléments remis en place`:`${ch.length} éléments modifiés`;
   }
   const {n,avant:a,apres:b}=ch[0], it=app.items[n];

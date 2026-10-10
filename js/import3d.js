@@ -76,12 +76,28 @@ async function preparer(scene,dire){
   dire('Préparation du fichier…');
   const {GLTFExporter}=await import('three/addons/exporters/GLTFExporter.js');
   const buf=await new GLTFExporter().parseAsync(racine,{binary:true,maxTextureSize:TEXTURE,onlyVisible:true});
-  return {blob:new Blob([buf],{type:'model/gltf-binary'}),triangles,parties:n};
+  return {blob:new Blob([await compresser(buf)],{type:'model/gltf-binary'}),triangles,parties:n};
+}
+// forme compressée (meshopt : sommets réordonnés et quantifiés, ~2 fois plus léger ; le site lit déjà ce format) ;
+// bibliothèques chargées au premier modèle ; en cas d'échec, le fichier part tel quel
+const GT='https://cdn.jsdelivr.net/npm/@gltf-transform/';
+async function compresser(buf){
+  try{
+    const [{WebIO},{EXTMeshoptCompression,KHRMeshQuantization},{reorder,quantize},{MeshoptEncoder}]=await Promise.all([
+      import(GT+'core@4.1.1/+esm'),import(GT+'extensions@4.1.1/+esm'),import(GT+'functions@4.1.1/+esm'),
+      import('https://cdn.jsdelivr.net/npm/meshoptimizer@0.22.0/meshopt_encoder.module.js')]);
+    await MeshoptEncoder.ready;
+    const io=new WebIO().registerExtensions([EXTMeshoptCompression,KHRMeshQuantization]).registerDependencies({'meshopt.encoder':MeshoptEncoder});
+    const doc=await io.readBinary(new Uint8Array(buf));
+    await doc.transform(reorder({encoder:MeshoptEncoder}),quantize());
+    doc.createExtension(EXTMeshoptCompression).setRequired(true).setEncoderOptions({method:EXTMeshoptCompression.EncoderMethod.QUANTIZE});
+    return await io.writeBinary(doc);
+  }catch(e){ console.warn('Compression du modèle impossible, fichier envoyé tel quel :',e); return buf; }
 }
 
 // ---------- la fenêtre ----------
 const el=(nom,attrs={},texte)=>{ const n=document.createElement(nom); for(const [k,v] of Object.entries(attrs)) n.setAttribute(k,v); if(texte!==undefined) n.textContent=texte; return n; };
-let fen=null, charge=null;   // {scene, d:[w,h,p] dans l'unité du fichier, nom, taille}
+let fen=null, charge=null;   // {scene, d:[w,h,p] dans l'unité du fichier, nom, taille, origine}
 const UNITES={m:1,cm:0.01,mm:0.001};
 function dire(t,erreur=false){ const m=fen.querySelector('.ph-message'); m.textContent=t||''; m.classList.toggle('cx-erreur',erreur); }
 const cm=v=>String(Math.round(v*1000)/10).replace('.',',');
@@ -93,23 +109,38 @@ function majDims(depuis){
   const v=lireCm('#g3-'+depuis); if(!v) return; const k=v/100/({l:w,p,h}[depuis]);
   for(const [q,x] of [['l',w],['p',p],['h',h]]) if(q!==depuis) fen.querySelector('#g3-'+q).value=String(Math.round(x*k*1000)/10);
 }
-async function prendre(f,tourner=0){
+async function prendre(f,tourner=0,origine=null){
   if(!f||!/\.glb$/i.test(f.name)){ dire('Choisissez un fichier .glb (Tripo : « Download », format GLB).',true); return; }
   dire('Lecture du fichier…'); fen.querySelector('.g3-info').hidden=true;
-  try{ const scene=await lire(await f.arrayBuffer()); scene.rotation.y+=tourner; const b=boite(scene), s=b.getSize(new THREE.Vector3());
-    if(b.isEmpty()||!(s.x>0)) throw new Error('vide');
-    let tri=0, tex=new Set(); scene.traverse(o=>{ if(o.isMesh){ const g=o.geometry; tri+=(g.index?g.index.count:g.attributes.position.count)/3; for(const m of [].concat(o.material)) if(m.map) tex.add(m.map); } });
-    charge={scene,d:[s.x,s.y,s.z],nom:f.name.replace(/\.glb$/i,'').replace(/[_-]+/g,' ').slice(0,60),taille:f.size};
-    const max=Math.max(s.x,s.y,s.z); fen.querySelector('#g3-unite').value=max>300?'mm':max>8?'cm':'m';
-    fen.querySelector('#g3-nom').value=charge.nom;
-    fen.querySelector('.g3-detail').textContent=`${(f.size/1048576).toFixed(1).replace('.',',')} Mo · ${Math.round(tri).toLocaleString('fr-FR')} triangles · ${tex.size} texture${tex.size>1?'s':''} · taille dans le fichier : ${[s.x,s.z,s.y].map(v=>v.toFixed(2).replace('.',',')).join(' × ')} (L × P × H)`;
-    majDims(); fen.querySelector('.g3-info').hidden=false; dire('Vérifiez les dimensions (en cm), puis « Ajouter ».');
-  }catch(e){ charge=null; dire('Ce fichier .glb n’a pas pu être lu.',true); }
+  let scene; try{ scene=await lire(await f.arrayBuffer()); }catch(e){ charge=null; dire('Ce fichier .glb n’a pas pu être lu.',true); return; }
+  montrer(scene,{nom:f.name.replace(/\.glb$/i,'').replace(/[_-]+/g,' '),octets:f.size,tourner,origine});
 }
+// le modèle lu (fichier, Tripo, catalogue) : taille, unité devinée, dimensions proposées ; origine = catalogue (auteur, licence)
+function montrer(scene,{nom='',octets=0,tourner=0,origine=null}={}){
+  scene.rotation.y+=tourner; const b=boite(scene), s=b.getSize(new THREE.Vector3());
+  if(b.isEmpty()||!(s.x>0)){ charge=null; dire('Ce modèle 3D est vide.',true); return; }
+  let tri=0, tex=new Set(); scene.traverse(o=>{ if(o.isMesh){ const g=o.geometry; tri+=(g.index?g.index.count:g.attributes.position.count)/3; for(const m of [].concat(o.material)) if(m.map) tex.add(m.map); } });
+  charge={scene,d:[s.x,s.y,s.z],nom:String(nom).slice(0,60),taille:octets,origine};
+  const max=Math.max(s.x,s.y,s.z); fen.querySelector('#g3-unite').value=max>300?'mm':max>8?'cm':'m';
+  fen.querySelector('#g3-nom').value=charge.nom;
+  fen.querySelector('.g3-detail').textContent=(octets?`${(octets/1048576).toFixed(1).replace('.',',')} Mo · `:'')+`${Math.round(tri).toLocaleString('fr-FR')} triangles · ${tex.size} texture${tex.size>1?'s':''} · taille dans le fichier : ${[s.x,s.z,s.y].map(v=>v.toFixed(2).replace('.',',')).join(' × ')} (L × P × H)`;
+  const o=fen.querySelector('.g3-origine'); o.hidden=!origine; if(origine) o.textContent=texteOrigine(origine);
+  majDims(); fen.querySelector('.g3-info').hidden=false; dire('Vérifiez les dimensions (en cm), puis « Ajouter ».');
+}
+// « Sofa 01 » de Jamie Smith · CC0 (Poly Haven)
+export const texteOrigine=o=>`« ${o.titre} »${o.auteur?' de '+o.auteur:''} · licence ${o.licence||'?'} (${o.site})`;
 // modèle reçu d'ailleurs (Tripo, depuis le panneau photo) : lu comme un fichier choisi, tourné si son avant n'est pas vers
 // +z comme les meubles du site, nom et largeur repris (proportions du modèle gardées)
-export async function importerModele(f,{nom,largeur,message,tourner=0}={}){
-  await prendre(f,tourner); if(!charge) return false;
+export async function importerModele(f,{nom,largeur,message,tourner=0,origine=null}={}){
+  ouvrirImport(true); await prendre(f,tourner,origine); if(!charge) return false;
+  return reglages({nom,largeur,message});
+}
+// modèle déjà lu (catalogue : Poly Haven en glTF à plusieurs fichiers, Sketchfab en .glb)
+export function importerScene(scene,{nom,octets,origine,message}={}){
+  ouvrirImport(true); montrer(scene,{nom,octets,origine}); if(!charge) return false;
+  return reglages({message});
+}
+function reglages({nom,largeur,message}){
   if(nom) fen.querySelector('#g3-nom').value=nom;
   if(largeur){ fen.querySelector('#g3-prop').checked=true; fen.querySelector('#g3-l').value=String(largeur); majDims('l'); }
   if(message) dire(message);
@@ -124,7 +155,8 @@ async function ajouter(){
     dire(`Envoi (${(blob.size/1048576).toFixed(1).replace('.',',')} Mo, ${Math.round(triangles).toLocaleString('fr-FR')} triangles)…`);
     const nom=fen.querySelector('#g3-nom').value.trim().slice(0,60)||'Objet 3D';
     const r=await envoyerFichier(blob,{nom,type:'glb'}); if(r.erreur){ dire(r.erreur,true); return; }
-    const it=ajouterObjet({t:'glb',f:'glb',p:{L:+(L/100).toFixed(4),P:+(P/100).toFixed(4),H:+(H/100).toFixed(4)},fic:{id:r.id,n:r.n},d:[+s.x.toFixed(5),+s.y.toFixed(5),+s.z.toFixed(5)],n:nom});
+    const it=ajouterObjet({t:'glb',f:'glb',p:{L:+(L/100).toFixed(4),P:+(P/100).toFixed(4),H:+(H/100).toFixed(4)},fic:{id:r.id,n:r.n},d:[+s.x.toFixed(5),+s.y.toFixed(5),+s.z.toFixed(5)],n:nom,
+      ...(charge.origine?{o:charge.origine}:{})});
     if(!it){ dire('L’objet n’a pas pu être ajouté.',true); return; }
     ouvrirImport(false);
   }catch(e){ dire('Préparation impossible : '+(e?.message||e),true); }
@@ -137,6 +169,7 @@ function construireFenetre(){
     <p>Un fichier .glb fait sur Tripo (« Download », format GLB) ou téléchargé chez un fabricant.</p>
     <div class="ph-boutons"><label class="btn primary">Choisir un fichier .glb<input type="file" accept=".glb,model/gltf-binary" id="g3-fichier" hidden></label></div>
     <div class="g3-info" hidden>
+      <p class="mat-aide g3-origine" hidden></p>
       <p class="mat-aide g3-detail"></p>
       <label class="dimrow"><span>Unité du fichier</span><select id="g3-unite"><option value="m">mètres</option><option value="cm">centimètres</option><option value="mm">millimètres</option></select></label>
       <label class="dimrow"><span>Nom</span><input type="text" id="g3-nom" maxlength="60"></label>
