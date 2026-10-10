@@ -21,7 +21,7 @@ const dire=(t)=>{ message=t; majMenu(); };
 function majBouton(){
   const b=$('variantes'), v=varianteCourante(); if(!b) return;
   b.querySelector('.ib-texte').textContent=v?v.nom:'Actuel';
-  nommer(b,'Variante affichée : '+(v?v.nom:'Actuel')+(connecte()?' (changer, créer, renommer)':''));
+  nommer(b,'Variante affichée : '+(v?v.nom:'Actuel')+(v?.fixe?' (non modifiable)':connecte()?' (changer, créer, renommer)':''));
 }
 function majMenu(){
   const m=$('variantes-menu'); if(m.hidden) return;
@@ -37,15 +37,15 @@ function majMenu(){
       li.append(i,ok); m.append(li); setTimeout(()=>{ i.focus(); i.select(); }); continue;
     }
     const b=el('button',{type:'button',class:'aller-vue'}); if(cour&&v.id===cour.id) b.setAttribute('aria-current','true');
-    b.append(el('span',{},v.nom),el('span',{class:'m2'},v.modifieePar?v.modifieePar+', '+quand(v.modifieeLe):''));
+    b.append(el('span',{},v.nom),el('span',{class:'m2'},v.fixe?'maquette d’origine, non modifiable':v.modifieePar?v.modifieePar+', '+quand(v.modifieeLe):''));
     b.onclick=async()=>{ if(cour&&v.id===cour.id){ ouvrir(false); return; }
       dire('Chargement de « '+v.nom+' »…'); const ok=await afficherVariante(v.id);
       if(ok){ message=''; ouvrir(false); } else dire('Les derniers changements ne sont pas encore partis (hors connexion) : réessayez quand le réseau revient.'); };
     li.append(b);
-    if(connecte()){
+    if(connecte()&&!v.fixe){
       const r=el('button',{type:'button',class:'petit','aria-label':'Renommer '+v.nom,title:'Renommer'},'✎'); r.onclick=()=>{ enEdition=v.id; aSupprimer=null; majMenu(); };
       const s=el('button',{type:'button',class:'petit'+(aSupprimer===v.id?' danger':''),'aria-label':'Supprimer '+v.nom,title:'Supprimer'},aSupprimer===v.id?'Supprimer ?':'×');
-      if(liste.length<2) s.disabled=true;
+      if(liste.filter(x=>!x.fixe).length<2) s.disabled=true;   // la dernière variante modifiable reste
       s.onclick=()=>{ if(aSupprimer===v.id) supprimer(v); else { aSupprimer=v.id; majMenu(); setTimeout(()=>{ if(aSupprimer===v.id){ aSupprimer=null; majMenu(); } },4000); } };
       li.append(r,s);
     }
@@ -60,7 +60,7 @@ function majMenu(){
     m.append(g);
   }
   if(connecte()){
-    const f=el('div',{class:'vue-form'}), i=el('input',{type:'text',id:'variante-nom','aria-label':'Nom de la nouvelle variante',maxlength:'60',placeholder:'Projet '+liste.length});
+    const f=el('div',{class:'vue-form'}), i=el('input',{type:'text',id:'variante-nom','aria-label':'Nom de la nouvelle variante',maxlength:'60',placeholder:'Projet '+liste.filter(x=>!x.fixe).length});
     const b=el('button',{type:'button',class:'btn primary',id:'variante-creer'},'Créer');
     b.title='Nouvelle variante : copie de « '+(cour?cour.nom:'Actuel')+' »';
     const creer_=()=>creer((i.value||'').trim()||i.placeholder);
@@ -77,7 +77,7 @@ function majMenu(){
 }
 async function creer(nom){
   dire('Création de « '+nom+' »…');
-  const liste=lesVariantes(), ordre=liste.reduce((m,v)=>Math.max(m,v.ordre||0),0)+1;
+  const liste=lesVariantes().filter(v=>!v.fixe), ordre=liste.reduce((m,v)=>Math.max(m,v.ordre||0),0)+1;
   const disposition=lireDisposition();
   const r=await appel('variante',{op:'creer',nom,disposition,ordre});
   if(!r.ok){ dire(r.horsLigne?'Hors connexion : réessayez quand le réseau revient.':(r.erreur||'Création impossible')); return; }
@@ -93,7 +93,7 @@ async function renommer(v,nom){
 async function supprimer(v){
   aSupprimer=null; const r=await appel('variante',{op:'supprimer',id:v.id});
   if(!r.ok){ dire(r.horsLigne?'Hors connexion : réessayez quand le réseau revient.':(r.erreur||'Suppression impossible')); return; }
-  const reste=lesVariantes().filter(x=>x.id!==v.id);
+  const reste=lesVariantes().filter(x=>x.id!==v.id&&!x.fixe);
   if(varianteCourante()?.id===v.id){ nouvelleListe(lesVariantes()); await afficherVariante(reste[0].id); }
   nouvelleListe(reste); message=''; majMenu();
 }
@@ -106,5 +106,7 @@ export function initVariantes(){
   m.addEventListener('keydown',e=>{ if(e.key==='Escape'){ e.stopPropagation(); ouvrir(false); b.focus(); } });
   addEventListener('variantes',()=>{ majBouton(); majMenu(); });
   addEventListener('compte',()=>{ majBouton(); majMenu(); });
+  // Éditer refusé sur la Base (vues.js) : le menu s'ouvre et explique
+  addEventListener('base-verrouillee',()=>{ ouvrir(true); dire('La variante « Base » ne se modifie pas : créez-en une copie (« Créer ») pour la modifier.'); });
   majBouton();
 }

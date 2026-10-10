@@ -34,8 +34,11 @@ function difference(de,vers){
 const appliquerSur=(d,ch)=>{ const r={...d}; for(const [n,e] of Object.entries(ch)){ if(e===null) delete r[n]; else r[n]=e; } return r; };
 const enAttente=()=>Object.keys(attente.changements).length>0||attente.ops.length>0||lignesAEnvoyer(true).length>0;
 
-export const lesVariantes=()=>variantes;
-export const varianteCourante=()=>variantes.find(v=>v.id===courante)||null;
+// « Base » (demande de Mauro du 10 octobre 2026) : la maquette telle qu'au départ, toujours en tête des variantes, ni
+// modifiable, ni renommable, ni supprimable ; pas stockée dans Airtable (sa disposition est vide : tout à sa place d'origine)
+export const BASE=Object.freeze({id:'base',nom:'Base',disposition:{},version:0,fixe:true});
+export const lesVariantes=()=>[BASE,...variantes];
+export const varianteCourante=()=>courante===BASE.id?BASE:variantes.find(v=>v.id===courante)||null;
 
 // ---------- état affiché (pastille du compte, bas du panneau) ----------
 function dire(code,texte){
@@ -68,7 +71,7 @@ export async function charger(){
   variantes=r.variantes||[];
   if(!variantes.length){ majEtat(); return false; }
   const voulu=connecte()?(lire(CACHE,{}).courante||courante):null;
-  const v=variantes.find(x=>x.id===voulu)||variantes[0];
+  const v=voulu===BASE.id?BASE:variantes.find(x=>x.id===voulu)||variantes[0];
   if(v.id!==courante){ courante=v.id; changerJournal(courante); }
   if(connecte()){
     // vues et mesures : la liste du serveur, plus celles faites ici et pas encore envoyées (ou d'avant les comptes)
@@ -86,7 +89,10 @@ export async function charger(){
   }
   base=v.disposition||{}; version=v.version||0;
   const ici=lireDisposition();
-  if(connecte()&&((attente.variante===v.id&&Object.keys(attente.changements).length)||modifAvant)){
+  if(v.fixe){   // Base : rien à envoyer, tout à sa place d'origine
+    if(Object.keys(difference(ici,base)).length) appliquerDisposition(base);
+    attente.changements={}; attente.variante=v.id;
+  } else if(connecte()&&((attente.variante===v.id&&Object.keys(attente.changements).length)||modifAvant)){
     attente.changements=difference(base,ici);   // changements faits ici, pas encore envoyés : on les garde et on les envoie
   } else if(connecte()&&version===0&&Object.keys(ici).length&&!lire('maison3d-migre',false)){
     attente.variante=v.id; attente.changements=difference(base,ici); ecrire('maison3d-migre',true);   // première connexion : la disposition de ce navigateur devient « Actuel »
@@ -118,8 +124,8 @@ async function envoyer(){
       if(!r.ok&&!connecte()) return false;
       attente.ops.shift(); garderAttente();   // refusé pour une autre raison : on n'insiste pas
     }
-    // 2. la disposition de la variante affichée
-    if(attente.variante!==courante) attente.changements={};
+    // 2. la disposition de la variante affichée (la Base ne se modifie pas)
+    if(attente.variante!==courante||courante===BASE.id){ attente.changements={}; if(courante===BASE.id){ garderAttente(); return true; } }
     const ch={...attente.changements}, lignes=lignesAEnvoyer(false);
     if(!Object.keys(ch).length&&!lignes.length) return true;
     const avant=version;
@@ -145,7 +151,7 @@ async function envoyer(){
 }
 // changement fait ici (déplacer, tourner, masquer, recolorer, annuler…) : on le prépare et on l'envoie bientôt
 function surDisposition(e){
-  if(e.detail?.distant||!connecte()) return;
+  if(e.detail?.distant||!connecte()||courante===BASE.id) return;
   if(!pret||!courante){ modifAvant=true; return; }   // modifié avant la fin du premier chargement : gardé, envoyé ensuite
   attente.variante=courante; attente.changements=difference(base,lireDisposition());
   garderAttente(); majEtat(); planifier();
@@ -158,21 +164,21 @@ async function verifier(complet){
   const r=await appel('etat'); if(!r.ok){ if(r.horsLigne) majEtat(true); return; }
   const v=(r.variantes||[]).find(x=>x.id===courante);
   const noms=(r.variantes||[]).map(x=>x.id+x.nom).join(), connus=variantes.map(x=>x.id+x.nom).join();
-  if(!v||v.version>version||noms!==connus){ if(enAttente()) await envoyer(); else await charger(); }
+  if(noms!==connus||(courante!==BASE.id&&(!v||v.version>version))){ if(enAttente()) await envoyer(); else await charger(); }
 }
 
 // ---------- changer de variante (variantes.js) ----------
 export async function afficherVariante(id){
   if(id===courante) return true;
   if(enAttente()){ await envoyer(); if(enAttente()) return false; }   // hors connexion : on ne quitte pas une variante dont les changements ne sont pas partis
-  const v=variantes.find(x=>x.id===id); if(!v) return false;
+  const v=id===BASE.id?BASE:variantes.find(x=>x.id===id); if(!v) return false;
   courante=id; changerJournal(id); base=v.disposition||{}; version=v.version||0;
   attente.variante=id; attente.changements={};
   appliquerDisposition(base); garderCache(); garderAttente(); majEtat();
   verifier(true);   // la version du serveur peut être plus récente
   return true;
 }
-export function nouvelleListe(liste){ variantes=liste; garderCache(); majEtat(); }
+export function nouvelleListe(liste){ variantes=liste.filter(v=>!v.fixe); garderCache(); majEtat(); }
 
 export function initSynchro(){
   const a=lire(ATTENTE,null); if(a&&typeof a==='object') attente={variante:a.variante||null,changements:a.changements||{},ops:Array.isArray(a.ops)?a.ops:[],envoye:a.envoye||{}};

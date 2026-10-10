@@ -22,7 +22,7 @@ function afficher(){
     r.append(el('span',{class:'h-heure'},quand(l.t)),el('span',{class:'h-qui'},l.qui),el('span',{},l.texte)); box.append(r); }
 }
 async function rafraichir(force){
-  const v=varianteCourante(); if(!connecte()||!v||!$('h-details').open||vue!=='tous') return;
+  const v=varianteCourante(); if(!connecte()||!v||v.fixe||!$('h-details').open||vue!=='tous') return;   // Base : pas d'historique
   const c=v.id+':'+v.version; if(!force&&c===cle&&Date.now()-dernier<60000) return;
   if(enCours) return; enCours=true; if(c.split(':')[0]!==cle.split(':')[0]) lignes=[]; afficher();
   const r=await appel('historique',{variante:v.id,n:50}); enCours=false;
