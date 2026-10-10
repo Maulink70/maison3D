@@ -90,10 +90,11 @@ r=req('POST',B+'/'+iF+'/activate'); print('workflow',iF,'(fichiers) actif',r.get
 
 # ---------- workflow « Maison3D IA » (étape 4, livraison 2) : nettoyage d'une photo par kie.ai (Nano Banana Pro) ----------
 # POST /webhook/maison3d-ia (texte JSON) : demarrer {image, quoi, ratio} → {tache} ; suivre {tache} → {etat, image}.
-# Clé kie.ai : identifiant créé par Mauro dans n8n, « Header Auth » (Authorization = Bearer <clé>, id P4ibm6icxQ3fp4KE)
-# ou « Bearer Auth » (la clé seule) : KIE_TYPE=httpBearerAuth KIE_CRED=<id> KIE_NOM=<nom> python3 outils/n8n/deployer.py
-KIE_TYPE=os.environ.get('KIE_TYPE','httpHeaderAuth')
-KIE={KIE_TYPE:{'id':os.environ.get('KIE_CRED','P4ibm6icxQ3fp4KE'),'name':os.environ.get('KIE_NOM','kie.ai Maison3D')}}
+# Clé kie.ai : identifiant « kie.ai Maison3D (Bearer) » créé par Mauro dans n8n (type « Bearer Auth » : la clé seule,
+# id SeeB77SMCgNVZLgQ ; l'ancien « kie.ai Maison3D » en Header Auth était refusé par kie.ai). Autre clé :
+# KIE_TYPE=httpHeaderAuth|httpBearerAuth KIE_CRED=<id> KIE_NOM=<nom> python3 outils/n8n/deployer.py
+KIE_TYPE=os.environ.get('KIE_TYPE','httpBearerAuth')
+KIE={KIE_TYPE:{'id':os.environ.get('KIE_CRED','SeeB77SMCgNVZLgQ'),'name':os.environ.get('KIE_NOM','kie.ai Maison3D (Bearer)')}}
 def kie(nom,x,y,corps):
   p={'method':'={{ $json.req.method }}','url':'={{ $json.req.url }}','authentication':'genericCredentialType','genericAuthType':KIE_TYPE,
      'options':{'response':{'response':{'fullResponse':True,'neverError':True}},'timeout':60000}}
