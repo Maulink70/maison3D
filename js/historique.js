@@ -45,6 +45,7 @@ function decrire(ch){
   if(a.h!==b.h) l.push(b.h?'masqué':'affiché');
   if(a.c!==b.c) l.push(b.c?'couleur '+b.c.toUpperCase():'couleur d’origine');
   if(json(a.s)!==json(b.s)) l.push(b.s&&it?'dimensions '+cm(it.size0?.x*b.s[0]||it.size.x)+' × '+cm(it.size0?.z*b.s[2]||it.size.z)+' × '+cm(it.size0?.y*b.s[1]||it.size.y)+' cm':'taille d’origine');
+  if(Math.abs((a.dy||0)-(b.dy||0))>1e-4&&it) l.push('posé à '+cm(it.home.y+(b.dy||0)-(it.lvl==='Étage'?2.74:0))+' cm');
   if(a.a&&b.a){ if(json(a.a.p)!==json(b.a.p)) l.push('dimensions '+dims(b)); if(a.a.n!==b.a.n) l.push('renommé'); if(a.a.e!==b.a.e) l.push('posé à '+cm(+b.a.e||0)+' cm'); }
   if(json(a.m)!==json(b.m)){ const k=Object.keys({...(a.m||{}),...(b.m||{})}).filter(k=>json(a.m?.[k])!==json(b.m?.[k]));
     const v=k.map(x=>b.m?.[x]).filter(Boolean); l.push(v.length?'matière '+[...new Set(v.map(nomChoix))].join(', '):'matière d’origine'); }

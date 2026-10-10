@@ -16,6 +16,8 @@ import {niveauDuPlan, vuePlan, empreinte} from './plan.js';
 import {solSous} from './visite.js';
 import {caler} from './calques.js';
 import {css} from './app.js';
+import {ouvrirPhoto} from './photo.js';
+import {ouvrirImport} from './import3d.js';
 
 const el=(nom,attrs={},texte)=>{ const n=document.createElement(nom); for(const [k,v] of Object.entries(attrs)) n.setAttribute(k,v); if(texte!==undefined) n.textContent=texte; return n; };
 const cm=v=>Math.round(v*1000)/10;   // mètres → cm, au mm
@@ -60,22 +62,27 @@ function lieu(L,P){
   const y=solSous(new THREE.Vector3(x,base,z))??base;
   return {x,z,y,niv};
 }
-export function ajouterForme(f){
-  const p=parametres(f), o=lieu(p.L,p.P), nom=nouveauNom();
-  const e=normaliser(nom,{x:o.x,z:o.z,r:0,h:false,c:null,a:{t:'forme',f,p,n:FORMES[f].nom,v:o.niv,y:+o.y.toFixed(4),e:0}});
+// ajoute un objet (définition a sans niveau ni position : forme, photo, fichier 3D), posé dans la pièce regardée
+export function ajouterObjet(a){
+  const o=lieu(a.p.L,a.p.P), nom=nouveauNom();
+  const e=normaliser(nom,{x:o.x,z:o.z,r:0,h:false,c:null,a:{...a,v:o.niv,y:+o.y.toFixed(4),e:0}});
   const it=creerAjout(nom,e); if(!it) return null;
   dispatchEvent(new CustomEvent('meubles'));
   select(nom); $('t-dims').open=true; save();
   return it;
 }
+export const ajouterForme=f=>ajouterObjet({t:'forme',f,p:parametres(f),n:FORMES[f].nom});
 
 // ---------- menu « Ajouter » ----------
 function ouvrirMenu(oui){
   const m=$('ajouter-menu'); m.hidden=!oui; $('ajouter').setAttribute('aria-expanded',String(oui)); if(!oui) return;
-  m.replaceChildren(el('div',{class:'menu-titre'},'Ajouter une forme simple'));
+  m.replaceChildren(el('div',{class:'menu-titre'},'N’importe quel objet'));
+  for(const [k,t,d,f] of [['photo','D’après une photo…','coller ou choisir une image',ouvrirPhoto],['glb','Fichier 3D (.glb)…','Tripo, fabricant…',ouvrirImport]]){
+    const b=el('button',{type:'button','data-ajout':k}); b.append(el('span',{},t),el('span',{class:'m2'},d)); b.onclick=()=>{ ouvrirMenu(false); f(true); }; m.append(b); }
+  const g=el('div',{class:'menu-groupe'}); g.append(el('div',{class:'menu-titre'},'Formes simples')); m.append(g);
   for(const [f,d] of Object.entries(FORMES)){
     const b=el('button',{type:'button','data-forme':f}); b.append(el('span',{},d.nom),el('span',{class:'m2'},d.rond?`⌀ ${cmT(d.L)} × H ${cmT(d.H)} cm`:`${cmT(d.L)} × ${cmT(d.P)} × ${cmT(d.H)} cm`));
-    b.onclick=()=>{ ouvrirMenu(false); ajouterForme(f); }; m.append(b);
+    b.onclick=()=>{ ouvrirMenu(false); ajouterForme(f); }; g.append(b);
   }
   m.append(el('div',{class:'menu-pied'},'')); m.lastChild.append(el('p',{},'L’objet apparaît dans la pièce que vous regardez. Ses dimensions et ses matières se règlent ensuite dans le panneau.'));
   caler(m);
@@ -105,7 +112,7 @@ function majDimensions(){
   };
   iL.onchange=()=>appliquer('L'); iP.onchange=()=>appliquer('P'); iH.onchange=()=>appliquer('H');
   if(a){
-    for(const [k,lib,type,min,max] of f.options||[]){
+    for(const [k,lib,type,min,max] of f?.options||[]){
       if(type==='oui'){ const l=el('label',{class:'crans'}), i=el('input',{type:'checkbox'}); i.checked=!!a.p[k]; l.append(i,' '+lib); i.onchange=()=>changerAjout(it,{...a,p:{...a.p,[k]:i.checked?1:0}}); box.append(l); }
       else { const [l,i]=champ('d-'+k,lib,a.p[k],''); i.min=String(min); i.max=String(max); i.step='1'; i.onchange=()=>{ const v=Math.round(+i.value); if(v>=min&&v<=max) changerAjout(it,{...a,p:{...a.p,[k]:v}}); else majDimensions(); }; box.append(l); }
     }
@@ -113,6 +120,10 @@ function majDimensions(){
     iE.onchange=()=>{ const v=Number(String(iE.value).replace(',','.')); if(Number.isFinite(v)&&v>=0&&v<=500) changerAjout(it,{...a,e:+(v/100).toFixed(4)}); else majDimensions(); };
     box.append(lE);
   } else {
+    // hauteur de pose (demande de Mauro) : la lampe du buffet est « posée à 92,5 cm » ; on peut la monter ou la descendre
+    const sol=it.lvl==='Étage'?ETAGE_FLOOR:0, [lE,iE]=champ('d-pose','Posé à',cm(Math.max(0,it.g.position.y-sol)),'cm du sol'); iE.min='0';
+    iE.onchange=()=>{ const v=Number(String(iE.value).replace(',','.')); if(Number.isFinite(v)&&v>=0&&v<=500){ it.g.position.y=sol+v/100; app.selBox?.update(); save(); } majDimensions(); };
+    box.append(lE);
     const b=el('button',{type:'button',class:'btn',id:'d-origine'},'Taille d’origine'); b.disabled=it.g.scale.equals(new THREE.Vector3(1,1,1));
     b.onclick=()=>{ echelonner(it,[1,1,1]); app.selBox?.update(); save(); majDimensions(); majTitre(); }; box.append(b);
   }
@@ -139,7 +150,7 @@ function majMatieres(){
 export function choisirPartie(mesh){ const it=app.selected; if(!it) return; partie=cleDe(mesh); majMatieres(); eclairer(it,partie); }
 function eclairer(it,cle){
   const mat=new THREE.MeshBasicMaterial({color:new THREE.Color(css('--accent')||'#2c5a86'),transparent:true,opacity:0.45,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-1,polygonOffsetUnits:-2});
-  const l=it.mats.filter(o=>cleDe(o)===cle&&!o.name.endsWith('__couvercle')).map(o=>{ const v=new THREE.Mesh(o.geometry,mat); v.raycast=()=>{}; v.renderOrder=4; o.add(v); return v; });
+  const l=it.mats.filter(o=>cleDe(o)===cle&&!o.name.endsWith('__couvercle')).map(o=>{ const v=new THREE.Mesh(o.geometry,mat); v.raycast=()=>{}; v.renderOrder=4; v.userData.eclat=true; o.add(v); return v; });
   setTimeout(()=>{ for(const v of l) v.removeFromParent(); mat.dispose(); },800);
 }
 
@@ -160,7 +171,7 @@ export function initObjets(){
   addEventListener('selection',majPanneau);
   $('t-mats').addEventListener('toggle',()=>majMatieres());
   $('t-nom').onkeydown=e=>{ e.stopPropagation(); if(e.key==='Enter') e.target.blur(); };
-  $('t-nom').onchange=e=>{ const it=app.selected; if(!it?.ajout) return; const n=e.target.value.trim().slice(0,60)||FORMES[it.ajout.f].nom; changerAjout(it,{...it.ajout,n}); };
+  $('t-nom').onchange=e=>{ const it=app.selected; if(!it?.ajout) return; const n=e.target.value.trim().slice(0,60)||FORMES[it.ajout.f]?.nom||'Objet'; changerAjout(it,{...it.ajout,n}); };
   let arme=0;
   $('t-suppr').onclick=()=>{ const it=app.selected; if(!it?.ajout) return; const s=$('t-suppr');
     if(Date.now()-arme>4000){ arme=Date.now(); s.textContent='Confirmer la suppression'; s.classList.add('arme'); setTimeout(()=>{ if(Date.now()-arme>=3900){ s.textContent='Supprimer cet objet'; s.classList.remove('arme'); } },4000); return; }

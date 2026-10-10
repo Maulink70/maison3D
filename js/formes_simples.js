@@ -3,7 +3,7 @@
 // propre : origine au centre du dessous, avant vers +z), en parties nommées (plateau, pieds…) dont la matière se choisit
 // dans la bibliothèque. Une partie = un matériau nommé par sa clé : une seule géométrie par partie (fusionner).
 import * as THREE from 'three';
-import {boite, cylindre, fusionner} from './formes.js';
+import {boite, cylindre, fusionner, plante} from './formes.js';
 import {materiau} from './bibliotheque.js';
 import {poserCoordonnees} from './matieres.js';
 
@@ -18,10 +18,17 @@ export const FORMES={
   canape:{nom:'Canapé',L:2.2,P:0.9,H:0.8,options:[['accoudoirs','Accoudoirs','oui',0,1,1]],parties:{structure:['Structure','toile'],coussins:['Coussins','toile'],pieds:['Pieds','chene']}},
   chaise:{nom:'Chaise',L:0.45,P:0.5,H:0.85,parties:{assise:['Assise et dossier','chene'],pieds:['Pieds','chene']}},
   tapis:{nom:'Tapis',L:2.0,P:1.4,H:0.015,parties:{tapis:['Tapis','bouclette']}},
-  cylindre:{nom:'Cylindre (pot, pouf, lampe)',L:0.4,P:0.4,H:0.6,rond:true,parties:{corps:['Corps','ceramique']}}
+  cylindre:{nom:'Cylindre (pot, pouf)',L:0.4,P:0.4,H:0.6,rond:true,parties:{corps:['Corps','ceramique']}},
+  // livraison 2 (proposé à Mauro) : lampes (reconnues d'office comme lampes : abat-jour en matière « lumière »), écran, plante, vase, cadre
+  lampe:{nom:'Lampe à poser',L:0.3,P:0.3,H:0.5,rond:true,lampe:true,parties:{abatjour:['Abat-jour','lumiere'],pied:['Pied','ceramique']}},
+  lampadaire:{nom:'Lampadaire',L:0.4,P:0.4,H:1.6,rond:true,lampe:true,parties:{abatjour:['Abat-jour','lumiere'],pied:['Pied et socle','metal-noir']}},
+  ecran:{nom:'Écran ou télévision',L:1.23,P:0.25,H:0.78,options:[['pied','Sur pied (sinon mural)','oui',0,1,1]],parties:{ecran:['Écran','verre-opaque'],cadre:['Cadre et pied','plastique-noir']}},
+  plante:{nom:'Plante en pot',L:0.5,P:0.5,H:1.2,rond:true,parties:{feuillage:['Feuillage','mat'],pot:['Pot','ceramique']}},
+  vase:{nom:'Vase ou bouteille',L:0.12,P:0.12,H:0.35,rond:true,parties:{corps:['Corps','verre-fume']}},
+  cadre:{nom:'Cadre ou miroir',L:0.6,P:0.03,H:0.8,parties:{image:['Image ou miroir','verre'],cadre:['Cadre','chene']}}
 };
 // couleurs de départ qui changent de celles de la matière (coussins un ton plus clair, linge bleu clair…)
-const TEINTE={canape:{structure:'#8c8f93',coussins:'#a9acb0'},lit:{tete:'#b9b2a5',matelas:'#f4f2ee',linge:'#c9d6e4'}};
+const TEINTE={canape:{structure:'#8c8f93',coussins:'#a9acb0'},lit:{tete:'#b9b2a5',matelas:'#f4f2ee',linge:'#c9d6e4'},plante:{feuillage:'#3d7a37'},ecran:{ecran:'#15181b'},cadre:{image:'#d9e6ec'}};
 
 // paramètres complets d'une forme (valeurs par défaut pour ce qui manque)
 export function parametres(f,p={}){ const d=FORMES[f], r={L:+p.L||d.L,P:+p.P||d.P,H:+p.H||d.H};
@@ -69,8 +76,22 @@ export function construireForme(f,p){
       pieds4(e,hs-0.03,0.025,M.pieds); break; }
     case 'tapis': boite(g,x0,x1,0,H,z0,z1,M.tapis); break;
     case 'cylindre': cylindre(g,0,0,H,0,L/2,M.corps,L/2,32); break;
+    case 'lampe': { const ha=H*0.42;   // pied en balustre, abat-jour conique
+      cylindre(g,0,0,H*0.06,0,L*0.32,M.pied,L*0.3,24); cylindre(g,0,H*0.06,H-ha*0.85,0,L*0.18,M.pied,L*0.1,24);
+      cylindre(g,0,H-ha,H,0,L/2,M.abatjour,L*0.32,32); break; }
+    case 'lampadaire': { const ha=Math.min(0.4,H*0.25);
+      cylindre(g,0,0,0.03,0,L*0.4,M.pied,L*0.4,32); cylindre(g,0,0.03,H-ha*0.8,0,0.015,M.pied,0.015,12);
+      cylindre(g,0,H-ha,H,0,L/2,M.abatjour,L*0.36,32); break; }
+    case 'ecran': { const ep=Math.min(0.05,P), y0=q.pied?Math.min(0.12,H*0.15):0, z=q.pied?0:z0+ep/2;
+      boite(g,x0,x1,y0,H,z-ep/2,z+ep/2,M.cadre); boite(g,x0+0.015,x1-0.015,y0+0.015,H-0.015,z+ep/2,z+ep/2+0.004,M.ecran);
+      if(q.pied){ boite(g,-0.03,0.03,0,y0,z-0.02,z+0.02,M.cadre); boite(g,-Math.min(0.25,L/3),Math.min(0.25,L/3),0,0.012,z0,z1,M.cadre); } break; }
+    case 'plante': { const hp=Math.min(0.4,H*0.3);
+      plante(g,0,0,0,{pot:L*0.32,hPot:hp,h:H,feuilles:18,matPot:M.pot,matFeuille:M.feuillage,lame:Math.max(0.03,L*0.08)}); break; }
+    case 'vase': cylindre(g,0,0,H*0.75,0,L/2,M.corps,L*0.42,32); cylindre(g,0,H*0.75,H,0,L*0.16,M.corps,L*0.42,24); break;
+    case 'cadre': { const b=Math.min(0.05,L/8); boite(g,x0,x1,0,H,z0,z0+P*0.6,M.cadre);
+      boite(g,x0+b,x1-b,b,H-b,z0+P*0.6,z1,M.image); break; }
   }
   fusionner(g); poserCoordonnees(g);   // une géométrie par partie ; coordonnées de texture en mètres
   const noms={}; for(const [k,[n]] of Object.entries(d.parties)) noms[k]=n;
-  return {g,noms,taille:new THREE.Vector3(L,f==='lit'?Math.max(H,0.65):H,P)};
+  return {g,noms,taille:new THREE.Vector3(L,f==='lit'?Math.max(H,0.65):H,P),lampe:!!d.lampe};
 }

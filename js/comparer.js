@@ -27,7 +27,7 @@ function poser(d,quoi){
   if(d.seulA){ d.it.g.visible=quoi==='A'&&!d.it.hidden; return; }
   if(d.seulB){ d.it.g.visible=quoi==='B'; return; }
   const it=d.it; it.g.position.x=s.x; it.g.position.z=s.z; it.g.rotation.set(0,s.r||0,0);
-  if(!it.ajout) echelonner(it,s.s||[1,1,1],true);
+  if(!it.ajout){ echelonner(it,s.s||[1,1,1],true); it.g.position.y=it.home.y+(+s.dy||0); }
   it.color=s.c||null; it.matieres=s.m?JSON.parse(JSON.stringify(s.m)):{}; majApparence(it); it.g.visible=!s.h;
 }
 const versB=()=>{ for(const d of comp.diff) poser(d,'B'); app.model.updateMatrixWorld(true); };

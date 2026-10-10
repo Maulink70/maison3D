@@ -7,7 +7,7 @@
 const MODELE='maison3d-modele-1', CODE='maison3d-code-1';
 self.addEventListener('install',()=>self.skipWaiting());
 self.addEventListener('activate',e=>e.waitUntil((async()=>{
-  for(const k of await caches.keys()) if(k!==MODELE&&k!==CODE) await caches.delete(k);
+  for(const k of await caches.keys()) if(k!==MODELE&&k!==CODE&&k!=='maison3d-fichiers') await caches.delete(k);   // fichiers des objets ajoutés (fichiers.js) : gardés
   await self.clients.claim();
 })()));
 const fixe=u=>(u.origin===self.location.origin&&/\/(modele|polices|icones)\//.test(u.pathname))||u.hostname==='cdn.jsdelivr.net'||u.hostname==='fonts.gstatic.com';

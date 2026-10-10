@@ -6,7 +6,7 @@ const sortie=reqs=>reqs.length?reqs.map(req=>({json:{ctx,req}})):[{json:{ctx,req
 const refus=(erreur,code)=>{ ctx.reponse={ok:false,erreur,code:code||400}; return sortie([]); };
 if(!corps||typeof corps!=='object') return refus('Demande illisible');
 ctx.moi=lireJeton(corps.jeton);
-const PRIVE=['charger','etat','enregistrer','variante','vue','mesure','historique','motdepasse'];   // tout sauf la connexion : le site est fermé sans compte
+const PRIVE=['charger','etat','enregistrer','variante','vue','mesure','historique','motdepasse','fichier'];   // tout sauf la connexion : le site est fermé sans compte
 if(PRIVE.includes(ctx.action)&&!ctx.moi) return refus('Connexion nécessaire',401);
 const tri=(champ,sens)=>'sort%5B0%5D%5Bfield%5D='+enc(champ)+'&sort%5B0%5D%5Bdirection%5D='+(sens||'asc');
 const parId=(t,id)=>({method:'GET',url:url(t,'?'+formule('{Id}='+texte(id))+'&maxRecords=10')});
@@ -44,5 +44,12 @@ switch(ctx.action){
   case 'motdepasse':
     if(!corps.ancien||!corps.nouveau||String(corps.nouveau).length<6) return refus('Le nouveau mot de passe doit faire au moins 6 caractères');
     return sortie([{method:'GET',url:url('personnes','/'+ctx.moi.p)}]);
+  case 'fichier':   // étape 4 : une ligne de la table Fichiers (creer), puis son contenu par morceaux de moins de 5 Mo (contenu)
+    if(corps.op==='creer') return sortie([]);
+    if(corps.op==='contenu'){ if(!estId(corps.id)) return refus('Fichier inconnu');
+      if(typeof corps.donnees!=='string'||corps.donnees.length>6900000) return refus('Morceau de fichier trop gros (5 Mo au plus)');
+      if(!TYPES.includes(corps.type)) return refus('Type de fichier refusé');
+      return sortie([]); }
+    return refus('Opération inconnue');
   default: return refus('Action inconnue');
 }

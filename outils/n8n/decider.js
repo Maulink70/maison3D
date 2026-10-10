@@ -36,6 +36,7 @@ switch(ctx.action){
       for(const k of ['x','z','r']) if(k in e) r[k]=+e[k]||0;
       if('h' in e) r.h=!!e.h; if('c' in e) r.c=typeof e.c==='string'?e.c.slice(0,9):null;
       if(Array.isArray(e.s)&&e.s.length===3) r.s=e.s.map(v=>Math.min(50,Math.max(0.01,+v||1)));
+      if('dy' in e) r.dy=Math.max(-10,Math.min(10,+e.dy||0));   // hauteur de pose d'un meuble du modèle
       if(e.m&&typeof e.m==='object'){ const m={}; for(const [k,v] of Object.entries(e.m).slice(0,40)) if(v&&typeof v==='object')
         m[String(k).slice(0,60)]={i:v.i==null?null:String(v.i).slice(0,40),c:typeof v.c==='string'?v.c.slice(0,9):null,...(v.n?{n:String(v.n).slice(0,60)}:{})}; r.m=m; }
       if(e.a&&typeof e.a==='object'&&JSON.stringify(e.a).length<6000) r.a=e.a;
@@ -80,6 +81,12 @@ switch(ctx.action){
   }
   case 'historique':
     return sortie({ok:true,lignes:lignes(0).map(r=>({id:r.id,texte:r.fields['Résumé']||'',t:Date.parse(r.fields['Quand']||'')||0,qui:r.fields['Personne']||'',ch:json(r.fields['Détail'],[])}))});
+  case 'fichier': {
+    if(c.op==='creer') return sortie({ok:true,creee:'fichier'},[{method:'POST',url:url('fichiers'),body:{records:[{fields:{'Nom':String(c.nom||'fichier').slice(0,120),
+      'Type':c.type==='glb'?'glb':'photo','Taille':Math.max(0,+c.taille||0),'Créé par':moi.n,'Créé le':maintenant}}],typecast:true}}]);
+    const k=Math.max(0,Math.min(20,c.part|0));
+    return sortie({ok:true},[{method:'POST',url:CONTENU(c.id),body:{contentType:c.type,file:c.donnees,filename:String(c.nom||'fichier').replace(/[^\w.-]+/g,'_').slice(0,80)+'.part'+k}}]);
+  }
   case 'motdepasse': {
     const p=lus[0]&&lus[0].body; if(!p||!p.fields) return echec('Compte introuvable',404);
     if(!egal(hex(pbkdf2(utf8(c.ancien),utf8(p.fields['Sel']||''),TOURS)),p.fields['Empreinte']||'')) return echec('Mot de passe actuel incorrect',401);

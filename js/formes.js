@@ -56,12 +56,12 @@ export function uvMonde(geo,taille=0.6){
 }
 
 // Plante stylisée : pot + feuilles en lames rayonnantes (hauteur totale h)
-export function plante(parent,x,y0,z,{pot=0.12,hPot=0.2,h=0.7,feuilles=14,matPot=MAT.potBordeaux,lame=0.035}={}){
+export function plante(parent,x,y0,z,{pot=0.12,hPot=0.2,h=0.7,feuilles=14,matPot=MAT.potBordeaux,lame=0.035,matFeuille=null}={}){
   cylindre(parent,x,y0,y0+hPot,z,pot*0.8,matPot,pot);
   const base=y0+hPot, geo=new THREE.ConeGeometry(lame,h-hPot,4);
   for(let i=0;i<feuilles;i++){
     const a=i*2.399, inc=0.25+0.55*((i*37)%10)/10, l=(h-hPot)*(0.75+0.25*((i*53)%7)/7);
-    const f=new THREE.Mesh(geo,i%3?MAT.feuille:MAT.feuilleClaire); f.scale.set(1,l/(h-hPot),0.35);
+    const f=new THREE.Mesh(geo,matFeuille||(i%3?MAT.feuille:MAT.feuilleClaire)); f.scale.set(1,l/(h-hPot),0.35);
     f.position.set(x+Math.sin(a)*Math.sin(inc)*l/2,base+Math.cos(inc)*l/2,z+Math.cos(a)*Math.sin(inc)*l/2);
     f.rotation.set(Math.cos(a)*inc,0,-Math.sin(a)*inc,'XYZ'); f.userData.fusion=true; parent.add(f);
   }

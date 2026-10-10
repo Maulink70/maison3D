@@ -8,6 +8,7 @@
 // Glisser = se déplacer, molette ou pincement = zoom ; en Éditer, on attrape un meuble pour le déplacer.
 // Repère : x vers la droite, −z (le nord) vers le haut, échelle s en pixels par mètre.
 import * as THREE from 'three';
+import {aimanter} from './aimant.js';
 import {app, $, css} from './app.js';
 import {ETAGE_FLOOR, REZ_CUT, ROOF_CUT, ETAGE_CUT, GARDE_CORPS} from './config.js';
 import {PIECES, bornes} from './pieces.js';
@@ -303,7 +304,7 @@ export function initPlan(){
   s.addEventListener('wheel',e=>{ e.preventDefault(); anim=null; zoomer(Math.exp(-e.deltaY*0.0015),e.clientX,e.clientY); },{passive:false});
   s.addEventListener('pointerdown',e=>{
     s.setPointerCapture(e.pointerId); doigts.set(e.pointerId,{x:e.clientX,y:e.clientY}); anim=null;
-    if(doigts.size===2){ if(geste?.type==='meuble'&&geste.bouge) save(); geste={type:'pince',d:ecart(),m:milieu(),s:vue.s}; return; }
+    if(doigts.size===2){ if(geste?.type==='meuble'&&geste.bouge){ aimanter(geste.it); save(); } geste={type:'pince',d:ecart(),m:milieu(),s:vue.s}; return; }
     if(doigts.size>2) return;
     const cibleMeuble=app.edition&&!app.mesure&&!app.comparaison&&e.target.closest?.('[data-item]');
     if(app.edition&&!app.mesure&&!app.comparaison&&app.selected&&e.target.closest?.('.rotation')) geste={type:'rotation',it:app.selected,bouge:false};
@@ -324,6 +325,7 @@ export function initPlan(){
   });
   const fin=e=>{
     if(!doigts.delete(e.pointerId)) return;
+    if(geste?.type==='meuble'&&geste.bouge) aimanter(geste.it);   // aimant : posé sur le meuble en dessous
     if((geste?.type==='meuble'||geste?.type==='rotation')&&geste.bouge) save();
     else if(geste?.type==='pan'&&!geste.bouge&&app.edition&&app.selected&&!app.mesure&&e.type==='pointerup') select(null);   // toucher le vide désélectionne
     if(doigts.size===1){ const [p]=doigts.values(); geste={type:'pan',x:p.x,y:p.y,cx:vue.cx,cz:vue.cz,bouge:true}; } else if(!doigts.size) geste=null;

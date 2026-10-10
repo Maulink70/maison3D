@@ -83,7 +83,7 @@ export function poserCouvercles(){
     const mat=[...parMat.entries()].sort((a,b)=>b[1]-a[1])[0][0];
     geo.applyMatrix4(o.matrixWorld.clone().invert());
     const m=new THREE.Mesh(geo,mat); m.name=o.name+'__couvercle'; m.userData.coupe=etage?'etage':'rez'; m.visible=false;
-    if(it){ m.userData.item=it.name; it.mats.push(m); } else m.raycast=()=>{};
+    if(it){ m.userData.item=it.name; it.mats.push(m); m.userData.y0=o.position.y; } else m.raycast=()=>{};
     o.add(m); couvercles.push(m);
   }
 }
@@ -92,5 +92,5 @@ export function majCouvercles(){
   const plans=app.renderer.clippingPlanes;
   const rez=plans.some(p=>p.normal.y<0&&Math.abs(p.constant-REZ_CUT)<1e-6), etage=plans.some(p=>p.normal.y<0&&Math.abs(p.constant-ROOF_CUT)<1e-6);
   // un meuble redimensionné (étape 4) n'a plus la section calculée : pas de couvercle
-  for(const m of couvercles){ const e=m.parent?.scale; m.visible=(m.userData.coupe==='rez'?rez:etage)&&(!e||(e.x===1&&e.y===1&&e.z===1)); }
+  for(const m of couvercles){ const g=m.parent, e=g?.scale; m.visible=(m.userData.coupe==='rez'?rez:etage)&&(!e||(e.x===1&&e.y===1&&e.z===1))&&(m.userData.y0===undefined||Math.abs(g.position.y-m.userData.y0)<1e-4); }
 }

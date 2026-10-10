@@ -10,6 +10,7 @@ import {estLampe, soirOuNuit, basculerLampe, marquerLampe, majPanneauLampe} from
 import {majApparence, appliquerEtat, origineDe} from './etats.js';
 import {surfaceChoisie, surfaceEn, choisirSurface} from './revetements.js';
 import {matieresOuvertes, choisirPartie} from './objets.js';
+import {aimanter, reglerAimant} from './aimant.js';
 
 const rc=new THREE.Raycaster();
 
@@ -134,7 +135,9 @@ export function petitEcran(){ return mq.matches; }
 
 export function initEdition(){
   const {tc}=app;
-  tc.addEventListener('dragging-changed',e=>{app.orbit.enabled=!e.value&&app.mode==='orbit'; app.gizmoDrag=e.value; if(!e.value) save();});
+  tc.addEventListener('dragging-changed',e=>{app.orbit.enabled=!e.value&&app.mode==='orbit'; app.gizmoDrag=e.value;
+    if(!e.value){ if(app.selected&&tc.getMode()==='translate') aimanter(app.selected); save(); } });   // aimant : posé sur le meuble en dessous
+  $('t-aimant').checked=app.aimant; $('t-aimant').onchange=e=>reglerAimant(e.target.checked);
   tc.addEventListener('objectChange',()=>{ apresPoignee(); if(app.selBox) app.selBox.update(); });
   $('t-move').onclick=()=>modeOutil('translate');
   $('t-poignee').onclick=()=>modeOutil('rotate');

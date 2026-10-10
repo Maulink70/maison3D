@@ -54,3 +54,76 @@ if existant:
 else:
   i=req('POST',B,wf)['id']
 r=req('POST',B+'/'+i+'/activate'); print('workflow',i,'actif',r.get('active'))
+
+# ---------- workflow « Maison3D Fichiers » (étape 4) : contenu d'un fichier de la table Fichiers, servi au site ----------
+# GET /webhook/maison3d-fichier?id=rec…&p=<morceau>&j=<jeton> ; les adresses des pièces jointes Airtable expirent et ne
+# sont pas lisibles depuis le site : n8n les relit et renvoie le contenu (CORS des origines du site, cache d'un an)
+def siExpr(nom,x,expr): n=si(nom,x); n['parameters']['conditions']['conditions'][0]['leftValue']=expr; return n
+def repondre(nom,x,binaire=False):
+  p={'respondWith':'binary','options':{'responseHeaders':{'entries':[{'name':'Cache-Control','value':'private, max-age=31536000, immutable'}]}}} if binaire else \
+    {'respondWith':'json','responseBody':'={{ JSON.stringify($json.reponse) }}','options':{}}
+  return {'id':str(uuid.uuid5(uuid.NAMESPACE_DNS,'m3df-'+nom)),'name':nom,'type':'n8n-nodes-base.respondToWebhook','typeVersion':1.1,'position':[x,0],'parameters':p}
+dl={'id':str(uuid.uuid5(uuid.NAMESPACE_DNS,'m3df-telecharger')),'name':'Télécharger','type':'n8n-nodes-base.httpRequest','typeVersion':4.2,'position':[1100,-100],
+  'parameters':{'url':'={{ $json.url }}','options':{'response':{'response':{'responseFormat':'file'}}}}}
+ligne=http('Lire la ligne',660,False); ligne['id']=str(uuid.uuid5(uuid.NAMESPACE_DNS,'m3df-lire'))
+nodesF=[
+ {'id':str(uuid.uuid5(uuid.NAMESPACE_DNS,'m3df-webhook')),'name':'Fichier demandé','type':'n8n-nodes-base.webhook','typeVersion':2,'position':[0,0],'webhookId':'4a2f5d0e-6c1b-4c8e-9f3a-maison3d0002',
+  'parameters':{'httpMethod':'GET','path':'maison3d-fichier','responseMode':'responseNode','options':{'allowedOrigins':ORIGINES}}},
+ code('Vérifier',lib+lire('fichier_verifier.js'),220),
+ siExpr('Autorisé ?',440,'={{ $json.req != null }}'), ligne,
+ code('Adresse',lire('fichier_adresse.js'),880),
+ siExpr('Trouvé ?',990,'={{ $json.url != null }}'), dl, repondre('Contenu',1320,True), repondre('Refus',660), repondre('Introuvable',1100)]
+for n in nodesF:
+  if n['name'] in ('Vérifier','Adresse'): n['id']=str(uuid.uuid5(uuid.NAMESPACE_DNS,'m3df-'+n['name']))
+  if n['name'] in ('Autorisé ?','Trouvé ?'): n['id']=str(uuid.uuid5(uuid.NAMESPACE_DNS,'m3df-'+n['name']))
+  if n['type']=='n8n-nodes-base.code': n['parameters']['jsCode']=n['parameters']['jsCode'].replace('__SECRET__',sec)
+mm=lambda n,i=0:{'node':n,'type':'main','index':i}   # (m est repris plus haut par la recherche du secret)
+connF={'Fichier demandé':{'main':[[mm('Vérifier')]]},'Vérifier':{'main':[[mm('Autorisé ?')]]},'Autorisé ?':{'main':[[mm('Lire la ligne')],[mm('Refus')]]},
+ 'Lire la ligne':{'main':[[mm('Adresse')]]},'Adresse':{'main':[[mm('Trouvé ?')]]},'Trouvé ?':{'main':[[mm('Télécharger')],[mm('Introuvable')]]},'Télécharger':{'main':[[mm('Contenu')]]}}
+wfF={'name':'Maison3D Fichiers','nodes':nodesF,'connections':connF,'settings':{'executionOrder':'v1','saveDataSuccessExecution':'none','saveDataErrorExecution':'all'}}
+exF=[w for w in req('GET',B+'?limit=200')['data'] if w['name']=='Maison3D Fichiers']
+if exF:
+  iF=exF[0]['id']; req('POST',B+'/'+iF+'/deactivate'); req('PUT',B+'/'+iF,wfF)
+else:
+  iF=req('POST',B,wfF)['id']
+r=req('POST',B+'/'+iF+'/activate'); print('workflow',iF,'(fichiers) actif',r.get('active'))
+
+# ---------- workflow « Maison3D IA » (étape 4, livraison 2) : nettoyage d'une photo par kie.ai (Nano Banana Pro) ----------
+# POST /webhook/maison3d-ia (texte JSON) : demarrer {image, quoi, ratio} → {tache} ; suivre {tache} → {etat, image}.
+# Clé kie.ai : identifiant « kie.ai Maison3D » (Header Auth, créé par Mauro dans n8n, id P4ibm6icxQ3fp4KE).
+KIE={'httpHeaderAuth':{'id':os.environ.get('KIE_CRED','P4ibm6icxQ3fp4KE'),'name':'kie.ai Maison3D'}}
+def kie(nom,x,y,corps):
+  p={'method':'={{ $json.req.method }}','url':'={{ $json.req.url }}','authentication':'genericCredentialType','genericAuthType':'httpHeaderAuth',
+     'options':{'response':{'response':{'fullResponse':True,'neverError':True}},'timeout':60000}}
+  if corps: p.update({'sendBody':True,'contentType':'json','specifyBody':'json','jsonBody':'={{ JSON.stringify($json.req.body) }}'})
+  return {'id':str(uuid.uuid5(uuid.NAMESPACE_DNS,'m3dia-'+nom)),'name':nom,'type':'n8n-nodes-base.httpRequest','typeVersion':4.2,'position':[x,y],'parameters':p,'credentials':KIE}
+def codeIA(nom,f,x,y,avecLib=False):
+  js=(lib if avecLib else '')+lire(f); js=js.replace('__SECRET__',sec)
+  return {'id':str(uuid.uuid5(uuid.NAMESPACE_DNS,'m3dia-'+nom)),'name':nom,'type':'n8n-nodes-base.code','typeVersion':2,'position':[x,y],'parameters':{'jsCode':js}}
+def siIA(nom,x,y,expr): n=si(nom,x); n['id']=str(uuid.uuid5(uuid.NAMESPACE_DNS,'m3dia-'+nom)); n['position']=[x,y]; n['parameters']['conditions']['conditions'][0]['leftValue']=expr; return n
+def repIA(nom,x,y): n=repondre(nom,x); n['id']=str(uuid.uuid5(uuid.NAMESPACE_DNS,'m3dia-'+nom)); n['position']=[x,y]; return n
+dlIA={'id':str(uuid.uuid5(uuid.NAMESPACE_DNS,'m3dia-telecharger')),'name':'Télécharger le résultat','type':'n8n-nodes-base.httpRequest','typeVersion':4.2,'position':[1540,200],
+  'parameters':{'url':'={{ $json.url }}','sendHeaders':True,'headerParameters':{'parameters':[{'name':'User-Agent','value':'Mozilla/5.0'},{'name':'Referer','value':'https://kie.ai/'}]},
+    'options':{'response':{'response':{'responseFormat':'file'}},'timeout':120000}}}
+nodesIA=[
+ {'id':str(uuid.uuid5(uuid.NAMESPACE_DNS,'m3dia-webhook')),'name':'Demande du site','type':'n8n-nodes-base.webhook','typeVersion':2,'position':[0,0],'webhookId':'4a2f5d0e-6c1b-4c8e-9f3a-maison3d0003',
+  'parameters':{'httpMethod':'POST','path':'maison3d-ia','responseMode':'responseNode','options':{'allowedOrigins':ORIGINES}}},
+ codeIA('Analyser','ia_analyser.js',220,0,True), siIA('Valide ?',440,0,'={{ $json.req != null }}'), repIA('Refus',660,200),
+ siIA('Démarrer ?',660,0,'={{ $json.op === "demarrer" }}'),
+ kie('Envoyer l’image',880,-200,True), codeIA('Préparer la tâche','ia_tache.js',1100,-200), siIA('Image reçue ?',1320,-200,'={{ $json.req != null }}'),
+ kie('Créer la tâche',1540,-300,True), codeIA('Tâche créée','ia_reponse_tache.js',1760,-300), repIA('Réponse tâche',1980,-300), repIA('Refus kie',1540,-100),
+ kie('Lire la tâche',880,200,False), codeIA('État','ia_etat.js',1100,200), siIA('Prête ?',1320,200,'={{ $json.url != null }}'),
+ dlIA, codeIA('Image','ia_image.js',1760,200), repIA('Réponse image',1980,200), repIA('Réponse état',1540,400)]
+conIA={'Demande du site':{'main':[[mm('Analyser')]]},'Analyser':{'main':[[mm('Valide ?')]]},'Valide ?':{'main':[[mm('Démarrer ?')],[mm('Refus')]]},
+ 'Démarrer ?':{'main':[[mm('Envoyer l’image')],[mm('Lire la tâche')]]},
+ 'Envoyer l’image':{'main':[[mm('Préparer la tâche')]]},'Préparer la tâche':{'main':[[mm('Image reçue ?')]]},'Image reçue ?':{'main':[[mm('Créer la tâche')],[mm('Refus kie')]]},
+ 'Créer la tâche':{'main':[[mm('Tâche créée')]]},'Tâche créée':{'main':[[mm('Réponse tâche')]]},
+ 'Lire la tâche':{'main':[[mm('État')]]},'État':{'main':[[mm('Prête ?')]]},'Prête ?':{'main':[[mm('Télécharger le résultat')],[mm('Réponse état')]]},
+ 'Télécharger le résultat':{'main':[[mm('Image')]]},'Image':{'main':[[mm('Réponse image')]]}}
+wfIA={'name':'Maison3D IA','nodes':nodesIA,'connections':conIA,'settings':{'executionOrder':'v1','saveDataSuccessExecution':'none','saveDataErrorExecution':'all'}}
+exIA=[w for w in req('GET',B+'?limit=200')['data'] if w['name']=='Maison3D IA']
+if exIA:
+  iIA=exIA[0]['id']; req('POST',B+'/'+iIA+'/deactivate'); req('PUT',B+'/'+iIA,wfIA)
+else:
+  iIA=req('POST',B,wfIA)['id']
+r=req('POST',B+'/'+iIA+'/activate'); print('workflow',iIA,'(IA) actif',r.get('active'))

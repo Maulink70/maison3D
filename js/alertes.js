@@ -29,7 +29,7 @@ const poseActuelle=it=>({x:it.g.position.x,z:it.g.position.z,r:it.g.rotation.y})
 const poseOrigine=it=>({x:it.home.x,z:it.home.z,r:0});
 // examinés : meubles déplacés, tournés, redimensionnés, et tous les objets ajoutés (étape 4)
 const echelle=it=>it.g.scale.x!==1||it.g.scale.y!==1||it.g.scale.z!==1;
-const deplace=it=>{ if(it.ajout||echelle(it)) return true; const p=poseActuelle(it); return Math.hypot(p.x-it.home.x,p.z-it.home.z)>0.005||Math.abs(p.r)>1e-4; };
+const deplace=it=>{ if(it.ajout||echelle(it)||Math.abs(it.g.position.y-it.home.y)>1e-3) return true; const p=poseActuelle(it); return Math.hypot(p.x-it.home.x,p.z-it.home.z)>0.005||Math.abs(p.r)>1e-4; };
 // cellules (centres, repère du meuble) de son emprise, gardées une fois
 function cellules(it){
   if(it.cellules) return it.cellules;
