@@ -130,3 +130,55 @@ if exIA:
 else:
   iIA=req('POST',B,wfIA)['id']
 r=req('POST',B+'/'+iIA+'/activate'); print('workflow',iIA,'(IA) actif',r.get('active'))
+
+# ---------- workflow « Maison3D Tripo » (étape 4) : vrai modèle 3D d'après une photo, par Tripo (API v3) ----------
+# POST /webhook/maison3d-tripo (texte JSON) : solde → {solde} ; demarrer {image} → {tache} ; suivre {tache} → {etat,
+# progres} ou, prêt, le fichier GLB lui-même (en-tête X-Tripo-Credits = crédits consommés).
+# Clé Tripo : identifiant « Tripo Maison3D » (type « Bearer Auth », la clé seule) créé par Mauro dans n8n :
+# TRIPO_CRED=<id> python3 outils/n8n/deployer.py (sans lui, ce workflow n'est pas publié).
+TRIPO_CRED=os.environ.get('TRIPO_CRED','')
+if TRIPO_CRED:
+  TRIPO={'httpBearerAuth':{'id':TRIPO_CRED,'name':os.environ.get('TRIPO_NOM','Tripo Maison3D')}}
+  ident=lambda nom:str(uuid.uuid5(uuid.NAMESPACE_DNS,'m3dtripo-'+nom))
+  libT=lib+lire('tripo_commun.js')+'\n'
+  def tripo(nom,x,y,corps=None):
+    p={'method':'={{ $json.req.method }}','url':'={{ $json.req.url }}','authentication':'genericCredentialType','genericAuthType':'httpBearerAuth',
+       'options':{'response':{'response':{'fullResponse':True,'neverError':True}},'timeout':60000}}
+    if corps=='json': p.update({'sendBody':True,'contentType':'json','specifyBody':'json','jsonBody':'={{ JSON.stringify($json.req.body) }}'})
+    if corps=='fichier': p.update({'sendBody':True,'contentType':'multipart-form-data','bodyParameters':{'parameters':[{'parameterType':'formBinaryData','name':'file','inputDataFieldName':'data'}]}})
+    return {'id':ident(nom),'name':nom,'type':'n8n-nodes-base.httpRequest','typeVersion':4.2,'position':[x,y],'parameters':p,'credentials':TRIPO}
+  def codeT(nom,f,x,y): return {'id':ident(nom),'name':nom,'type':'n8n-nodes-base.code','typeVersion':2,'position':[x,y],'parameters':{'jsCode':(libT+lire(f)).replace('__SECRET__',sec)}}
+  def siT(nom,x,y,expr): n=si(nom,x); n['id']=ident(nom); n['position']=[x,y]; n['parameters']['conditions']['conditions'][0]['leftValue']=expr; return n
+  def repT(nom,x,y,binaire=False):
+    n=repondre(nom,x); n['id']=ident(nom); n['position']=[x,y]
+    if binaire: n['parameters']={'respondWith':'binary','options':{'responseHeaders':{'entries':[{'name':'Content-Type','value':'model/gltf-binary'},
+      {'name':'X-Tripo-Credits','value':"={{ $('État').first().json.credits }}"},{'name':'Access-Control-Expose-Headers','value':'X-Tripo-Credits'},{'name':'Cache-Control','value':'no-store'}]}}}
+    return n
+  dlT={'id':ident('telecharger'),'name':'Télécharger le modèle','type':'n8n-nodes-base.httpRequest','typeVersion':4.2,'position':[1540,300],
+    'parameters':{'url':'={{ $json.url }}','options':{'response':{'response':{'responseFormat':'file'}},'timeout':180000}}}
+  nodesT=[
+   {'id':ident('webhook'),'name':'Demande du site','type':'n8n-nodes-base.webhook','typeVersion':2,'position':[0,0],'webhookId':'4a2f5d0e-6c1b-4c8e-9f3a-maison3d0004',
+    'parameters':{'httpMethod':'POST','path':'maison3d-tripo','responseMode':'responseNode','options':{'allowedOrigins':ORIGINES}}},
+   codeT('Analyser','tripo_analyser.js',220,0), siT('Valide ?',440,0,'={{ $json.req != null }}'), repT('Refus',660,400),
+   siT('Solde ?',660,0,'={{ $json.op === "solde" }}'), tripo('Lire le solde',880,-300), codeT('Solde','tripo_solde.js',1100,-300), repT('Réponse solde',1320,-300),
+   siT('Démarrer ?',880,0,'={{ $json.op === "demarrer" }}'),
+   tripo('Envoyer la photo',1100,-100,'fichier'), codeT('Préparer la tâche','tripo_tache.js',1320,-100), siT('Photo reçue ?',1540,-100,'={{ $json.req != null }}'),
+   tripo('Créer la tâche',1760,-200,'json'), codeT('Tâche créée','tripo_reponse_tache.js',1980,-200), repT('Réponse tâche',2200,-200), repT('Refus Tripo',1760,0),
+   tripo('Lire la tâche',1100,200), codeT('État','tripo_etat.js',1320,200), siT('Prêt ?',1540,200,'={{ $json.url != null }}'),
+   dlT, repT('Modèle',1760,300,True), repT('Réponse état',1760,100)]
+  conT={'Demande du site':{'main':[[mm('Analyser')]]},'Analyser':{'main':[[mm('Valide ?')]]},'Valide ?':{'main':[[mm('Solde ?')],[mm('Refus')]]},
+   'Solde ?':{'main':[[mm('Lire le solde')],[mm('Démarrer ?')]]},'Lire le solde':{'main':[[mm('Solde')]]},'Solde':{'main':[[mm('Réponse solde')]]},
+   'Démarrer ?':{'main':[[mm('Envoyer la photo')],[mm('Lire la tâche')]]},
+   'Envoyer la photo':{'main':[[mm('Préparer la tâche')]]},'Préparer la tâche':{'main':[[mm('Photo reçue ?')]]},'Photo reçue ?':{'main':[[mm('Créer la tâche')],[mm('Refus Tripo')]]},
+   'Créer la tâche':{'main':[[mm('Tâche créée')]]},'Tâche créée':{'main':[[mm('Réponse tâche')]]},
+   'Lire la tâche':{'main':[[mm('État')]]},'État':{'main':[[mm('Prêt ?')]]},'Prêt ?':{'main':[[mm('Télécharger le modèle')],[mm('Réponse état')]]},
+   'Télécharger le modèle':{'main':[[mm('Modèle')]]}}
+  wfT={'name':'Maison3D Tripo','nodes':nodesT,'connections':conT,'settings':{'executionOrder':'v1','saveDataSuccessExecution':'none','saveDataErrorExecution':'all'}}
+  exT=[w for w in req('GET',B+'?limit=200')['data'] if w['name']=='Maison3D Tripo']
+  if exT:
+    iT=exT[0]['id']; req('POST',B+'/'+iT+'/deactivate'); req('PUT',B+'/'+iT,wfT)
+  else:
+    iT=req('POST',B,wfT)['id']
+  r=req('POST',B+'/'+iT+'/activate'); print('workflow',iT,'(Tripo) actif',r.get('active'))
+else:
+  print('workflow Tripo non publié : TRIPO_CRED (id de la clé « Tripo Maison3D » dans n8n) manquant')

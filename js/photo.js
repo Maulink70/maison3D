@@ -9,6 +9,8 @@ import {$} from './app.js';
 import {envoyerFichier, lireFichier} from './fichiers.js';
 import {ajouterObjet} from './objets.js';
 import {nettoyerPhoto} from './ia.js';
+import {soldeTripo, creer3D} from './tripo.js';
+import {ouvrirImport, importerModele} from './import3d.js';
 
 const el=(nom,attrs={},texte)=>{ const n=document.createElement(nom); for(const [k,v] of Object.entries(attrs)) n.setAttribute(k,v); if(texte!==undefined) n.textContent=texte; return n; };
 const MAXI=1024;
@@ -172,7 +174,13 @@ function construireFenetre(){
         <label class="crans"><input type="checkbox" id="ph-ratio" checked> Hauteur d’après la photo (largeur × proportions)</label>
       </div>
       <p class="ph-message" role="status"></p>
-      <button type="button" class="btn primary wide" id="ph-ajouter">Ajouter à la maquette</button>
+      <div class="ph-tripo" hidden><p>Tripo va créer un vrai modèle 3D d’après cette photo (1 à 3 minutes). Cela consomme des crédits Tripo<span class="ph-solde"></span>.</p>
+        <p class="mat-aide">Meilleur résultat : le meuble seul, entier, sur un fond uni (« Nettoyer (IA) » d’abord si besoin).</p>
+        <div class="ph-boutons"><button type="button" class="btn primary" id="ph-tripo-ok">Oui, créer en 3D</button><button type="button" class="btn" id="ph-tripo-non">Non</button></div></div>
+      <div class="ph-final">
+        <button type="button" class="btn primary wide" id="ph-tripo">Créer en 3D (Tripo)</button>
+        <button type="button" class="btn wide" id="ph-ajouter">Ajouter en photo (juste de face)</button>
+      </div>
     </div></div>`;
   document.body.append(fen);
   const q=s=>fen.querySelector(s);
@@ -208,6 +216,10 @@ function construireFenetre(){
   q('#ph-ratio').onchange=()=>majHauteur();
   for(const s of ['#ph-nom','#ph-l','#ph-p','#ph-h']) q(s).addEventListener('keydown',e=>{ e.stopPropagation(); if(e.key==='Enter') e.target.blur(); });
   q('#ph-ajouter').onclick=ajouter;
+  q('#ph-l').addEventListener('input',()=>{ largeurSaisie=true; });
+  q('#ph-tripo').onclick=demanderTripo;
+  q('#ph-tripo-non').onclick=()=>{ q('.ph-tripo').hidden=true; };
+  q('#ph-tripo-ok').onclick=lancerTripo;
 }
 function majHauteur(){ if(!src||!fen.querySelector('#ph-ratio').checked) return; const r=rogner(src); ratio=r.height/r.width; const L=lireCm('#ph-l'); if(L) fen.querySelector('#ph-h').value=String(Math.round(L*ratio*2)/2); }
 function majCadre(){ const v=fen.querySelector('#ph-vue'), c=fen.querySelector('.ph-cadre'); if(!cadre){ c.hidden=true; return; }
@@ -232,6 +244,30 @@ async function lancerIA(){
   memoriser(); src=await charger(r.blob); outil=null; majBoutons(); majHauteur();
   dire('Photo nettoyée par l’IA. Vous pouvez maintenant « Retirer le fond » (blanc) pour ne garder que le meuble.');
 }
+// vrai modèle 3D par Tripo : confirmation (solde affiché), puis création ; le modèle s'ouvre dans la fenêtre d'import 3D
+// (dimensions : celles de Tripo, ou la largeur saisie ici avec les proportions du modèle)
+let tripoEnCours=false, largeurSaisie=false;
+async function demanderTripo(){
+  if(!src||tripoEnCours) return;
+  const t=fen.querySelector('.ph-tripo'), s=t.querySelector('.ph-solde'); t.hidden=false; s.textContent=' (solde : …)';
+  const r=await soldeTripo();
+  s.textContent=r.erreur?'':' (solde : '+Math.floor(r.solde).toLocaleString('fr-FR')+' crédits)';
+  if(r.erreur) dire(r.erreur,true);
+}
+async function lancerTripo(){
+  if(!src||tripoEnCours) return; tripoEnCours=true;
+  fen.querySelector('.ph-tripo').hidden=true;
+  const boutons=['#ph-tripo','#ph-ajouter'].map(x=>fen.querySelector(x)); boutons.forEach(b=>b.disabled=true);
+  dire('Envoi de la photo à Tripo…');
+  const fin=rogner(src), blob=await new Promise(ok=>fin.toBlob(ok,'image/png'));
+  const nom=fen.querySelector('#ph-nom').value.trim().slice(0,60)||'Objet 3D', L=largeurSaisie?lireCm('#ph-l'):null;
+  const r=await creer3D(blob,(p,st)=>dire(!p&&st!=='running'?'En file d’attente chez Tripo…':`Tripo crée le modèle 3D… ${p} %`));
+  tripoEnCours=false; boutons.forEach(b=>b.disabled=false);
+  if(r.erreur){ dire(r.erreur,true); return; }
+  ouvrirPhoto(false); ouvrirImport(true);
+  await importerModele(new File([r.blob],'tripo.glb',{type:'model/gltf-binary'}),{nom,largeur:L,
+    message:'Modèle 3D créé par Tripo'+(r.credits?` (${r.credits} crédits)`:'')+'. Vérifiez les dimensions (cm), puis « Ajouter ».'});
+}
 async function ajouter(){
   if(!src) return;
   const L=lireCm('#ph-l'), P=lireCm('#ph-p'), H=lireCm('#ph-h'); if(!L||!P||!H){ dire('Indiquez la largeur, la profondeur et la hauteur (en cm).',true); return; }
@@ -247,5 +283,5 @@ async function ajouter(){
 export function ouvrirPhoto(oui=true){
   if(oui&&!fen) construireFenetre();
   if(!fen) return; fen.hidden=!oui;
-  if(oui){ src=null; origine=null; pile=[]; outil=null; cadre=null; fondAvant=null; dire(''); fen.querySelector('#ph-nom').value=''; majBoutons(); setTimeout(()=>fen.querySelector('#ph-coller').focus()); }
+  if(oui){ src=null; origine=null; pile=[]; outil=null; cadre=null; fondAvant=null; largeurSaisie=false; dire(''); fen.querySelector('#ph-nom').value=''; fen.querySelector('.ph-tripo').hidden=true; majBoutons(); setTimeout(()=>fen.querySelector('#ph-coller').focus()); }
 }

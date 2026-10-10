@@ -106,6 +106,15 @@ async function prendre(f){
     majDims(); fen.querySelector('.g3-info').hidden=false; dire('Vérifiez les dimensions (en cm), puis « Ajouter ».');
   }catch(e){ charge=null; dire('Ce fichier .glb n’a pas pu être lu.',true); }
 }
+// modèle reçu d'ailleurs (Tripo, depuis le panneau photo) : lu comme un fichier choisi, nom et largeur repris (proportions
+// du modèle gardées)
+export async function importerModele(f,{nom,largeur,message}={}){
+  await prendre(f); if(!charge) return false;
+  if(nom) fen.querySelector('#g3-nom').value=nom;
+  if(largeur){ fen.querySelector('#g3-prop').checked=true; fen.querySelector('#g3-l').value=String(largeur); majDims('l'); }
+  if(message) dire(message);
+  return true;
+}
 async function ajouter(){
   if(!charge) return; const L=lireCm('#g3-l'), P=lireCm('#g3-p'), H=lireCm('#g3-h'); if(!L||!P||!H){ dire('Indiquez les trois dimensions (cm).',true); return; }
   const b=fen.querySelector('#g3-ajouter'); b.disabled=true;

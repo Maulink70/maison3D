@@ -392,9 +392,11 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
 .ph-source[hidden],.ph-edition[hidden],.g3-info[hidden]{display:none}
 .ph-outils{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
 .ph-outils .btn{padding:7px 4px;font-size:12.5px}
-.ph-recadrer,.ph-gomme,.ph-fond,.ph-ia{display:flex;flex-wrap:wrap;align-items:center;gap:8px;font-size:13px;background:var(--accent-soft);border-radius:10px;padding:8px 10px}
-.ph-recadrer[hidden],.ph-gomme[hidden],.ph-fond[hidden],.ph-ia[hidden]{display:none}
-.ph-ia{display:grid}
+.ph-recadrer,.ph-gomme,.ph-fond,.ph-ia,.ph-tripo{display:flex;flex-wrap:wrap;align-items:center;gap:8px;font-size:13px;background:var(--accent-soft);border-radius:10px;padding:8px 10px}
+.ph-recadrer[hidden],.ph-gomme[hidden],.ph-fond[hidden],.ph-ia[hidden],.ph-tripo[hidden]{display:none}
+.ph-tripo p{margin:0}
+.ph-final{display:grid;gap:8px}
+.ph-ia,.ph-tripo{display:grid}
 .ph-gomme input,.ph-fond input{accent-color:var(--accent);vertical-align:middle}
 .ph-zone{position:relative;display:grid;place-items:center;border-radius:10px;overflow:hidden;
   background:repeating-conic-gradient(#d8dcdf 0 25%,#f4f5f6 0 50%) 0 0/16px 16px}
