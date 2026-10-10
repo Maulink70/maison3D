@@ -317,3 +317,6 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
 .porte-carte input{font:inherit;font-size:16px;padding:9px 11px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink)}
 .porte-carte .btn{margin-top:10px;padding:10px 12px}
 .porte-carte .cx-erreur{margin:4px 0 0}
+/* « Tout décocher » : petite icône en haut à droite du menu Calques */
+#calques-menu #cq-raz{position:absolute;top:6px;right:6px;width:32px;height:32px;display:grid;padding:0;justify-content:center}
+#calques-menu #cq-raz .ico{width:18px;height:18px}

@@ -11,6 +11,7 @@ import {versEcran, niveauDuPlan, murs, empreinte, boucles} from './plan.js';
 import {yToitSud, ESC} from './rez_structure.js';
 import {isolement, isolementActif, dansIsolement} from './isoler.js';
 import {decalage} from './eclate.js';
+import {poserIcone, nommer} from './icones.js';
 
 const OPTIONS=[['noms','Noms des pièces'],['surfaces','Surfaces (au sol et libre)'],['hauteurs','Hauteurs sous plafond'],
   ['cPieces','Dimensions des pièces'],['cMurs','Longueur des murs'],['cMeuble','Meuble sélectionné et distances aux murs'],['cOuv','Portes et fenêtres'],['mesures','Mesures de la règle'],['murs','Murs transparents (maquette)']];
@@ -225,11 +226,14 @@ export function initCalques(){
   const pied=document.createElement('div'); pied.className='menu-pied';
   const re=document.createElement('button'); re.type='button'; re.id='cq-reafficher'; re.className='btn';
   re.onclick=()=>{ masquees.clear(); garder(); majMenu(); };
-  // tout décocher (demande de Mauro du 10 octobre 2026) : toutes les cases, lumière normale, vue éclatée à 0
-  const raz=document.createElement('button'); raz.type='button'; raz.id='cq-raz'; raz.className='btn'; raz.textContent='Tout décocher';
+  // tout décocher (demande de Mauro du 10 octobre 2026) : petite icône en haut à droite du menu ; toutes les cases,
+  // lumière normale, vue éclatée à 0
+  const raz=document.createElement('button'); raz.type='button'; raz.id='cq-raz'; raz.className='ib';
+  poserIcone(raz,'rotate-cw'); nommer(raz,'Tout décocher');
   raz.onclick=()=>{ for(const [k] of OPTIONS) etat[k]=false; etat.lumiere='normale'; etat.eclat=0; garder(); majMenu(); };
+  menu.prepend(raz);
   const aide=document.createElement('p'); aide.textContent='Touchez une cote pour la masquer.';
-  pied.append(raz,re,aide); menu.append(pied);
+  pied.append(re,aide); menu.append(pied);
   function majMenu(){ re.hidden=!masquees.size; re.textContent=`Réafficher les cotes masquées (${masquees.size})`; for(const [k] of OPTIONS) $('cq-'+k).checked=!!etat[k];
     for(const b of menu.querySelectorAll('[data-lumiere]')) b.setAttribute('aria-pressed',String((etat.lumiere||'normale')===b.dataset.lumiere));
     const ok=app.mode==='orbit'&&app.level==='all', r=$('cq-eclat'); r.disabled=!ok; r.value=String(+etat.eclat||0);
