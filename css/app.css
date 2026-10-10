@@ -209,12 +209,12 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
 .mesures-svg .en-cours .trait{stroke-dasharray:6 4}
 #app.mesure #mesures .mesure:not(.en-cours) .valeur{pointer-events:auto;cursor:pointer}
 #app.mesure #c,#app.mesure #plan{cursor:crosshair}
-#bandeau-mesure,#bandeau-isole{display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--mesure);border-radius:var(--r);padding:6px 6px 6px 12px;font-size:13px}
-#bandeau-isole{border-left-color:var(--accent)}
-#bandeau-isole .seg button{padding:5px 10px}
-#bandeau-mesure[hidden],#bandeau-isole[hidden]{display:none}
+#bandeau-mesure,#bandeau-isole,#bandeau-comparer{display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--mesure);border-radius:var(--r);padding:6px 6px 6px 12px;font-size:13px}
+#bandeau-isole,#bandeau-comparer{border-left-color:var(--accent)}
+#bandeau-isole .seg button,#bandeau-comparer .seg button{padding:5px 10px}
+#bandeau-mesure[hidden],#bandeau-isole[hidden],#bandeau-comparer[hidden]{display:none}
 #bandeau-mesure #mesure-texte,#isole-texte{flex:1 1 220px}
-#bandeau-mesure .actions,#bandeau-isole .actions{display:flex;gap:8px;margin-left:auto;align-items:center}
+#bandeau-mesure .actions,#bandeau-isole .actions,#bandeau-comparer .actions{display:flex;gap:8px;margin-left:auto;align-items:center}
 /* Impression (livraison 8) : panneau « Imprimer » et dessin hors écran pour le PDF, toujours aux couleurs du thème clair */
 #impr-menu{min-width:340px}
 .impr-ligne{display:grid;grid-template-columns:86px 1fr;align-items:center;gap:8px;padding:4px 10px}
@@ -265,3 +265,55 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
 .menu .case.eclat input{width:auto;height:auto;flex:1;min-width:0}
 .menu .case.eclat output{font-family:var(--font-data);font-size:11.5px;color:var(--muted);min-width:5.5em;text-align:right}
 .menu .case.eclat span{flex:none}
+/* Comptes, variantes (étape 3) : bouton de la variante avec son nom ; bouton du compte avec une pastille d'état
+   (verte : tout est enregistré, orange : envoi en attente, grise : hors connexion) */
+.ib.avec-texte{width:auto;grid-auto-flow:column;gap:7px;padding:0 12px 0 10px;color:var(--ink)}
+.ib .ib-texte{font-size:13px;font-weight:500;max-width:11em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#compte{position:relative}
+#compte.connecte{color:var(--accent)}
+#compte[data-etat="ok"]::after,#compte[data-etat="envoi"]::after,#compte[data-etat="hors"]::after{content:"";position:absolute;right:6px;top:6px;width:9px;height:9px;border-radius:50%;border:2px solid var(--panel);background:#3a9a5b}
+#compte[data-etat="envoi"]::after{background:#d69a2d}
+#compte[data-etat="hors"]::after{background:#8a949c}
+#compte-menu{min-width:290px}
+#variantes-menu{min-width:330px}
+.cx-form{display:grid;gap:5px;padding:4px 10px 8px}
+.cx-form label{font-size:12.5px;color:var(--muted);font-weight:500;margin-top:4px}
+.cx-form input{font:inherit;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);min-width:0}
+.cx-form .btn{margin-top:8px}
+.cx-erreur{color:var(--danger);font-size:12.5px;margin:4px 10px}
+.cx-erreur:empty{display:none}
+.cx-note,.cx-raison{font-size:12.5px;color:var(--muted);margin:2px 0}
+.cx-raison{color:var(--ink);font-weight:500;margin-bottom:4px}
+.cx-qui,.cx-etat{margin:4px 10px;font-size:13px}
+.cx-etat{color:var(--muted)}
+#variantes-menu .vue .aller-vue[aria-current]{font-weight:600;color:var(--accent)}
+#variantes-menu button[aria-current]::after{content:"affichée"}
+/* Comparaison de deux variantes : barre verticale à faire glisser, noms des variantes de part et d'autre */
+#comparer-barre{position:absolute;top:0;bottom:0;width:3px;margin-left:-1.5px;background:var(--accent);z-index:4;cursor:ew-resize;touch-action:none}
+#comparer-barre::before{content:"";position:absolute;inset:0 -14px}
+#comparer-barre .cmp-poignee{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:38px;height:38px;border-radius:50%;background:var(--accent);color:var(--panel);display:grid;place-items:center;font-size:18px;box-shadow:0 2px 10px rgba(0,0,0,.25)}
+#comparer-barre .cmp-g,#comparer-barre .cmp-d{position:absolute;bottom:22px;white-space:nowrap;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:4px 9px;font-size:12.5px;font-weight:600;pointer-events:none}
+#comparer-barre .cmp-g{right:14px} #comparer-barre .cmp-d{left:14px}
+#bandeau-comparer #comparer-texte{flex:1 1 220px}
+#cmp-fondu-box{display:flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;color:var(--muted)}
+#cmp-fondu-box input{width:140px;accent-color:var(--accent)}
+/* Historique partagé (étape 3) : « Tous » (tout le monde, tous les appareils) ou « Cet appareil » */
+.histo details>.seg{margin:6px 0 2px;width:max-content}
+.histo details>.seg button{padding:4px 10px;font-size:12.5px}
+#h-partage{display:grid;gap:2px;max-height:180px;overflow:auto;margin-top:6px}
+#h-partage[hidden],#h-liste[hidden]{display:none}
+#h-partage .vide{margin:2px 0;color:var(--muted);font-size:12.5px}
+.h-ligne.partagee{cursor:default}
+.h-ligne .h-qui{font-weight:600;color:var(--accent);flex:none}
+/* Écran d'entrée (étape 3) : connexion obligatoire */
+#porte{position:absolute;inset:0;z-index:50;display:grid;place-items:center;background:var(--bg);padding:16px}
+#porte[hidden]{display:none}
+.porte-carte{width:min(340px,100%);display:grid;gap:6px;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:22px 22px 18px;box-shadow:0 10px 30px rgba(0,0,0,.08)}
+.porte-titre{display:flex;flex-direction:column;line-height:1.25;margin-bottom:4px}
+.porte-titre strong{font-size:20px;font-weight:600}
+.porte-titre span{font-family:var(--font-data);font-size:11.5px;color:var(--muted)}
+.porte-texte{margin:0 0 6px;color:var(--muted);font-size:13.5px}
+.porte-carte label{font-size:12.5px;color:var(--muted);font-weight:500;margin-top:4px}
+.porte-carte input{font:inherit;font-size:16px;padding:9px 11px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink)}
+.porte-carte .btn{margin-top:10px;padding:10px 12px}
+.porte-carte .cx-erreur{margin:4px 0 0}

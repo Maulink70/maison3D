@@ -27,11 +27,17 @@
   <div id="bandeaux">
   <div id="bandeau-piece" role="status" hidden></div>
   <div id="bandeau-isole" hidden><span id="isole-texte" role="status"></span><span class="actions"><span class="seg" role="group" aria-label="Le reste de l’appartement"><button id="isole-pale" aria-pressed="true">Pâle</button><button id="isole-masque" aria-pressed="false">Masqué</button></span><button class="btn primary" id="isole-fin">Tout afficher</button></span></div>
+  <div id="bandeau-comparer" hidden><span id="comparer-texte" role="status"></span><span class="actions"><span class="seg" role="group" aria-label="Façon de comparer"><button id="cmp-barre" aria-pressed="true">Barre</button><button id="cmp-fondu" aria-pressed="false">Fondu</button></span><label id="cmp-fondu-box" hidden><span class="visuel">A</span><input type="range" id="cmp-t" min="0" max="100" value="50" aria-label="Fondu entre les deux variantes"><span class="visuel">B</span></label><button class="btn primary" id="cmp-fin">Terminer</button></span></div>
   <div id="bandeau-mesure" hidden><span id="mesure-texte" role="status"></span><span class="actions"><button class="btn" id="mesure-effacer" hidden>Tout effacer</button><button class="btn primary" id="mesure-terminer">Terminer</button></span></div>
   </div>
 
+  <div id="comparer-barre" hidden aria-label="Barre de comparaison : faites-la glisser"><span class="cmp-g"></span><span class="cmp-poignee" aria-hidden="true">⟷</span><span class="cmp-d"></span></div>
   <header class="bar">
     <div class="brand"><strong>Appart. Diolly</strong><span>2 niveaux · 1:1</span></div>
+    <div class="aller">
+      <button class="ib seul avec-texte" id="variantes" data-icone="files" aria-label="Variante affichée : Actuel" aria-haspopup="true" aria-expanded="false" aria-controls="variantes-menu"><span class="ib-texte">Actuel</span></button>
+      <div id="variantes-menu" class="menu" role="dialog" aria-label="Variantes" hidden></div>
+    </div>
     <!-- boutons à icône (icones.js) : le nom de chacun est dans aria-label, montré en infobulle -->
     <div class="seg" role="group" aria-label="Ce que l’on fait">
       <button class="ib" id="mo-visite" data-icone="eye" aria-label="Visite (rien n’est modifiable)" aria-pressed="true"></button>
@@ -78,6 +84,10 @@
     </div>
     <button class="ib seul" id="toggle-panel" data-icone="armchair" aria-label="Meubles (liste et outils)" aria-expanded="true" hidden></button>
     <button class="ib seul primary" id="installer" data-icone="download" aria-label="Installer l’application" hidden></button>
+    <div class="aller">
+      <button class="ib seul" id="compte" data-icone="circle-user-round" aria-label="Se connecter" aria-haspopup="true" aria-expanded="false" aria-controls="compte-menu"></button>
+      <div id="compte-menu" class="menu" role="dialog" aria-label="Compte" hidden></div>
+    </div>
   </header>
 
   <aside id="panel" aria-label="Mobilier" hidden>
@@ -132,6 +142,19 @@
   <div id="hint"></div>
   <div id="charge" role="status" hidden>Meubles en cours de chargement <span class="num" id="charge-pct">0 %</span></div>
   <div id="loading"><div><span>Chargement de la maquette…</span><span class="meter"><i id="bar"></i></span><span class="num" id="pct">0 %</span></div></div>
+  <!-- entrée (étape 3, choix de Mauro du 10 octobre 2026) : sans compte, seulement cet écran ; la maquette ne se charge qu'une fois connecté -->
+  <div id="porte" hidden>
+    <form id="porte-form" class="porte-carte" autocomplete="on">
+      <div class="porte-titre"><strong>Appart. Diolly</strong><span>Maison3D</span></div>
+      <p class="porte-texte">Connectez-vous pour entrer.</p>
+      <label for="porte-nom">Nom</label>
+      <input id="porte-nom" name="username" autocomplete="username" autocapitalize="none" spellcheck="false" required>
+      <label for="porte-mdp">Mot de passe</label>
+      <input id="porte-mdp" name="password" type="password" autocomplete="current-password" required>
+      <button class="btn primary" type="submit" id="porte-ok">Entrer</button>
+      <p class="cx-erreur" id="porte-erreur" role="alert"></p>
+    </form>
+  </div>
 </div>
 
 <script type="importmap">

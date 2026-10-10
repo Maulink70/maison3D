@@ -22,8 +22,13 @@ import {majLumiere} from './lumiere.js';
 import {majLampes} from './lampes.js';
 import {eclatActif, rendreEclate, suivreEclat} from './eclate.js';
 import {initIcones} from './icones.js';
+import {initCompte, initPorte} from './compte.js';
+import {initSynchro, demarrerSynchro} from './synchro.js';
+import {initVariantes} from './variantes.js';
+import {initComparer, comparaisonActive, rendreComparaison} from './comparer.js';
+import {initPartage} from './partage.js';
 
-initIcones(); initVues(); initVisite(); initEdition(); initSauvegarde(); initAller(); initPlan(); initCalques(); initMesure(); initImpression(); initIsoler(); initCameras(); initHistorique(); initAlertes();
+initIcones(); initCompte(); initSynchro(); initVariantes(); initComparer(); initVues(); initVisite(); initEdition(); initSauvegarde(); initAller(); initPlan(); initCalques(); initMesure(); initImpression(); initIsoler(); initCameras(); initHistorique(); initPartage(); initAlertes();
 
 // Cercle posé au sol pendant un appui long (point de téléportation)
 const marque=new THREE.Mesh(new THREE.RingGeometry(0.16,0.25,40),new THREE.MeshBasicMaterial({color:new THREE.Color(css('--accent')||'#2c5a86'),transparent:true,opacity:0.9,depthTest:false,side:THREE.DoubleSide}));
@@ -64,7 +69,7 @@ canvas.addEventListener('pointerup',e=>{
   if(!pd||pd.id!==e.pointerId) return;
   const dt=performance.now()-pd.t;
   if(pd.tele) teleporter(pd.tele);
-  else if(!pd.drag&&!pd.multi&&dt<600&&!app.gizmoDrag&&app.mobilierPret&&!eclatActif()){ if(app.mesure) mesureToucher(e.clientX,e.clientY); else toucher(e); }   // vue éclatée : rien à toucher
+  else if(!pd.drag&&!pd.multi&&dt<600&&!app.gizmoDrag&&app.mobilierPret&&!eclatActif()&&!comparaisonActive()){ if(app.mesure) mesureToucher(e.clientX,e.clientY); else toucher(e); }   // vue éclatée : rien à toucher
   fin();
 });
 canvas.addEventListener('pointercancel',fin);
@@ -77,16 +82,19 @@ addEventListener('beforeinstallprompt',e=>{ e.preventDefault(); proposition=e; $
 addEventListener('appinstalled',()=>{ proposition=null; $('installer').hidden=true; });
 $('installer').onclick=async()=>{ if(!proposition) return; proposition.prompt(); await proposition.userChoice.catch(()=>{}); proposition=null; $('installer').hidden=true; };
 
-chargerModele({
+// on n'entre (et la maquette ne se charge) qu'une fois connecté (écran d'entrée, compte.js)
+initPorte(()=>chargerModele({
   structurePrete:()=>demarrerVues(),
-  mobilierPret:()=>{ restore(); buildList(); demarrerHistorique(); }
-});
+  mobilierPret:()=>{ restore(); buildList(); demarrerHistorique(); demarrerSynchro(); }
+}));
 
 const clock=new THREE.Clock(), barre=document.querySelector('.bar');
-// rendu de l'image : pièce isolée (plusieurs passes) ou rendu simple
+// rendu de l'image : pièce isolée (plusieurs passes), vue éclatée ou rendu simple ; comparaison de deux variantes
+// (barre ou fondu) : ce rendu est fait pour chacune
+function rendreBase(cam){ if(isolementActif()) rendreIsole(cam); else if(eclatActif()) rendreEclate(cam); else app.renderer.render(app.scene,cam); }
 function rendre(){
   const cam=app.mode==='plan'?camPlan:app.camera;
-  if(isolementActif()) rendreIsole(cam); else if(eclatActif()) rendreEclate(cam); else app.renderer.render(app.scene,cam);
+  if(comparaisonActive()) rendreComparaison(cam,rendreBase); else rendreBase(cam);
 }
 app.renderer.setAnimationLoop(()=>{
   const dt=Math.min(clock.getDelta(),0.1);

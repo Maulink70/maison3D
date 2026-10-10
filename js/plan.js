@@ -193,7 +193,7 @@ function construire(){
 function poigneeEn(it){ const g=it.g, L=Math.max(it.size.x,it.size.z)/2+30/vue.s; return [g.position.x-Math.sin(g.rotation.y)*L, g.position.z-Math.cos(g.rotation.y)*L]; }
 function majPoignee(){
   const q=contenu?.poignee, it=app.selected; if(!q) return;
-  const voir=app.edition&&!app.mesure&&it&&!it.hidden&&contenu.meubles.has(it);
+  const voir=app.edition&&!app.mesure&&!app.comparaison&&it&&!it.hidden&&contenu.meubles.has(it);
   q.g.toggleAttribute('hidden',!voir); if(!voir) return;
   const [x,z]=poigneeEn(it), g=it.g;
   q.tige.setAttribute('d',`M${f3(g.position.x)} ${f3(g.position.z)}L${f3(x)} ${f3(z)}`);
@@ -284,7 +284,7 @@ export function majPlan(dt){
   majVue();
   if(!contenu||contenu.niveau!==niveau||(!contenu.avecMobilier&&app.mobilierPret)) construire(); else majMeubles();
   majPoignee();
-  svg().classList.toggle('visite',!app.edition);
+  svg().classList.toggle('visite',!app.edition||!!app.comparaison);   // comparaison de variantes : rien à déplacer
 }
 
 // ---------- gestes : glisser, pincer, molette ; en Éditer, attraper un meuble ----------
@@ -301,8 +301,8 @@ export function initPlan(){
     s.setPointerCapture(e.pointerId); doigts.set(e.pointerId,{x:e.clientX,y:e.clientY}); anim=null;
     if(doigts.size===2){ if(geste?.type==='meuble'&&geste.bouge) save(); geste={type:'pince',d:ecart(),m:milieu(),s:vue.s}; return; }
     if(doigts.size>2) return;
-    const cibleMeuble=app.edition&&!app.mesure&&e.target.closest?.('[data-item]');
-    if(app.edition&&!app.mesure&&app.selected&&e.target.closest?.('.rotation')) geste={type:'rotation',it:app.selected,bouge:false};
+    const cibleMeuble=app.edition&&!app.mesure&&!app.comparaison&&e.target.closest?.('[data-item]');
+    if(app.edition&&!app.mesure&&!app.comparaison&&app.selected&&e.target.closest?.('.rotation')) geste={type:'rotation',it:app.selected,bouge:false};
     else if(cibleMeuble){ const it=app.items[cibleMeuble.dataset.item]; if(app.selected!==it) select(it.name);
       geste={type:'meuble',it,x:e.clientX,y:e.clientY,gx:it.g.position.x,gz:it.g.position.z,bouge:false}; }
     else geste={type:'pan',x:e.clientX,y:e.clientY,cx:vue.cx,cz:vue.cz,bouge:false};

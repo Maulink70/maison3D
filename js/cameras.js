@@ -16,6 +16,9 @@ let vues=[], aSupprimer=null, enEdition=null;
 function garder(){ try{ localStorage.setItem(CLE,JSON.stringify(vues)); }catch{} }
 function relire(){ try{ vues=(JSON.parse(localStorage.getItem(CLE)||'[]')||[]).filter(v=>v&&v.nom&&v.mode); }catch{ vues=[]; } }
 export const lesVues=()=>vues;
+// partage (étape 3) : chaque changement est annoncé (synchro.js l'envoie à n8n) ; la liste du serveur remplace la locale
+const annoncer=(op,v)=>dispatchEvent(new CustomEvent('vues-change',{detail:{op,vue:v}}));
+export function remplacerVues(liste){ vues=liste.filter(v=>v&&v.nom&&v.mode); garder(); if(!$('vues-menu').hidden) majListe(); }
 
 const NIV={all:'tout',rez:'rez',etage:'étage'};
 function description(v){
@@ -34,7 +37,7 @@ export function enregistrer(nom){
   if(app.mode==='walk') v.walk=etatVisite();
   else if(app.mode==='plan') v.plan={...vuePlan(),niveau:niveauDuPlan(),style:styleDuPlan};
   else v.orbit={p:app.camera.position.toArray(),t:app.orbit.target.toArray()};
-  vues.push(v); garder(); majListe(); return v;
+  vues.push(v); garder(); majListe(); annoncer('enregistrer',v); return v;
 }
 export function revenir(id){
   const v=vues.find(q=>q.id===id); if(!v) return;
@@ -52,8 +55,8 @@ export function revenir(id){
     animerVers(v.orbit.p,v.orbit.t);   // après le changement de niveau, qui arrête les animations en cours
   }
 }
-function renommer(id,nom){ const v=vues.find(q=>q.id===id); if(v&&nom.trim()){ v.nom=nom.trim(); garder(); } enEdition=null; majListe(); }
-function supprimer(id){ vues=vues.filter(q=>q.id!==id); aSupprimer=null; garder(); majListe(); }
+function renommer(id,nom){ const v=vues.find(q=>q.id===id); if(v&&nom.trim()){ v.nom=nom.trim(); garder(); annoncer('enregistrer',v); } enEdition=null; majListe(); }
+function supprimer(id){ const v=vues.find(q=>q.id===id); vues=vues.filter(q=>q.id!==id); aSupprimer=null; garder(); majListe(); if(v) annoncer('supprimer',v); }
 
 // ---------- menu ----------
 const el=(nom,attrs={},texte)=>{ const n=document.createElement(nom); for(const [k,v] of Object.entries(attrs)) n.setAttribute(k,v); if(texte!==undefined) n.textContent=texte; return n; };

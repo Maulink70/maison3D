@@ -8,6 +8,8 @@ import {select, openSheet, petitEcran} from './edition.js';
 import {toutOuvrir, toutesFenetres, portesAuto} from './portes.js';
 import {creerCiel} from './ciel.js';
 import {nommer, poserIcone} from './icones.js';
+import {connecte} from './api.js';
+import {demanderConnexion} from './compte.js';
 import {entrerPlan, sortirPlan, niveauPlan, stylePlan, style as styleDuPlan} from './plan.js';
 
 const UI='maison3d-ui';
@@ -24,7 +26,10 @@ const AIDE={
 };
 function majAide(){ $('hint').textContent=AIDE[(app.edition?'e':'v')+(app.mode==='walk'?'w':app.mode==='plan'?'p':'o')]; }
 
-export function setEdition(on){
+// Éditer demande un compte (étape 3) : sans compte, on reste en Visite et le menu de connexion s'ouvre (demande=false
+// au chargement : pas de menu ouvert d'office)
+export function setEdition(on,demande=true){
+  if(on&&!connecte()){ if(demande) demanderConnexion('Connectez-vous pour modifier l’appartement.',()=>setEdition(true)); on=false; }
   app.edition=on; $('mo-visite').setAttribute('aria-pressed',String(!on)); $('mo-editer').setAttribute('aria-pressed',String(on));
   $('toggle-panel').hidden=!on;
   if(!on){ select(null); openSheet(false); } else openSheet(!petitEcran());
@@ -77,6 +82,7 @@ function majPortesBouton(){ $('portes').setAttribute('aria-pressed',String(app.t
 
 export function initVues(){
   $('mo-visite').onclick=()=>setEdition(false); $('mo-editer').onclick=()=>setEdition(true);
+  addEventListener('compte',()=>{ if(!connecte()&&app.edition) setEdition(false); });
   $('m-orbit').onclick=()=>setMode('orbit'); $('m-walk').onclick=()=>{ if(app.level==='all') app.level='rez'; setMode('walk'); };
   $('m-plan').onclick=()=>setMode('plan');
   $('ps-archi').onclick=()=>{ stylePlan('archi'); memoriser(); }; $('ps-reel').onclick=()=>{ stylePlan('reel'); memoriser(); };
@@ -89,7 +95,7 @@ export function initVues(){
 }
 // Au chargement : reprend les derniers choix (Visite et Maquette la première fois)
 export function demarrerVues(){
-  const p=prefs(); majVitesse(p.vitesse); stylePlan(p.plan); setEdition(!!p.edition);
+  const p=prefs(); majVitesse(p.vitesse); stylePlan(p.plan); setEdition(!!p.edition,false);
   if(p.niveau==='rez'||p.niveau==='etage') app.level=p.niveau;
   setMode(p.vue==='walk'||p.vue==='plan'?p.vue:'orbit');
 }

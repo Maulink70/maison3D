@@ -4,6 +4,9 @@
 // appuyé 0,45 s (le nom s'affiche et le bouton n'agit pas au relâcher). Dessins Lucide 0.460.0 (licence ISC), recopiés
 // ici : aucun fichier à télécharger. Niveaux Tout / Rez / Étage : maison à deux étages, le niveau affiché rempli.
 const LUCIDE={
+  'circle-user-round':'<path d="M18 20a6 6 0 0 0-12 0"/><circle cx="12" cy="10" r="4"/><circle cx="12" cy="12" r="10"/>',
+  'files':'<path d="M20 7h-3a2 2 0 0 1-2-2V2"/><path d="M9 18a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h7l4 4v10a2 2 0 0 1-2 2Z"/><path d="M3 7.6v12.8A1.6 1.6 0 0 0 4.6 22h9.8"/>',
+  'git-compare':'<circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M13 6h3a2 2 0 0 1 2 2v7"/><path d="M11 18H8a2 2 0 0 1-2-2V9"/>',
   'armchair':'<path d="M19 9V6a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v3"/><path d="M3 16a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-5a2 2 0 0 0-4 0v1.5a.5.5 0 0 1-.5.5h-9a.5.5 0 0 1-.5-.5V11a2 2 0 0 0-4 0z"/><path d="M5 18v2"/><path d="M19 18v2"/>',
   'bookmark':'<path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/>',
   'box':'<path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/>',
@@ -31,7 +34,7 @@ const svg=nom=>`<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="current
 
 let bulle=null, cible=null, attente=null, minuterie=0, avaler=null, finAvaler=0, vueA=0;
 // change l'icône d'un bouton (porte ouverte / fermée…)
-export function poserIcone(b,nom){ if(b.dataset.icone===nom&&b.firstElementChild) return; b.dataset.icone=nom; b.innerHTML=svg(nom); }
+export function poserIcone(b,nom){ if(b.dataset.icone===nom&&b.firstElementChild) return; b.dataset.icone=nom; const s=b.querySelector('svg.ico'); if(s) s.outerHTML=svg(nom); else b.insertAdjacentHTML('afterbegin',svg(nom)); }
 // change le nom d'un bouton (infobulle et lecteurs d'écran), aussi pendant que l'infobulle est affichée
 export function nommer(b,nom){ b.setAttribute('aria-label',nom); if(cible===b&&bulle&&!bulle.hidden) bulle.textContent=nom; }
 
@@ -46,7 +49,7 @@ function cacher(){ clearTimeout(minuterie); attente=null; if(bulle&&!bulle.hidde
 const bouton=e=>e.target instanceof Element?e.target.closest('button.ib[aria-label]'):null;
 
 export function initIcones(){
-  for(const b of document.querySelectorAll('button[data-icone]')) b.innerHTML=svg(b.dataset.icone);
+  for(const b of document.querySelectorAll('button[data-icone]')) b.insertAdjacentHTML('afterbegin',svg(b.dataset.icone));
   bulle=document.createElement('div'); bulle.id='infobulle'; bulle.setAttribute('role','tooltip'); bulle.hidden=true; document.body.append(bulle);
   // souris : survol
   addEventListener('pointerover',e=>{ if(e.pointerType!=='mouse') return; const b=bouton(e); if(!b||b===cible||b===attente) return;

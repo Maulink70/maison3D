@@ -18,6 +18,9 @@ const niveauDuPoint=p=>p[1]>ETAGE_FLOOR-0.5?'etage':'rez';
 function garder(){ try{ localStorage.setItem(CLE,JSON.stringify(mesures)); }catch{} }
 function relire(){ try{ mesures=(JSON.parse(localStorage.getItem(CLE)||'[]')||[]).filter(q=>q.a&&q.b); }catch{ mesures=[]; } }
 export function lesMesures(){ return mesures; }
+// partage (étape 3) : chaque changement est annoncé (synchro.js) ; la liste du serveur remplace la locale
+const annoncer=(op,q)=>dispatchEvent(new CustomEvent('mesures-change',{detail:{op,mesure:q}}));
+export function remplacerMesures(liste){ mesures=liste.filter(q=>q&&q.a&&q.b); garder(); majBandeau(); }
 
 // ---------- projection selon la vue ----------
 const v3=new THREE.Vector3(), w3=new THREE.Vector3();
@@ -112,8 +115,8 @@ export function mesureToucher(cx,cy){
   if(!premier){ premier=q.p; survol=null; majBandeau(); return; }
   const a=premier, b=q.p; premier=null; survol=null;
   if(Math.hypot(b[0]-a[0],b[1]-a[1],b[2]-a[2])<0.005){ majBandeau(); return; }
-  mesures.push({a:a.map(v=>+v.toFixed(4)),b:b.map(v=>+v.toFixed(4)),t:Math.max(Date.now(),(mesures.at(-1)?.t||0)+1)});   // t sert d'identifiant
-  garder(); majBandeau();
+  const nouvelle={a:a.map(v=>+v.toFixed(4)),b:b.map(v=>+v.toFixed(4)),t:Math.max(Date.now(),(mesures.at(-1)?.t||0)+1)};   // t sert d'identifiant
+  mesures.push(nouvelle); garder(); majBandeau(); annoncer('ajouter',nouvelle);
 }
 function activer(oui){
   app.mesure=oui; premier=null; survol=null; $('mesurer').setAttribute('aria-pressed',String(oui)); $('app').classList.toggle('mesure',oui); majBandeau();
@@ -171,11 +174,11 @@ export function initMesure(){
   relire();
   $('mesurer').onclick=()=>activer(!app.mesure);
   $('mesure-terminer').onclick=()=>activer(false);
-  $('mesure-effacer').onclick=()=>{ mesures=[]; premier=null; garder(); majBandeau(); };
+  $('mesure-effacer').onclick=()=>{ mesures=[]; premier=null; garder(); majBandeau(); annoncer('toutEffacer'); };
   addEventListener('keydown',e=>{ if(app.mesure&&e.key==='Escape'){ if(premier){ premier=null; survol=null; majBandeau(); } else activer(false); } });
   // toucher la valeur d'une mesure l'efface (sans déplacer la vue)
   $('mesures').addEventListener('pointerdown',e=>{ const t=e.target.closest?.('[data-mesure]'); if(!t) return;
-    e.preventDefault(); e.stopPropagation(); mesures=mesures.filter(q=>String(q.t)!==t.dataset.mesure); garder(); majBandeau(); });
+    e.preventDefault(); e.stopPropagation(); const q=mesures.find(q=>String(q.t)===t.dataset.mesure); mesures=mesures.filter(q=>String(q.t)!==t.dataset.mesure); garder(); majBandeau(); if(q) annoncer('supprimer',q); });
   // sur le plan, un toucher bref (sans glisser) pose un point ; la vue 3D passe par main.js (mesureToucher)
   // (un deuxième doigt, pour pincer, annule le toucher)
   let pd=null; const appuis=new Set();

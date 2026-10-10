@@ -10,6 +10,7 @@ import {paint, setHidden, majAngle} from './edition.js';
 import {save} from './sauvegarde.js';
 
 const CLE='maison3d-historique', MAX=200, FUSION=1500;
+let cle=CLE;   // un journal par variante (étape 3) : clé maison3d-historique-<id de la variante>
 let etat=null, journal=[], pos=0, enCours=false;   // journal[0..pos) : fait ; journal[pos..] : annulé, rétablissable
 const lire=it=>({x:+it.g.position.x.toFixed(4),z:+it.g.position.z.toFixed(4),r:+it.g.rotation.y.toFixed(5),h:!!it.hidden,c:it.color||null});
 const photo=()=>{ const s={}; for(const it of Object.values(app.items)) s[it.name]=lire(it); return s; };
@@ -26,13 +27,14 @@ function decrire(ch){
   if(a.c!==b.c) l.push(b.c?'couleur '+b.c.toUpperCase():'couleur d’origine');
   return nom+' : '+(l.join(', ')||'modifié');
 }
-function garder(){ try{ localStorage.setItem(CLE,JSON.stringify({journal,pos})); }catch{} }
-function relire(){ try{ const d=JSON.parse(localStorage.getItem(CLE)||'{}'); if(Array.isArray(d.journal)){ journal=d.journal; pos=Math.min(d.pos??journal.length,journal.length); } }catch{} }
+function garder(){ try{ localStorage.setItem(cle,JSON.stringify({journal,pos})); }catch{} }
+function relire(){ journal=[]; pos=0; try{ const d=JSON.parse(localStorage.getItem(cle)||'{}'); if(Array.isArray(d.journal)){ journal=d.journal; pos=Math.min(d.pos??journal.length,journal.length); } }catch{} }
 
-// à chaque enregistrement : ce qui a changé depuis le précédent
-function noter(){
+// à chaque enregistrement : ce qui a changé depuis le précédent (sauf un changement venu d'ailleurs : autre appareil,
+// autre variante, qui n'est pas une action de cette personne ici)
+function noter(e){
   if(!app.mobilierPret) return;
-  const now=photo(); if(enCours||!etat){ etat=now; return; }
+  const now=photo(); if(enCours||!etat||e?.detail?.distant){ etat=now; return; }
   const ch=[]; for(const [n,a] of Object.entries(etat)){ const b=now[n]; if(b&&!egal(a,b)) ch.push({n,avant:a,apres:b}); }
   etat=now; if(!ch.length) return;
   journal.length=pos;   // un nouveau changement efface ce qui avait été annulé
@@ -54,6 +56,8 @@ export function annuler(){ if(pos<=0) return false; appliquer(journal[--pos],'av
 export function retablir(){ if(pos>=journal.length) return false; appliquer(journal[pos++],'apres'); garder(); majPanneau(); return true; }
 function allerA(k){ while(pos>k+1) annuler(); while(pos<k+1) retablir(); }
 export const leJournal=()=>({journal,pos});
+// changement de variante : on passe à son journal (annuler ne doit pas toucher une autre variante)
+export function changerJournal(id){ const c=id?CLE+'-'+id:CLE; if(c===cle) return; cle=c; relire(); etat=app.mobilierPret?photo():null; majPanneau(); }
 
 // ---------- panneau ----------
 const heure=t=>new Date(t).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
