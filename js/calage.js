@@ -12,6 +12,7 @@ import {PIECES} from './pieces.js';
 import {imagePhoto, enregistrerPhoto} from './galerie.js';
 import {select, openSheet, viser} from './edition.js';
 import {basculerPorte} from './portes.js';
+import {preparerRendu} from './rendu.js';
 
 const FOV0=68;   // angle de vue horizontal d'un téléphone (objectif « 1x ») au départ d'un calage
 const DEG=Math.PI/180;
@@ -32,7 +33,7 @@ function majBandeau(){
   const caler=actif.mode==='caler';
   $('bandeau-calage').hidden=false; $('calage-fins').hidden=!caler;
   $('calage-valider').hidden=!caler; $('calage-fermer').textContent=caler?'Annuler':'Fermer';
-  $('calage-recaler').hidden=caler||!app.edition;
+  $('calage-recaler').hidden=caler||!app.edition; $('calage-rendu').hidden=caler||!app.edition||!actif.photo.calage;
   $('calage-aide').hidden=!caler; majTexte();
 }
 
@@ -49,7 +50,7 @@ async function demarrer(p,mode){
   else if(piece) allerA(piece.arrivee[0],piece.arrivee[1],piece.niveau,piece.vers[0],piece.vers[1],0);
   const img=$('calage-img'); img.src=p.vignette||''; $('calage-cadre').hidden=false;
   imagePhoto(p).then(u=>{ if(actif?.photo===p&&u) img.src=u; });
-  $('calage-opacite').value=String(mode==='voir'?0:50); majOpacite();
+  $('calage-opacite').value='50'; majOpacite();
   majBandeau();
 }
 export const caler=p=>demarrer(p,'caler');
@@ -134,6 +135,7 @@ export function initCalage(){
   $('calage-opacite').oninput=majOpacite;
   $('calage-valider').onclick=valider;
   $('calage-fermer').onclick=()=>arreter(true);
+  $('calage-rendu').onclick=()=>{ if(actif) preparerRendu(actif.photo); };
   $('calage-recaler').onclick=()=>{ if(actif){ actif.mode='caler'; $('calage-opacite').value='50'; majOpacite(); majBandeau(); } };
   addEventListener('keydown',e=>{ if(actif&&e.key==='Escape'&&!/INPUT|SELECT|TEXTAREA/.test(e.target.tagName)) arreter(true); });
   addEventListener('edition',()=>{ if(actif) majBandeau(); });

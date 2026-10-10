@@ -204,7 +204,7 @@ async function pdfVue(o){
 
 // ---------- fiche du meuble sélectionné ----------
 // le meuble seul, vu de trois quarts depuis le milieu de sa pièce (il y fait face), sur fond blanc, recadré
-function imageMeuble(it){
+export function imageMeuble(it){
   const {renderer,scene,canvas}=app, L=29, avant=[], caches=[];
   const marquer=o=>{ avant.push([o,o.layers.mask]); o.layers.enable(L); };
   it.g.traverse(o=>{ marquer(o); if((o.name?.endsWith('__couvercle')||o.name==='alerte')&&o.visible){ caches.push(o); o.visible=false; } });   // ni couvercle ni voile rouge

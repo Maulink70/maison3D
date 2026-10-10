@@ -11,6 +11,7 @@ import {ajouterObjet} from './objets.js';
 import {nettoyerPhoto} from './ia.js';
 import {soldeTripo, creer3D} from './tripo.js';
 import {ouvrirImport, importerModele} from './import3d.js';
+import {lireProduit} from './boutiques.js';
 
 const el=(nom,attrs={},texte)=>{ const n=document.createElement(nom); for(const [k,v] of Object.entries(attrs)) n.setAttribute(k,v); if(texte!==undefined) n.textContent=texte; return n; };
 const MAXI=1024;
@@ -151,6 +152,7 @@ function construireFenetre(){
       <div class="ph-boutons"><button type="button" class="btn primary" id="ph-coller">Coller l’image</button>
         <label class="btn">Choisir une photo<input type="file" accept="image/*" id="ph-fichier" hidden></label></div>
       <p class="mat-aide">Sur PC, Ctrl+V marche aussi. Vous pouvez aussi glisser l’image dans cette fenêtre.</p>
+      <div class="ph-lien"><input type="url" id="ph-lien" placeholder="ou collez le lien de la page du produit (https://…)" aria-label="Lien du produit"><button type="button" class="btn" id="ph-lien-lire">Lire le lien</button></div>
     </div>
     <div class="ph-edition" hidden>
       <div class="ph-outils" role="group" aria-label="Retouches (sur demande)">
@@ -188,6 +190,12 @@ function construireFenetre(){
   fen.addEventListener('keydown',e=>{ e.stopPropagation(); if(e.key==='Escape') ouvrirPhoto(false); });
   fen.addEventListener('pointerdown',e=>{ if(e.target===fen) ouvrirPhoto(false); });
   q('#ph-coller').onclick=coller;
+  // lien d'un produit (étape 5) : n8n lit la page (photo, nom, dimensions si la page les donne)
+  const lien=async()=>{ const u=q('#ph-lien').value.trim(); if(!/^https?:\/\//i.test(u)){ dire('Collez le lien complet de la page du produit (https://…).',true); return; }
+    dire('Lecture de la page du produit…'); q('#ph-lien-lire').disabled=true; const r=await lireProduit(u); q('#ph-lien-lire').disabled=false;
+    if(!r.ok||!r.image){ dire((r.erreur||'Page illisible')+(r.nom?` (« ${r.nom} »)`:''),true); return; }
+    q('#ph-lien').value=''; await ouvrirPhotoAvec(await (await fetch(r.image)).blob(),{nom:r.nom,L:r.dims?.L,P:r.dims?.P,H:r.dims?.H},true); };
+  q('#ph-lien-lire').onclick=lien; q('#ph-lien').addEventListener('keydown',e=>{ e.stopPropagation(); if(e.key==='Enter') lien(); });
   q('#ph-fichier').onchange=e=>{ const f=e.target.files?.[0]; if(f) prendre(f); e.target.value=''; };
   fen.addEventListener('dragover',e=>e.preventDefault());
   fen.addEventListener('drop',e=>{ e.preventDefault(); const f=[...(e.dataTransfer?.files||[])].find(x=>/^image\//.test(x.type)); if(f) prendre(f); else dire('Glissez un fichier image (enregistrez d’abord l’image depuis le site si besoin).',true); });
@@ -283,6 +291,16 @@ async function ajouter(){
   const it=ajouterObjet({t:'photo',f:'photo',p:{L:+(L/100).toFixed(4),P:+(P/100).toFixed(4),H:+(H/100).toFixed(4)},img:{id:r.id,n:r.n,type:blob.type,w:fin.width,h:fin.height},k,c,n:nom});
   if(!it){ dire('L’objet n’a pas pu être ajouté.',true); return; }
   ouvrirPhoto(false);
+}
+// ouvre le panneau avec une image déjà choisie (mode Image « Créer en 3D », lien d'un produit, partage Android) ;
+// dimensions en cm si on les connaît (la hauteur n'est plus déduite des proportions de la photo)
+export async function ouvrirPhotoAvec(blob,{nom,L,P,H}={},garder=false){
+  if(!garder) ouvrirPhoto(true); else if(!fen||fen.hidden) ouvrirPhoto(true);
+  await prendre(blob); if(!src) return;
+  if(nom) fen.querySelector('#ph-nom').value=String(nom).slice(0,60);
+  if(L){ fen.querySelector('#ph-l').value=String(L); largeurSaisie=true; } if(P) fen.querySelector('#ph-p').value=String(P);
+  if(H){ fen.querySelector('#ph-ratio').checked=false; fen.querySelector('#ph-h').value=String(H); } else majHauteur();
+  dire(L&&P&&H?'Dimensions reprises de la page du produit : vérifiez-les, puis « Créer en 3D (Tripo) » ou « Ajouter en photo ».':'Complétez les dimensions (cm), puis « Créer en 3D (Tripo) » ou « Ajouter en photo ».');
 }
 export function ouvrirPhoto(oui=true){
   if(oui&&!fen) construireFenetre();

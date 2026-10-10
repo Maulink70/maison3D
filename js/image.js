@@ -122,21 +122,22 @@ async function lien(){
 async function composer(){
   const b=mi.base.image, base=await charger(mi.url), c=el('canvas'); c.width=b.w||base.width; c.height=b.h||base.height;
   const g=c.getContext('2d'); g.drawImage(base,0,0,c.width,c.height);
-  g.fillStyle='rgba(255,31,31,0.5)'; for(const z of mi.zones) g.fillRect(z.x*c.width,z.y*c.height,z.lw*c.width,z.lh*c.height);
+  g.fillStyle='rgba(255,31,31,0.72)'; for(const z of mi.zones) g.fillRect(z.x*c.width,z.y*c.height,z.lw*c.width,z.lh*c.height);
   for(const o of mi.objets){ const i=await charger(o.img), rw=o.lw*c.width, rh=o.lh*c.height, k=Math.min(rw/i.width,rh/i.height), w=i.width*k, h=i.height*k;
     g.drawImage(i,o.x*c.width+(rw-w)/2,o.y*c.height+(rh-h)/2,w,h); }
   return c.toDataURL('image/jpeg',0.9);
 }
 function consigne(precisions){
-  const L=[`Image 1 is a real photograph of a room of an apartment (${nomPiece(mi.base.piece)}).`,
-    'Image 2 is the same photograph with the planned changes roughly placed on it: product pictures pasted where the new furniture should go (the position is approximate and their size on image 2 is only indicative), and areas tinted red that must be cleared.'];
+  const L=[`Edit image 1 into a photorealistic photograph of this room (${nomPiece(mi.base.piece)} of an apartment).`,
+    'Image 1 is a photo of the room on which pictures of products are pasted where the new furniture should go (the position is approximate and the pasted size is only indicative), and RED areas mark what must be removed.',
+    'Image 2 is the original photo of the room, only as a reference for the real materials and light.'];
   const dimsTexte=o=>o.L&&o.P&&o.H?`${o.L} × ${o.P} × ${o.H} cm (width × depth × height)`:o.L||o.H?`${o.L?'width '+o.L+' cm':''}${o.L&&o.H?', ':''}${o.H?'height '+o.H+' cm':''}`:'real size unknown: use a plausible size';
-  if(mi.objets.length){ L.push('The next images show each product:'); mi.objets.forEach((o,k)=>L.push(`- image ${k+3}: "${o.nom}" (${dimsTexte(o)}).`)); }
-  L.push('Changes to make:');
-  mi.objets.forEach((o,k)=>L.push(`- Insert "${o.nom}" (image ${k+3}) where its picture is pasted on image 2, at the correct real-world scale for its dimensions and for this room, standing on the floor or against the wall as appropriate, with the right perspective and orientation. It must look exactly like image ${k+3} (shape, colors, materials).`));
-  if(mi.zones.length) L.push(`- Remove what is inside the ${mi.zones.length>1?mi.zones.length+' red areas':'red area'} and show what would be behind (wall, floor, skirting board), consistent with the rest of the room.`);
+  if(mi.objets.length){ L.push('Reference pictures of the new furniture:'); mi.objets.forEach((o,k)=>L.push(`- image ${k+3}: "${o.nom}" (${dimsTexte(o)}).`)); }
+  L.push('Changes:');
+  mi.objets.forEach((o,k)=>L.push(`- Replace the pasted picture of "${o.nom}" by the real piece of furniture of image ${k+3}, at the correct real-world scale for its dimensions and for this room, standing on the floor or against the wall as appropriate, with the right perspective and orientation. It must look exactly like image ${k+3} (shape, colors, materials).`));
+  if(mi.zones.length) L.push(`- Remove completely what is inside the ${mi.zones.length>1?mi.zones.length+' red areas':'red area'} and rebuild what is behind it (wall, floor, skirting board), so that nothing of it remains.`);
   if(!mi.objets.length&&!mi.zones.length) L.push('- No furniture change: keep the room as it is.');
-  L.push('Result: a photorealistic photograph identical to image 1 (same framing, perspective, lens, lighting, white balance, walls, floor and every other object) with only these changes applied, with realistic contact shadows and reflections. Do not add anything else. No text, no watermark, no pasted-picture edges, no red tint left.');
+  L.push('Keep everything else exactly as in image 2: framing, perspective, lens, light, white balance, walls, floor and every other object. Add realistic contact shadows and reflections. The result must not show any red tint, pasted-picture edge, text or watermark, and must not contain any furniture that is not asked for.');
   if(precisions) L.push('Additional instructions from the owner (in French): '+precisions.slice(0,600));
   return L.join('\n');
 }
@@ -155,7 +156,7 @@ async function lancer(){
   const precisions=fen.querySelector('#mi-precisions').value.trim(), b=mi.base;
   dire('Envoi à kie.ai…');
   try{
-    const photo=await reduire(mi.url,2048), images=[photo.url,prep.composee,...mi.objets.slice(0,6).map(o=>o.img)];
+    const photo=await reduire(mi.url,2048), images=[prep.composee,photo.url,...mi.objets.slice(0,6).map(o=>o.img)];
     const detail=[...mi.objets.map(o=>`Ajouté (photo) : ${o.nom}${o.L&&o.P&&o.H?` (${o.L} × ${o.P} × ${o.H} cm)`:''}`),...mi.zones.map((_,k)=>`Zone effacée ${k+1}`)];
     const r=await demarrerRendu({images,consigne:consigne(precisions),ratio:ratioDe(b.image.w,b.image.h),titre:`${b.nom} · mode Image`,
       champs:{piece:b.piece,photo:b.photo||'',avant:b.image,variante:'',mode:'image',detail}});
@@ -211,5 +212,6 @@ function construire(){
   addEventListener('paste',async e=>{ if(!fen||fen.hidden||/INPUT|TEXTAREA/.test(e.target.tagName)) return;
     const f=[...(e.clipboardData?.files||[])].find(x=>/^image\//.test(x.type)); if(f){ e.preventDefault(); await depuisFichier(f); return; }
     const t=e.clipboardData?.getData('text'); if(/^https?:\/\//i.test(t||'')){ e.preventDefault(); q('#mi-lien').value=t.trim(); lien(); } });
-  addEventListener('resize',()=>{ if(fen&&!fen.hidden) caler(); });
+  // le cadre de la photo suit la place libre (le panneau du bas grandit quand on ajoute des objets ou ouvre l'ajout)
+  new ResizeObserver(()=>{ if(!fen.hidden) caler(); }).observe(q('.mi-zone'));
 }

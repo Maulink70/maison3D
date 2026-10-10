@@ -15,6 +15,7 @@ import {varianteCourante} from './synchro.js';
 import {imageMeuble} from './impression.js';
 import {imagePhoto} from './galerie.js';
 import {PIECES} from './pieces.js';
+import {nomChoix} from './bibliotheque.js';
 
 const RENDU='https://n8n.srv1123557.hstgr.cloud/webhook/maison3d-rendu';
 export const COUT=18;   // crédits kie.ai d'un rendu 2K (≈ 0,09 $)
@@ -26,6 +27,17 @@ const nomPiece=id=>PIECES.find(p=>p.id===id)?.nom||'pièce';
 const nomDe=it=>it.ajout?.n||it.meta?.l||it.name;
 const cm=v=>Math.max(1,Math.round(v*100));
 const dims=it=>`${cm(it.size.x)} × ${cm(it.size.z)} × ${cm(it.size.y)} cm`;
+const COULEURS=[['white','#f4f4f2'],['cream','#efe6cf'],['beige','#d8c3a0'],['light grey','#c4c6c8'],['grey','#8a8d90'],['dark grey','#4a4d50'],['black','#1d1d1f'],
+  ['brown','#7a5232'],['dark brown','#4a3020'],['light wood','#c9a26b'],['burgundy','#6d1f2c'],['red','#b8312f'],['orange','#d9822b'],['yellow','#e3c341'],
+  ['olive green','#6b7240'],['green','#3f8f4a'],['dark green','#2f5a3a'],['sage green','#9db39a'],['teal','#2f7f7a'],['light blue','#9cc3e0'],['blue','#3366a8'],
+  ['navy blue','#1f2f5a'],['purple','#6a3f8c'],['pink','#e3a0b4'],['aubergine','#4a2440']];
+function nomCouleur(h){ const v=x=>[1,3,5].map(i=>parseInt(x.slice(i,i+2),16)); const c=v(h); let m=COULEURS[0],d=1e9;
+  for(const k of COULEURS){ const q=v(k[1]), e=(c[0]-q[0])**2+(c[1]-q[1])**2+(c[2]-q[2])**2; if(e<d){ d=e; m=k; } } return m[0]; }
+function apparence(it){
+  const l=[]; if(it.color) l.push(`color ${nomCouleur(it.color)} (${it.color})`);
+  for(const v of Object.values(it.matieres||{})){ const n=nomChoix(v); if(n) l.push(`material "${n}"${v.c?` in ${nomCouleur(v.c)}`:''}`); }
+  return [...new Set(l)].join(', ');
+}
 export const ratioDe=(w,h)=>RATIOS.reduce((m,r)=>Math.abs(Math.log(r[1]*h/w))<Math.abs(Math.log(m[1]*h/w))?r:m)[0];
 
 // ---------- appels au workflow n8n ----------
@@ -77,7 +89,7 @@ export function dansLaPhoto(p,ch){
 
 // ---------- l'image composée ----------
 const PROFONDEUR=new THREE.MeshBasicMaterial({colorWrite:false});
-const ROUGE=new THREE.MeshBasicMaterial({color:0xff1f1f,transparent:true,opacity:0.55,depthWrite:false,side:THREE.DoubleSide});
+const ROUGE=new THREE.MeshBasicMaterial({color:0xff1f1f,transparent:true,opacity:0.72,depthWrite:false,side:THREE.DoubleSide});
 const charger=src=>new Promise((ok,ko)=>{ const i=new Image(); i.onload=()=>ok(i); i.onerror=()=>ko(new Error('image illisible')); i.src=src; });
 export async function composer(p,ch,piece=p.piece){
   const url=await imagePhoto(p); if(!url) throw new Error('la photo n’a pas pu être lue');
@@ -94,11 +106,13 @@ export async function composer(p,ch,piece=p.piece){
     cacher(app.ciel); cacher(app.selBox); cacher(app.tc.getHelper?app.tc.getHelper():app.tc);
     renderer.setPixelRatio(1); renderer.setSize(W,H,false); renderer.clippingPlanes=[];
     // 1. la photo en fond, et la profondeur de ce qui ne change pas (sans les vitres ni les voiles transparents)
+    // (le fond est dessiné seul d'abord : scene.overrideMaterial s'appliquerait aussi à lui, et la photo n'apparaîtrait pas)
+    scene.background=tex; scene.overrideMaterial=null; renderer.autoClear=true; cam.layers.set(26); renderer.render(scene,cam);
     const verres=[]; scene.traverse(o=>{ if(o.isMesh&&o.visible&&!Array.isArray(o.material)&&o.material?.transparent&&o.material.opacity<0.95){ verres.push(o); o.visible=false; } });
-    scene.background=tex; scene.overrideMaterial=PROFONDEUR; renderer.autoClear=true; cam.layers.set(0); renderer.render(scene,cam);
+    scene.background=null; renderer.autoClear=false; scene.overrideMaterial=PROFONDEUR; cam.layers.set(0); renderer.render(scene,cam);
     for(const o of verres) o.visible=true;
     // 2. en rouge : les meubles retirés et la place d'origine des meubles déplacés
-    scene.background=null; renderer.autoClear=false; scene.overrideMaterial=ROUGE; cam.layers.set(L_ROUGE);
+    scene.overrideMaterial=ROUGE; cam.layers.set(L_ROUGE);
     const remettre=ch.filter(c=>c.type==='retire'||c.type==='deplace').map(c=>versBase(c.it));
     renderer.render(scene,cam); remettre.forEach(f=>f());
     // 3. les meubles ajoutés, déplacés ou recolorés, à leur place, avec leurs matières
@@ -122,7 +136,7 @@ async function reduire(src,max=1024,fondBlanc=true){
 export async function photoEnDataURL(p){ const b=await lireFichier(p.image.id,p.image.n||1,p.image.type||'image/jpeg'); if(!b) throw new Error('la photo n’a pas pu être lue'); return versDataURL(b); }
 async function produits(ch){
   const l=[];
-  for(const c of ch.filter(c=>c.type==='ajout'||c.type==='aspect'||(c.type==='deplace'&&c.aspect)).slice(0,MAX_PRODUITS)){
+  for(const c of ch.filter(c=>c.type==='ajout'&&(c.it.ajout?.t==='photo'||c.it.ajout?.t==='glb')).slice(0,MAX_PRODUITS)){
     const it=c.it; let src=null;
     if(it.ajout?.t==='photo'&&it.ajout.img){ const b=await lireFichier(it.ajout.img.id,it.ajout.img.n||1,it.ajout.img.type); if(b) src=URL.createObjectURL(b); }
     try{ if(!src) src=(await imageMeuble(it)).url; l.push({it,nom:nomDe(it),dims:dims(it),image:await reduire(src)}); }catch{}
@@ -132,19 +146,22 @@ async function produits(ch){
 }
 // ---------- la consigne (en anglais : le modèle la suit mieux ; les noms des meubles restent en français) ----------
 export function consigne(piece,ch,prods,precisions,surf){
-  const L=[`Image 1 is a real photograph of a room of an apartment (${nomPiece(piece)}).`,
-    'Image 2 is the same photograph on which the planned changes are drawn: plain 3D shapes show the furniture to add or move, at their exact position, size and orientation; areas tinted red show furniture that must disappear.'];
-  if(prods.length){ L.push('The next images show what the new furniture really looks like:'); prods.forEach((p,k)=>L.push(`- image ${k+3}: "${p.nom}" (${p.dims}, width × depth × height).`)); }
-  L.push('Changes to make:');
-  const img=it=>{ const k=prods.findIndex(p=>p.it===it); return k<0?'':` (looking like image ${k+3})`; };
-  for(const c of ch){ const n=`"${nomDe(c.it)}"`;
-    if(c.type==='ajout') L.push(`- Add the ${n} (${dims(c.it)}) exactly where its 3D shape is drawn${img(c.it)||', with the colors and materials of its 3D shape'}.`);
-    else if(c.type==='retire') L.push(`- Remove the ${n} (red area) and show what would be behind it (wall, floor, skirting board), consistent with the rest of the room.`);
-    else if(c.type==='deplace') L.push(`- Move the ${n}: remove it from its old place (red area) and put the same real piece where its 3D shape is drawn${c.taille?` (new size: ${dims(c.it)})`:''}${c.aspect?', with the new color or material of its 3D shape'+img(c.it):''}.`);
-    else L.push(`- Give the ${n} the new color or material of its 3D shape${img(c.it)}, without moving it.`); }
-  for(const s of surf||[]) L.push(`- ${s.startsWith('sol')?'Replace the floor covering':'Repaint or recover the walls'} as shown on image 2.`);
+  const k0=3, img=it=>{ const k=prods.findIndex(p=>p.it===it); return k<0?'':` It must look exactly like image ${k+k0} (shape, colors, materials).`; };
+  const L=[`Edit image 1 into a photorealistic photograph of this room (${nomPiece(piece)} of an apartment).`,
+    'Image 1 is a photo of the room on which the planned changes are drawn:',
+    '- RED areas mark furniture that must be REMOVED completely: erase it and rebuild what is behind it (floor, wall, skirting board, window), so that nothing of it remains.',
+    '- Flat untextured 3D shapes mark NEW or MOVED furniture: replace each shape by a real piece of furniture with exactly the same position, size and orientation as the shape.',
+    'Image 2 is the original photo of the room, only as a reference for the real materials and light.'];
+  if(prods.length){ L.push('Reference pictures of the new furniture:'); prods.forEach((p,k)=>L.push(`- image ${k+k0}: "${p.nom}" (${p.dims}, width × depth × height).`)); }
+  L.push('Changes:');
+  for(const c of ch){ const n=`"${nomDe(c.it)}"`, a=apparence(c.it);
+    if(c.type==='ajout') L.push(`- Add a real ${n} (${dims(c.it)}) in place of its 3D shape${a?`, ${a}`:''}.${img(c.it)}`);
+    else if(c.type==='retire') L.push(`- Remove the ${n} (red area) completely.`);
+    else if(c.type==='deplace') L.push(`- Move the real ${n} of image 2: remove it from its old place (red area) and put the same piece in place of its 3D shape${c.taille?` (new size ${dims(c.it)})`:''}${c.aspect&&a?`, with ${a}`:''}.`);
+    else L.push(`- Keep the real ${n} exactly where it is in image 2 (same shape), but change its look to ${a||'the new look'}.`); }
+  for(const s of surf||[]) L.push(`- ${s.startsWith('sol')?'Replace the floor covering':'Recover the walls'} with the material drawn in image 1.`);
   if(!ch.length&&!(surf||[]).length) L.push('- No change of furniture: keep the room as it is and only improve the photograph (light, sharpness).');
-  L.push('Result: a photorealistic photograph identical to image 1 (same framing, perspective, lens, lighting, white balance, walls, floor and every other object) with only these changes applied. Respect the position, size and orientation of each 3D shape exactly, with realistic contact shadows, reflections and lighting matching the room. Do not add anything else. No text, no watermark, no red tint left.');
+  L.push('Keep everything else exactly as in image 2: framing, perspective, lens, light, white balance, walls, floor and every other object. Add realistic contact shadows and reflections. The result must not show any red tint, flat 3D shape, text or watermark, and must not contain any furniture that is not asked for.');
   if(precisions) L.push('Additional instructions from the owner (in French): '+precisions.slice(0,600));
   return L.join('\n');
 }
@@ -231,19 +248,21 @@ export async function preparerRendu(p){
   q('.rendu-cout').textContent=''; ok.disabled=true; ok.textContent='Oui, lancer le rendu'; q('#rendu-non').textContent='Annuler';
   if(!p.calage){ dire('Calez d’abord la maquette sur cette photo (« Caler la maquette »).',true); return; }
   dire('Préparation de l’image (changements dessinés sur la photo)…');
+  await new Promise(ok=>requestAnimationFrame(()=>requestAnimationFrame(ok)));   // la vue vient de passer en 1re personne (murs pleins)
   try{
     const tout=changements(), ch=dansLaPhoto(p,tout), surf=surfaces(p.piece).map(m=>m.userData.surface);
-    const composee=await composer(p,ch);
+    const composee=await composer(p,ch.filter(c=>c.type!=='aspect'));
     const prods=await produits(ch);
     prep={p,ch,surf,composee,prods,hors:tout.length-ch.length};
     q('.rendu-apercu img').src=composee;
     const li=detailFrancais(ch,surf); for(const t of li.length?li:['Aucun changement visible sur cette photo : le rendu gardera la pièce telle quelle.']) q('.rendu-liste').append(el('li',{},t));
     if(prep.hors) q('.rendu-liste').append(el('li',{class:'hors'},`${prep.hors} autre${prep.hors>1?'s':''} changement${prep.hors>1?'s':''} hors du champ de cette photo`));
     dire('Vérifiez l’image : les meubles en 3D seront remplacés par de vrais meubles, le rouge sera effacé.');
-    ok.disabled=false;
-    const solde=await soldeKie();
-    if(prep) q('.rendu-cout').textContent=`Coût : ${COUT} crédits kie.ai (≈ 0,09 $)`+(solde!=null?` · solde : ${Math.floor(solde).toLocaleString('fr-FR')} crédits`:'')+' · environ 1 minute';
-    if(solde!=null&&solde<COUT){ ok.disabled=true; dire('Plus assez de crédits kie.ai : rechargez votre compte kie.ai.',true); }
+    const cout=`Coût : ${COUT} crédits kie.ai (≈ 0,09 $)`;
+    q('.rendu-cout').textContent=cout+' · solde : …';
+    const solde=await soldeKie(); if(!prep) return;
+    q('.rendu-cout').textContent=cout+(solde!=null?` · solde : ${Math.floor(solde).toLocaleString('fr-FR')} crédits`:'')+' · environ 1 minute';
+    if(solde!=null&&solde<COUT) dire('Plus assez de crédits kie.ai : rechargez votre compte kie.ai.',true); else ok.disabled=false;   // « Oui » une fois le solde connu
   }catch(e){ dire('Préparation impossible : '+(e.message||e),true); }
 }
 async function lancer(){
@@ -251,7 +270,7 @@ async function lancer(){
   ok.disabled=true; dire('Envoi à kie.ai…');
   try{
     const precisions=q('#rendu-precisions').value.trim(), variante=varianteCourante()?.nom||'Actuel';
-    const images=[await photoEnDataURL(p),composee,...prods.map(x=>x.image)];
+    const images=[composee,await photoEnDataURL(p),...prods.map(x=>x.image)];
     const r=await demarrerRendu({images,consigne:consigne(p.piece,ch,prods,precisions,surf),ratio:ratioDe(p.image.w,p.image.h),titre:`${p.nom} · ${variante}`,
       champs:{piece:p.piece,photo:p.id,avant:p.image,variante,mode:'maquette',detail:detailFrancais(ch,surf)}});
     if(!r.id){ dire(r.erreur,true); ok.disabled=false; return; }

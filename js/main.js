@@ -30,9 +30,10 @@ import {initPartage} from './partage.js';
 import {initObjets} from './objets.js';
 import {initRevetements, majRevetements} from './revetements.js';
 import {initGalerie} from './galerie.js';
+import {initRecu, traiterRecu} from './recu.js';
 import {initCalage, majCalage, calageActif, fovCalage, zoomCalage, toucherCalage} from './calage.js';
 
-initIcones(); initCompte(); initSynchro(); initVariantes(); initComparer(); initVues(); initVisite(); initEdition(); initSauvegarde(); initAller(); initPlan(); initCalques(); initMesure(); initImpression(); initIsoler(); initCameras(); initHistorique(); initPartage(); initAlertes(); initObjets(); initRevetements(); initGalerie(); initCalage();
+initIcones(); initCompte(); initSynchro(); initVariantes(); initComparer(); initVues(); initVisite(); initEdition(); initSauvegarde(); initAller(); initPlan(); initCalques(); initMesure(); initImpression(); initIsoler(); initCameras(); initHistorique(); initPartage(); initAlertes(); initObjets(); initRevetements(); initGalerie(); initCalage(); initRecu();
 
 // Cercle posé au sol pendant un appui long (point de téléportation)
 const marque=new THREE.Mesh(new THREE.RingGeometry(0.16,0.25,40),new THREE.MeshBasicMaterial({color:new THREE.Color(css('--accent')||'#2c5a86'),transparent:true,opacity:0.9,depthTest:false,side:THREE.DoubleSide}));
@@ -90,7 +91,7 @@ $('installer').onclick=async()=>{ if(!proposition) return; proposition.prompt();
 // on n'entre (et la maquette ne se charge) qu'une fois connecté (écran d'entrée, compte.js)
 initPorte(()=>chargerModele({
   structurePrete:()=>demarrerVues(),
-  mobilierPret:()=>{ restore(); buildList(); demarrerHistorique(); demarrerSynchro(); }
+  mobilierPret:()=>{ restore(); buildList(); demarrerHistorique(); demarrerSynchro(); traiterRecu(); }
 }));
 
 const clock=new THREE.Clock(), barre=document.querySelector('.bar');

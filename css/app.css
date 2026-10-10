@@ -477,3 +477,72 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
 .cal-nom{font-size:12px;color:var(--muted);margin-right:2px}
 .cal-b{width:36px;height:34px;padding:0;font-size:16px;line-height:1;touch-action:none;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
 @media (max-width:760px){ .cal-transp input{width:96px} .cal-b{width:34px} }
+/* Étape 5, livraisons 2 et 3 : rendus (confirmation, historique, avant / après), mode Image, produit reçu */
+.gal-onglets{justify-self:start}
+.gal-attente{display:grid;place-items:center;width:100%;height:100%;font-size:12.5px;color:var(--muted)}
+.cat-info.echec{color:var(--danger)}
+.rendu-carte{width:min(720px,100%)}
+.rendu-titre{color:var(--muted)}
+.rendu-apercu,.rendu-resultat{border-radius:10px;overflow:hidden;background:#d9dcdf}
+.rendu-apercu[hidden],.rendu-resultat[hidden]{display:none}
+.rendu-apercu img,.rendu-resultat img{display:block;width:100%;height:auto;max-height:min(46dvh,460px);object-fit:contain}
+.rendu-liste{margin:0;padding-left:20px;font-size:13.5px;line-height:1.5}
+.rendu-liste .hors{color:var(--muted)}
+.rendu-precisions{display:grid;gap:4px;font-size:13px}
+.rendu-precisions textarea,#mi-precisions,.ph-lien input,.mi-lien input,#mi-q{font:inherit;padding:7px 9px;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--ink);min-width:0}
+.rendu-precisions textarea{resize:vertical}
+.rendu-cout{font-weight:500}
+.ph-lien{display:flex;gap:8px;margin-top:4px}
+.ph-lien input{flex:1}
+.vis-avant{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;display:block;pointer-events:none;transition:opacity .35s}
+.vis-coupe{position:absolute;top:0;bottom:0;width:3px;margin-left:-1.5px;background:#fff;box-shadow:0 0 0 1px rgba(0,0,0,.35);pointer-events:none;z-index:1}
+.vis-coupe::after{content:"⟷";position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:38px;height:38px;border-radius:50%;background:#fff;color:#1c2227;display:grid;place-items:center;font-size:18px;box-shadow:0 2px 8px rgba(0,0,0,.35)}
+.vis-etiq{position:absolute;top:10px;z-index:1;background:rgba(14,17,20,.7);color:#fff;font-size:12.5px;font-weight:600;padding:3px 9px;border-radius:999px;pointer-events:none}
+.vis-etiq.g{left:10px} .vis-etiq.d{right:10px}
+.vis-attente{position:absolute;inset:auto 0 50% 0;text-align:center;color:#d6dde2;font-size:15px}
+.vis-avap button{color:#a9b3bb}
+.vis-avap{background:#1b2024;border-color:#3a4248}
+.vis-avap button[aria-pressed="true"]{background:#2a3a48;color:#fff}
+#vis-telecharger{text-decoration:none;display:inline-flex;align-items:center}
+.mode-image{grid-template-rows:auto minmax(0,1fr) auto;-webkit-user-select:none;user-select:none}
+.mode-image input{-webkit-user-select:text;user-select:text}
+.mi-zone{position:relative}
+.mi-cadre{position:absolute}
+.mi-photo{display:block;width:100%;height:100%;object-fit:fill;user-select:none;-webkit-user-select:none;pointer-events:none}
+.mi-calques{position:absolute;inset:0}
+.mi-rect{position:absolute;border:2px dashed #fff;box-shadow:0 0 0 1px rgba(0,0,0,.45);touch-action:none;cursor:move;user-select:none;-webkit-user-select:none}
+.mi-rect.choisi{border-color:#82b2df;border-style:solid}
+.mi-rect img{width:100%;height:100%;object-fit:contain;opacity:.9;pointer-events:none;display:block}
+.mi-rect.zone{background:rgba(255,31,31,.45);border-color:#ff8a80}
+.mi-x{position:absolute;top:-13px;right:-13px;width:26px;height:26px;border-radius:50%;border:0;background:#fff;color:#a33a2c;font-size:17px;line-height:1;box-shadow:0 1px 4px rgba(0,0,0,.4)}
+.mi-poignee{position:absolute;right:-9px;bottom:-9px;width:18px;height:18px;border-radius:4px;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.4);cursor:nwse-resize}
+.mi-rect .mi-num{position:absolute;left:-10px;top:-10px}
+.mi-num{display:inline-grid;place-items:center;min-width:22px;height:22px;border-radius:11px;background:#2c5a86;color:#fff;font-size:12px;font-weight:600;padding:0 5px}
+.mi-bas{display:grid;gap:8px;padding:10px 12px;max-height:46dvh;overflow:auto}
+.mi-bas .btn:not(.primary){background:#1b2024;border-color:#3a4248;color:#eef1f3}
+.mi-outils,.mi-ligne{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+#mi-precisions{flex:1 1 220px;background:#1b2024;color:#eef1f3;border-color:#3a4248}
+.mi-ajout{display:grid;gap:8px;background:#151a1e;border:1px solid #2c3338;border-radius:10px;padding:10px}
+.mi-ajout[hidden]{display:none}
+.mi-ajout .mat-aide{color:#a9b3bb;margin:0}
+.mi-lien{display:flex;gap:8px;flex:1 1 300px}
+.mi-lien input,#mi-q{flex:1;background:#1b2024;color:#eef1f3;border-color:#3a4248}
+.mi-boutiques .cat-idee{background:#1b2024;color:#eef1f3;border-color:#3a4248}
+.mi-objets{display:grid;gap:6px}
+.mi-objet{display:flex;flex-wrap:wrap;align-items:center;gap:8px;background:#151a1e;border:1px solid #2c3338;border-radius:10px;padding:6px 8px}
+.mi-objet img{width:44px;height:44px;object-fit:contain;background:#fff;border-radius:6px}
+.mi-objet input[type=text]{flex:1 1 140px;font:inherit;padding:6px 8px;border:1px solid #3a4248;border-radius:8px;background:#1b2024;color:#eef1f3;min-width:0}
+.mi-dims{display:inline-flex;align-items:center;gap:4px;color:#a9b3bb;font-size:12.5px}
+.mi-dims input{width:62px;font:inherit;padding:6px;border:1px solid #3a4248;border-radius:8px;background:#1b2024;color:#eef1f3}
+.btn.petit-b{padding:5px 10px;font-size:12.5px}
+.mi-confirmer{display:flex;flex-wrap:wrap;gap:10px;align-items:center;background:#151a1e;border:1px solid #2c3338;border-radius:10px;padding:8px}
+.mi-confirmer[hidden]{display:none}
+.mi-confirmer img{width:min(260px,100%);border-radius:8px}
+.mi-cout{margin:0 0 8px;font-weight:500}
+.mode-image .ph-message{margin:0;color:#c9d2d8}
+.mode-image .ph-message.cx-erreur{color:#f0a196}
+.recu-produit{display:flex;gap:12px;align-items:center}
+.recu-produit[hidden]{display:none}
+.recu-produit img{width:96px;height:96px;object-fit:contain;background:#fff;border-radius:8px;border:1px solid var(--line)}
+.recu-produit div{display:grid;gap:3px}
+#recu-page{text-decoration:none;justify-self:start}
