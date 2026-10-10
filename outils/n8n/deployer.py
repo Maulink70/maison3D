@@ -220,3 +220,79 @@ if SKETCHFAB_CRED:
   r=req('POST',B+'/'+iC+'/activate'); print('workflow',iC,'(catalogue) actif',r.get('active'))
 else:
   print('workflow Catalogue non publié : SKETCHFAB_CRED (id de la clé « Sketchfab Maison3D » dans n8n) manquant')
+
+# ---------- workflow « Maison3D Rendu » (étape 5, livraison 2) : rendu réaliste d'une photo de pièce (kie.ai) ----------
+# POST /webhook/maison3d-rendu (texte JSON) : solde → {solde} ; demarrer {images, consigne, ratio, titre} → {tache} ;
+# suivre {tache} → {etat, image}. Même clé kie.ai que le nettoyage (KIE ci-dessus). Clé externe de Familia (adresse de
+# rappel : le rendu arrive aussi dans la galerie Familia) : FAMILIA_CLE=<32 caractères> python3 outils/n8n/deployer.py ;
+# sans elle, la clé du workflow déjà publié est reprise (jamais dans le dépôt) ; aucune clé : pas de rappel Familia.
+exR=[w for w in req('GET',B+'?limit=200')['data'] if w['name']=='Maison3D Rendu']
+fam=os.environ.get('FAMILIA_CLE','')
+if not re.fullmatch(r'[0-9a-f]{32}',fam) and exR:
+  for n in req('GET',B+'/'+exR[0]['id'])['nodes']:
+    mf=re.search(r"FAMILIA='([0-9a-f]{32})'",n.get('parameters',{}).get('jsCode','') or '')
+    if mf: fam=mf.group(1)
+idr=lambda nom:str(uuid.uuid5(uuid.NAMESPACE_DNS,'m3drendu-'+nom))
+def codeR(nom,f,x,y,avecLib=False):
+  js=((lib if avecLib else '')+lire(f)).replace('__SECRET__',sec).replace('__FAMILIA__',fam if re.fullmatch(r'[0-9a-f]{32}',fam) else '')
+  return {'id':idr(nom),'name':nom,'type':'n8n-nodes-base.code','typeVersion':2,'position':[x,y],'parameters':{'jsCode':js}}
+def siR(nom,x,y,expr): n=si(nom,x); n['id']=idr(nom); n['position']=[x,y]; n['parameters']['conditions']['conditions'][0]['leftValue']=expr; return n
+def repR(nom,x,y): n=repondre(nom,x); n['id']=idr(nom); n['position']=[x,y]; return n
+def kieR(nom,x,y,corps): n=kie(nom,x,y,corps); n['id']=idr(nom); return n
+dlR={'id':idr('telecharger'),'name':'Télécharger le rendu','type':'n8n-nodes-base.httpRequest','typeVersion':4.2,'position':[1540,300],
+  'parameters':{'url':'={{ $json.url }}','sendHeaders':True,'headerParameters':{'parameters':[{'name':'User-Agent','value':'Mozilla/5.0'},{'name':'Referer','value':'https://kie.ai/'}]},
+    'options':{'response':{'response':{'responseFormat':'file'}},'timeout':120000}}}
+nodesR=[
+ {'id':idr('webhook'),'name':'Demande du site','type':'n8n-nodes-base.webhook','typeVersion':2,'position':[0,0],'webhookId':'4a2f5d0e-6c1b-4c8e-9f3a-maison3d0006',
+  'parameters':{'httpMethod':'POST','path':'maison3d-rendu','responseMode':'responseNode','options':{'allowedOrigins':ORIGINES}}},
+ codeR('Analyser','rendu_analyser.js',220,0,True), siR('Valide ?',440,0,'={{ $json.req != null }}'), repR('Refus',660,400),
+ siR('Solde ?',660,0,'={{ $json.op === "solde" }}'), kieR('Lire le solde',880,-300,False), codeR('Solde','rendu_solde.js',1100,-300), repR('Réponse solde',1320,-300),
+ siR('Démarrer ?',880,0,'={{ $json.op === "demarrer" }}'),
+ kieR('Envoyer les images',1100,-100,True), codeR('Préparer la tâche','rendu_tache.js',1320,-100), siR('Images reçues ?',1540,-100,'={{ $json.req != null }}'),
+ kieR('Créer la tâche',1760,-200,True), codeR('Tâche créée','ia_reponse_tache.js',1980,-200), repR('Réponse tâche',2200,-200), repR('Refus kie',1760,0),
+ kieR('Lire la tâche',1100,200,False), codeR('État','ia_etat.js',1320,200), siR('Prêt ?',1540,200,'={{ $json.url != null }}'),
+ dlR, codeR('Image','ia_image.js',1760,300), repR('Réponse image',1980,300), repR('Réponse état',1760,100)]
+conR={'Demande du site':{'main':[[mm('Analyser')]]},'Analyser':{'main':[[mm('Valide ?')]]},'Valide ?':{'main':[[mm('Solde ?')],[mm('Refus')]]},
+ 'Solde ?':{'main':[[mm('Lire le solde')],[mm('Démarrer ?')]]},'Lire le solde':{'main':[[mm('Solde')]]},'Solde':{'main':[[mm('Réponse solde')]]},
+ 'Démarrer ?':{'main':[[mm('Envoyer les images')],[mm('Lire la tâche')]]},
+ 'Envoyer les images':{'main':[[mm('Préparer la tâche')]]},'Préparer la tâche':{'main':[[mm('Images reçues ?')]]},'Images reçues ?':{'main':[[mm('Créer la tâche')],[mm('Refus kie')]]},
+ 'Créer la tâche':{'main':[[mm('Tâche créée')]]},'Tâche créée':{'main':[[mm('Réponse tâche')]]},
+ 'Lire la tâche':{'main':[[mm('État')]]},'État':{'main':[[mm('Prêt ?')]]},'Prêt ?':{'main':[[mm('Télécharger le rendu')],[mm('Réponse état')]]},
+ 'Télécharger le rendu':{'main':[[mm('Image')]]},'Image':{'main':[[mm('Réponse image')]]}}
+wfR={'name':'Maison3D Rendu','nodes':nodesR,'connections':conR,'settings':{'executionOrder':'v1','saveDataSuccessExecution':'none','saveDataErrorExecution':'all'}}
+if exR:
+  iR=exR[0]['id']; req('POST',B+'/'+iR+'/deactivate'); req('PUT',B+'/'+iR,wfR)
+else:
+  iR=req('POST',B,wfR)['id']
+r=req('POST',B+'/'+iR+'/activate'); print('workflow',iR,'(rendu) actif',r.get('active'),'· rappel Familia',bool(re.fullmatch(r'[0-9a-f]{32}',fam)))
+
+# ---------- workflow « Maison3D Boutique » (étape 5, livraison 3) : page d'un produit → photo, nom, dimensions ----------
+# POST /webhook/maison3d-boutique (texte JSON) : lire {url} → {nom, image (data URL), dims:{L,P,H}, site}
+idb=lambda nom:str(uuid.uuid5(uuid.NAMESPACE_DNS,'m3dbout-'+nom))
+def codeB(nom,f,x,y,avecLib=False): return {'id':idb(nom),'name':nom,'type':'n8n-nodes-base.code','typeVersion':2,'position':[x,y],'parameters':{'jsCode':((lib if avecLib else '')+lire(f)).replace('__SECRET__',sec)}}
+def siB(nom,x,y,expr): n=si(nom,x); n['id']=idb(nom); n['position']=[x,y]; n['parameters']['conditions']['conditions'][0]['leftValue']=expr; return n
+def repB(nom,x,y): n=repondre(nom,x); n['id']=idb(nom); n['position']=[x,y]; return n
+NAV=[{'name':'User-Agent','value':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36'},
+  {'name':'Accept-Language','value':'fr-CH,fr;q=0.9,de-CH;q=0.7,en;q=0.5'},{'name':'Accept','value':'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8'}]
+pageB={'id':idb('page'),'name':'Lire la page','type':'n8n-nodes-base.httpRequest','typeVersion':4.2,'position':[660,-100],
+  'parameters':{'url':'={{ $json.req.url }}','sendHeaders':True,'headerParameters':{'parameters':NAV},
+    'options':{'response':{'response':{'fullResponse':True,'neverError':True,'responseFormat':'text'}},'redirect':{'redirect':{'maxRedirects':6}},'timeout':30000}}}
+imgB={'id':idb('image'),'name':'Télécharger la photo','type':'n8n-nodes-base.httpRequest','typeVersion':4.2,'position':[1320,-200],
+  'parameters':{'url':'={{ $json.image }}','sendHeaders':True,'headerParameters':{'parameters':[NAV[0],{'name':'Accept','value':'image/avif,image/webp,image/*,*/*;q=0.8'}]},
+    'options':{'response':{'response':{'responseFormat':'file'}},'timeout':30000}}}
+nodesB=[
+ {'id':idb('webhook'),'name':'Demande du site','type':'n8n-nodes-base.webhook','typeVersion':2,'position':[0,0],'webhookId':'4a2f5d0e-6c1b-4c8e-9f3a-maison3d0007',
+  'parameters':{'httpMethod':'POST','path':'maison3d-boutique','responseMode':'responseNode','options':{'allowedOrigins':ORIGINES}}},
+ codeB('Analyser','boutique_analyser.js',220,0,True), siB('Valide ?',440,0,'={{ $json.req != null }}'), repB('Refus',660,200),
+ pageB, codeB('Extraire','boutique_extraire.js',880,-100), siB('Photo trouvée ?',1100,-100,'={{ $json.image != null }}'),
+ imgB, codeB('Photo','boutique_image.js',1540,-200), repB('Réponse',1760,-200), repB('Sans photo',1320,0)]
+conB={'Demande du site':{'main':[[mm('Analyser')]]},'Analyser':{'main':[[mm('Valide ?')]]},'Valide ?':{'main':[[mm('Lire la page')],[mm('Refus')]]},
+ 'Lire la page':{'main':[[mm('Extraire')]]},'Extraire':{'main':[[mm('Photo trouvée ?')]]},'Photo trouvée ?':{'main':[[mm('Télécharger la photo')],[mm('Sans photo')]]},
+ 'Télécharger la photo':{'main':[[mm('Photo')]]},'Photo':{'main':[[mm('Réponse')]]}}
+wfB={'name':'Maison3D Boutique','nodes':nodesB,'connections':conB,'settings':{'executionOrder':'v1','saveDataSuccessExecution':'none','saveDataErrorExecution':'all'}}
+exB=[w for w in req('GET',B+'?limit=200')['data'] if w['name']=='Maison3D Boutique']
+if exB:
+  iB=exB[0]['id']; req('POST',B+'/'+iB+'/deactivate'); req('PUT',B+'/'+iB,wfB)
+else:
+  iB=req('POST',B,wfB)['id']
+r=req('POST',B+'/'+iB+'/activate'); print('workflow',iB,'(boutique) actif',r.get('active'))

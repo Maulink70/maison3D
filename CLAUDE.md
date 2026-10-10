@@ -95,7 +95,13 @@ js/                   Code en modules ES, sans build :
   galerie.js          photos des pièces (étape 5) : bouton « Photos », galerie par pièce (table Photos par n8n), ajout (fichiers, appareil
                       photo), visionneuse (flèches, glisser, diaporama, plein écran), renommer, changer de pièce, supprimer
   calage.js           photo posée sur la 1re personne (transparence) et calage manuel de la caméra (réglages fins, angle de vue),
-                      « Valider » garde le calage avec la photo, « Voir avec la maquette »
+                      « Valider » garde le calage avec la photo, « Voir avec la maquette », « Rendu réaliste… »
+  rendu.js            rendu réaliste depuis la maquette (étape 5, livraison 2) : changements par rapport à la Base, image composée
+                      (photo + rouge + 3D, caméra calée), images des meubles, consigne, confirmation, suivi, table Rendus
+  image.js            mode « Image » (livraison 3) : objets posés sur la photo (fichier, image collée, lien d'un produit,
+                      boutiques), zones à effacer, rendu, « Créer en 3D » (panneau photo → Tripo)
+  boutiques.js        raccourcis des boutiques suisses et lecture de la page d'un produit (workflow n8n « Maison3D Boutique »)
+  recu.js             produit reçu par « Partager » d'Android (manifeste share_target) : mode Image ou maquette
 sw.js                 service worker (étape 2) : modèle 3D, polices, icônes et bibliothèques versionnées en cache ; code toujours sur le réseau
 manifest.webmanifest  application installable (nom, couleurs, icônes)
 icones/               icônes de l'application (192, 512, masquable 512, apple-touch 180, favicon 64), dessinées en Python (PIL)
@@ -114,7 +120,8 @@ outils/
   decouper_glb.mjs    Étape 4 : découpe appartement.glb en modele/structure.glb + modele/mobilier.glb
   package.json        Dépendances Node des outils
   n8n/                workflows n8n « Maison3D API » (étape 3 : analyser, decider, repondre + chiffre.js, commun.js), « Maison3D
-                      Fichiers » (fichier_*.js), « Maison3D IA » (ia_*.js), « Maison3D Tripo » (tripo_*.js), « Maison3D Catalogue » (catalogue_*.js) ; deployer.py les
+                      Fichiers » (fichier_*.js), « Maison3D IA » (ia_*.js), « Maison3D Tripo » (tripo_*.js), « Maison3D Catalogue » (catalogue_*.js),
+                      « Maison3D Rendu » (rendu_*.js), « Maison3D Boutique » (boutique_*.js) ; deployer.py les
                       assemble et les publie par l'API n8n (sans aucun secret dans le dépôt)
 ```
 

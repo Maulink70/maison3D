@@ -107,6 +107,25 @@ switch(ctx.action){
     const recs=lignes(0), fic=recs.map(r=>json(r.fields['Image'],null)).filter(i=>i&&estId(i.id)).map(i=>i.id);
     return sortie({ok:true,supprimees:recs.length},effacer('photos',recs.map(r=>r.id)).concat(effacer('fichiers',fic)));
   }
+  case 'rendu': {
+    const fic=v=>v&&typeof v==='object'&&estId(v.id)?JSON.stringify({id:v.id,n:Math.max(1,Math.min(8,v.n|0)),type:String(v.type||'').slice(0,30),w:v.w|0,h:v.h|0}):null;
+    const rendu=r=>({rid:r.id,id:r.fields['Id'],titre:r.fields['Titre']||'',piece:r.fields['Pièce']||'',photo:r.fields['Photo']||'',avant:json(r.fields['Avant'],null),
+      image:json(r.fields['Image'],null),vignette:r.fields['Vignette']||'',variante:r.fields['Variante']||'',mode:r.fields['Mode']||'maquette',consigne:r.fields['Consigne']||'',
+      detail:json(r.fields['Détail'],[]),tache:r.fields['Tâche']||'',etat:r.fields['État']||'',erreur:r.fields['Erreur']||'',creePar:r.fields['Créé par']||'',creeLe:r.fields['Créé le']||null});
+    if(c.op==='liste') return sortie({ok:true,rendus:lignes(0).map(rendu),offset:(lus[0]&&lus[0].body&&lus[0].body.offset)||null});
+    if(c.op==='enregistrer'){
+      const p=c.rendu, f={'Id':String(p.id).slice(0,60),'Modifié le':maintenant}, t=(k,n)=>{ if(k in p) f[n]=String(p[k]==null?'':p[k]).slice(0,n==='Consigne'?20000:200); };
+      t('titre','Titre'); t('piece','Pièce'); t('photo','Photo'); t('variante','Variante'); t('mode','Mode'); t('consigne','Consigne'); t('tache','Tâche'); t('etat','État'); t('erreur','Erreur');
+      if('avant' in p) f['Avant']=fic(p.avant)||''; if('image' in p) f['Image']=fic(p.image)||'';
+      if(typeof p.vignette==='string'&&/^data:image\/(jpeg|webp|png);base64,[A-Za-z0-9+/=]+$/.test(p.vignette)&&p.vignette.length<90000) f['Vignette']=p.vignette;
+      if(Array.isArray(p.detail)) f['Détail']=JSON.stringify(p.detail.slice(0,60)).slice(0,20000);
+      if(p.nouveau){ f['Créé par']=moi.n; f['Créé le']=maintenant; }
+      return sortie({ok:true},[{method:'PATCH',url:url('rendus'),body:{performUpsert:{fieldsToMergeOn:['Id']},typecast:true,records:[{fields:f}]}}]);
+    }
+    // supprimer : la ligne et l'image du rendu (l'image « avant » appartient à la photo de départ)
+    const recs=lignes(0), ims=recs.map(r=>json(r.fields['Image'],null)).filter(i=>i&&estId(i.id)).map(i=>i.id);
+    return sortie({ok:true,supprimes:recs.length},effacer('rendus',recs.map(r=>r.id)).concat(effacer('fichiers',ims)));
+  }
   case 'motdepasse': {
     const p=lus[0]&&lus[0].body; if(!p||!p.fields) return echec('Compte introuvable',404);
     if(!egal(hex(pbkdf2(utf8(c.ancien),utf8(p.fields['Sel']||''),TOURS)),p.fields['Empreinte']||'')) return echec('Mot de passe actuel incorrect',401);
