@@ -1,4 +1,5 @@
-// Import d'un fichier 3D (étape 4, livraison 2) : un .glb téléchargé par Mauro (Tripo, site d'un fabricant…). Le site
+// Import d'un fichier 3D (étape 4, livraison 2) : un .glb téléchargé par Mauro (Tripo, site d'un fabricant…) — et, depuis
+// le 10 octobre 2026, .gltf, .fbx, .obj, .dae, .stl, avec leurs textures à part ou en .zip (formats3d.js). Le site
 // affiche la taille trouvée dans le fichier (et son unité supposée), on saisit les vraies dimensions (proportions gardées
 // par défaut) ; avant l'envoi, le modèle est allégé dans le navigateur pour rester fluide sur la tablette : textures
 // réduites à 1024 px, maillages trop détaillés simplifiés (120 000 triangles au plus, meshoptimizer), recentré (origine au
@@ -12,6 +13,7 @@ import {mergeVertices} from 'three/addons/utils/BufferGeometryUtils.js';
 import {enFlottants} from './formes.js';
 import {envoyerFichier, lireFichier} from './fichiers.js';
 import {ajouterObjet} from './objets.js';
+import {lireModele, separer, standardiser, ACCEPTE} from './formats3d.js';
 
 const TRIANGLES=120000, TEXTURE=1024;
 let lecteur=null;
@@ -69,8 +71,9 @@ async function preparer(scene,dire){
   // une seule racine, recentrée : origine au centre du dessous ; matériaux nommés « Partie n »
   const b=boite(scene), c=b.getCenter(new THREE.Vector3()), racine=new THREE.Group(); racine.name='modele';
   scene.position.sub(new THREE.Vector3(c.x,b.min.y,c.z)); racine.add(scene);
+  separer(racine); standardiser(racine);   // un matériau « standard » par maillage
   const mats=new Map(); let n=0;
-  scene.traverse(o=>{ if(!o.isMesh) return; if(Array.isArray(o.material)) o.material=o.material[0];   // un matériau par maillage
+  scene.traverse(o=>{ if(!o.isMesh) return;
     if(!mats.has(o.material)){ o.material.name='Partie '+(++n); mats.set(o.material,1); } o.skeleton=null; o.morphTargetInfluences=undefined; });
   const triangles=await simplifier(racine,dire); reduireTextures(racine);
   dire('Préparation du fichier…');
@@ -109,11 +112,21 @@ function majDims(depuis){
   const v=lireCm('#g3-'+depuis); if(!v) return; const k=v/100/({l:w,p,h}[depuis]);
   for(const [q,x] of [['l',w],['p',p],['h',h]]) if(q!==depuis) fen.querySelector('#g3-'+q).value=String(Math.round(x*k*1000)/10);
 }
-async function prendre(f,tourner=0,origine=null){
-  if(!f||!/\.glb$/i.test(f.name)){ dire('Choisissez un fichier .glb (Tripo : « Download », format GLB).',true); return; }
+const prendre=(f,tourner=0,origine=null)=>prendreFichiers([f],{tourner,origine});
+// un modèle et ses fichiers à part (ou un .zip) ; un .stl (impression 3D) est en général couché : redressé d'office
+async function prendreFichiers(fichiers,{tourner=0,origine=null}={}){
+  if(!fichiers.length) return;
   dire('Lecture du fichier…'); fen.querySelector('.g3-info').hidden=true;
-  let scene; try{ scene=await lire(await f.arrayBuffer()); }catch(e){ charge=null; dire('Ce fichier .glb n’a pas pu être lu.',true); return; }
-  montrer(scene,{nom:f.name.replace(/\.glb$/i,'').replace(/[_-]+/g,' '),octets:f.size,tourner,origine});
+  let r; try{ r=await lireModele(fichiers); }catch(e){ charge=null; dire('Ce modèle 3D n’a pas pu être lu : '+(e?.message||e)+'.',true); return; }
+  if(r.format==='stl') r.scene.rotation.x-=Math.PI/2;
+  montrer(r.scene,{nom:r.nom,octets:r.octets,tourner,origine});
+  if(charge&&r.manquants.length) dire(`Textures absentes : ${r.manquants.slice(0,4).join(', ')}${r.manquants.length>4?'…':''}. Choisissez-les avec le modèle (ou son .zip) ; sinon l’objet reste sans elles.`);
+}
+// modèle couché (axe vertical différent selon les logiciels) : un quart de tour à chaque appui
+function redresser(){
+  if(!charge) return; charge.scene.rotation.x-=Math.PI/2;
+  montrer(charge.scene,{nom:fen.querySelector('#g3-nom').value,octets:charge.taille,origine:charge.origine});
+  dire('Modèle tourné d’un quart de tour : recommencez s’il n’est pas encore debout.');
 }
 // le modèle lu (fichier, Tripo, catalogue) : taille, unité devinée, dimensions proposées ; origine = catalogue (auteur, licence)
 function montrer(scene,{nom='',octets=0,tourner=0,origine=null}={}){
@@ -163,11 +176,11 @@ async function ajouter(){
   finally{ b.disabled=false; }
 }
 function construireFenetre(){
-  fen=el('div',{id:'import-fenetre',class:'fenetre',role:'dialog','aria-modal':'true','aria-label':'Ajouter un objet 3D (fichier .glb)'});
+  fen=el('div',{id:'import-fenetre',class:'fenetre',role:'dialog','aria-modal':'true','aria-label':'Ajouter un objet 3D (fichier)'});
   fen.innerHTML=`<div class="fenetre-carte">
-    <div class="fenetre-tete"><h2>Objet 3D (fichier .glb)</h2><button type="button" class="fermer" aria-label="Fermer">×</button></div>
-    <p>Un fichier .glb fait sur Tripo (« Download », format GLB) ou téléchargé chez un fabricant.</p>
-    <div class="ph-boutons"><label class="btn primary">Choisir un fichier .glb<input type="file" accept=".glb,model/gltf-binary" id="g3-fichier" hidden></label></div>
+    <div class="fenetre-tete"><h2>Objet 3D (fichier)</h2><button type="button" class="fermer" aria-label="Fermer">×</button></div>
+    <p>Un modèle 3D en .glb, .gltf, .fbx, .obj, .dae ou .stl (Tripo, fabricant, 3D Warehouse…). S’il a des fichiers à part (textures, .mtl, .bin), choisissez-les tous ensemble, ou son dossier zippé (.zip).</p>
+    <div class="ph-boutons"><label class="btn primary">Choisir le fichier 3D<input type="file" accept="${ACCEPTE}" multiple id="g3-fichier" hidden></label></div>
     <div class="g3-info" hidden>
       <p class="mat-aide g3-origine" hidden></p>
       <p class="mat-aide g3-detail"></p>
@@ -177,6 +190,7 @@ function construireFenetre(){
       <label class="dimrow"><span>Profondeur</span><input type="number" id="g3-p" min="1" max="2000" step="0.5"><span class="unite">cm</span></label>
       <label class="dimrow"><span>Hauteur</span><input type="number" id="g3-h" min="1" max="2000" step="0.5"><span class="unite">cm</span></label>
       <label class="crans"><input type="checkbox" id="g3-prop" checked> Garder les proportions du modèle</label>
+      <button type="button" class="btn" id="g3-redresser">Redresser (s’il est couché)</button>
       <button type="button" class="btn primary wide" id="g3-ajouter">Ajouter à la maquette</button>
     </div>
     <p class="ph-message" role="status"></p></div>`;
@@ -185,9 +199,10 @@ function construireFenetre(){
   q('.fermer').onclick=()=>ouvrirImport(false);
   fen.addEventListener('keydown',e=>{ e.stopPropagation(); if(e.key==='Escape') ouvrirImport(false); });
   fen.addEventListener('pointerdown',e=>{ if(e.target===fen) ouvrirImport(false); });
-  q('#g3-fichier').onchange=e=>{ const f=e.target.files?.[0]; if(f) prendre(f); e.target.value=''; };
+  q('#g3-fichier').onchange=e=>{ const l=[...(e.target.files||[])]; if(l.length) prendreFichiers(l); e.target.value=''; };
   fen.addEventListener('dragover',e=>e.preventDefault());
-  fen.addEventListener('drop',e=>{ e.preventDefault(); const f=[...(e.dataTransfer?.files||[])][0]; if(f) prendre(f); });
+  fen.addEventListener('drop',e=>{ e.preventDefault(); const l=[...(e.dataTransfer?.files||[])]; if(l.length) prendreFichiers(l); });
+  q('#g3-redresser').onclick=redresser;
   q('#g3-unite').onchange=()=>majDims();
   for(const k of ['l','p','h']){ q('#g3-'+k).oninput=()=>majDims(k); q('#g3-'+k).addEventListener('keydown',e=>{ e.stopPropagation(); if(e.key==='Enter') e.target.blur(); }); }
   q('#g3-nom').addEventListener('keydown',e=>e.stopPropagation());
