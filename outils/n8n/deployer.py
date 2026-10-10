@@ -187,9 +187,9 @@ else:
 # POST /webhook/maison3d-catalogue (texte JSON) : verifier → {nom} ; telecharger {id} → {url, taille} (adresse temporaire du
 # .glb) ; fichier {url} → le .glb lui-même. Clé Sketchfab : identifiant « Sketchfab Maison3D » (type « Header Auth » :
 # Name = Authorization, Value = Token <clé API Sketchfab>) créé par Mauro dans n8n : SKETCHFAB_CRED=<id> (sans lui : non publié).
-SKETCHFAB_CRED=os.environ.get('SKETCHFAB_CRED','')
+SKETCHFAB_CRED=os.environ.get('SKETCHFAB_CRED','mBhIxdQpUfrxwStl')
 if SKETCHFAB_CRED:
-  SKF={'httpHeaderAuth':{'id':SKETCHFAB_CRED,'name':os.environ.get('SKETCHFAB_NOM','Sketchfab Maison3D')}}
+  SKF={'httpHeaderAuth':{'id':SKETCHFAB_CRED,'name':os.environ.get('SKETCHFAB_NOM','Sketchfab Maison3D (Token)')}}
   idc=lambda nom:str(uuid.uuid5(uuid.NAMESPACE_DNS,'m3dcat-'+nom))
   def codeC(nom,f,x,y,avecLib=False): return {'id':idc(nom),'name':nom,'type':'n8n-nodes-base.code','typeVersion':2,'position':[x,y],'parameters':{'jsCode':((lib if avecLib else '')+lire(f)).replace('__SECRET__',sec)}}
   def siC(nom,x,y,expr): n=si(nom,x); n['id']=idc(nom); n['position']=[x,y]; n['parameters']['conditions']['conditions'][0]['leftValue']=expr; return n
