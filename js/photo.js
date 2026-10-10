@@ -249,10 +249,13 @@ async function lancerIA(){
 let tripoEnCours=false, largeurSaisie=false;
 async function demanderTripo(){
   if(!src||tripoEnCours) return;
-  const t=fen.querySelector('.ph-tripo'), s=t.querySelector('.ph-solde'); t.hidden=false; s.textContent=' (solde : …)';
+  const t=fen.querySelector('.ph-tripo'), s=t.querySelector('.ph-solde'), ok=t.querySelector('#ph-tripo-ok'); t.hidden=false; s.textContent=' (solde : …)';
   const r=await soldeTripo();
   s.textContent=r.erreur?'':' (solde : '+Math.floor(r.solde).toLocaleString('fr-FR')+' crédits)';
+  // solde vide : rien n'est envoyé (les crédits de l'application web Tripo ne servent pas pour l'API)
+  ok.disabled=!r.erreur&&r.solde<=0;
   if(r.erreur) dire(r.erreur,true);
+  else if(r.solde<=0) dire('Plus de crédits API chez Tripo : rechargez sur developers.tripo3d.ai (Billing). Les crédits du site Tripo ne servent pas ici.',true);
 }
 async function lancerTripo(){
   if(!src||tripoEnCours) return; tripoEnCours=true;

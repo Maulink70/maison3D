@@ -134,9 +134,9 @@ r=req('POST',B+'/'+iIA+'/activate'); print('workflow',iIA,'(IA) actif',r.get('ac
 # ---------- workflow « Maison3D Tripo » (étape 4) : vrai modèle 3D d'après une photo, par Tripo (API v3) ----------
 # POST /webhook/maison3d-tripo (texte JSON) : solde → {solde} ; demarrer {image} → {tache} ; suivre {tache} → {etat,
 # progres} ou, prêt, le fichier GLB lui-même (en-tête X-Tripo-Credits = crédits consommés).
-# Clé Tripo : identifiant « Tripo Maison3D » (type « Bearer Auth », la clé seule) créé par Mauro dans n8n :
-# TRIPO_CRED=<id> python3 outils/n8n/deployer.py (sans lui, ce workflow n'est pas publié).
-TRIPO_CRED=os.environ.get('TRIPO_CRED','')
+# Clé Tripo : identifiant « Tripo Maison3D » (type « Bearer Auth », la clé secrète seule) créé par Mauro dans n8n,
+# id OI1DeZBZpvIQKGwE ; une autre clé : TRIPO_CRED=<id> python3 outils/n8n/deployer.py (TRIPO_CRED= vide : non publié).
+TRIPO_CRED=os.environ.get('TRIPO_CRED','OI1DeZBZpvIQKGwE')
 if TRIPO_CRED:
   TRIPO={'httpBearerAuth':{'id':TRIPO_CRED,'name':os.environ.get('TRIPO_NOM','Tripo Maison3D')}}
   ident=lambda nom:str(uuid.uuid5(uuid.NAMESPACE_DNS,'m3dtripo-'+nom))
