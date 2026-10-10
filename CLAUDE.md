@@ -281,6 +281,7 @@ Vercel, relié à GitHub : projet « maison3d » (`prj_xamwNtiD0YBKAkVO3DebYhOWM
 - Secret réseau `Claude kie` injecté par le proxy pour `api.kie.ai` et `kieai.redpandaai.co`.
 - Domaines autorisés : n8n, kie.ai, Vercel (`*.vercel.app`), Familia, CDN (jsdelivr, cdnjs, unpkg), Google Fonts, Airtable, Sketchfab, Poly Haven, GitHub. Si un domaine manque : l'ajouter dans l'environnement Maulink, puis **ouvrir une nouvelle session** (le réglage ne s'applique pas aux sessions déjà ouvertes).
 - Au début de chaque session, tester les accès réseau utiles par curl avant d'annoncer quoi que ce soit.
+- **Ne jamais toucher aux workflows n8n existants de Mauro** (Recettes, Candidatures, Chatbot, CometAPI… : consigne du 10 octobre 2026) : les lire au besoin, jamais les modifier, activer, désactiver ni supprimer. Maison3D a ses propres workflows (« Maison3D API »).
 
 ### Ordre de construction (livrer et faire valider étape par étape)
 1. **Navigation et vues** : modes séparés, Aller à, toucher au sol, vitesse, portes, rotation libre des meubles, masquage par niveau, isoler une pièce, murs transparents, caméras mémorisées, vitres, murs pleins, calques, plan 2D, règle de mesure, surfaces, chargement progressif, impression.
