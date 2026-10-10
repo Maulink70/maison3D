@@ -225,8 +225,11 @@ export function initCalques(){
   const pied=document.createElement('div'); pied.className='menu-pied';
   const re=document.createElement('button'); re.type='button'; re.id='cq-reafficher'; re.className='btn';
   re.onclick=()=>{ masquees.clear(); garder(); majMenu(); };
+  // tout décocher (demande de Mauro du 10 octobre 2026) : toutes les cases, lumière normale, vue éclatée à 0
+  const raz=document.createElement('button'); raz.type='button'; raz.id='cq-raz'; raz.className='btn'; raz.textContent='Tout décocher';
+  raz.onclick=()=>{ for(const [k] of OPTIONS) etat[k]=false; etat.lumiere='normale'; etat.eclat=0; garder(); majMenu(); };
   const aide=document.createElement('p'); aide.textContent='Touchez une cote pour la masquer.';
-  pied.append(re,aide); menu.append(pied);
+  pied.append(raz,re,aide); menu.append(pied);
   function majMenu(){ re.hidden=!masquees.size; re.textContent=`Réafficher les cotes masquées (${masquees.size})`; for(const [k] of OPTIONS) $('cq-'+k).checked=!!etat[k];
     for(const b of menu.querySelectorAll('[data-lumiere]')) b.setAttribute('aria-pressed',String((etat.lumiere||'normale')===b.dataset.lumiere));
     const ok=app.mode==='orbit'&&app.level==='all', r=$('cq-eclat'); r.disabled=!ok; r.value=String(+etat.eclat||0);
