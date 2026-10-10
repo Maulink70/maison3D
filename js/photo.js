@@ -265,7 +265,8 @@ async function lancerTripo(){
   tripoEnCours=false; boutons.forEach(b=>b.disabled=false);
   if(r.erreur){ dire(r.erreur,true); return; }
   ouvrirPhoto(false); ouvrirImport(true);
-  await importerModele(new File([r.blob],'tripo.glb',{type:'model/gltf-binary'}),{nom,largeur:L,
+  // Tripo exporte l'avant du modèle vers +x (export_orientation par défaut) : un quart de tour pour le mettre vers +z
+  await importerModele(new File([r.blob],'tripo.glb',{type:'model/gltf-binary'}),{nom,largeur:L,tourner:-Math.PI/2,
     message:'Modèle 3D créé par Tripo'+(r.credits?` (${r.credits} crédits)`:'')+'. Vérifiez les dimensions (cm), puis « Ajouter ».'});
 }
 async function ajouter(){

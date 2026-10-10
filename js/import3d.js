@@ -93,10 +93,10 @@ function majDims(depuis){
   const v=lireCm('#g3-'+depuis); if(!v) return; const k=v/100/({l:w,p,h}[depuis]);
   for(const [q,x] of [['l',w],['p',p],['h',h]]) if(q!==depuis) fen.querySelector('#g3-'+q).value=String(Math.round(x*k*1000)/10);
 }
-async function prendre(f){
+async function prendre(f,tourner=0){
   if(!f||!/\.glb$/i.test(f.name)){ dire('Choisissez un fichier .glb (Tripo : « Download », format GLB).',true); return; }
   dire('Lecture du fichier…'); fen.querySelector('.g3-info').hidden=true;
-  try{ const scene=await lire(await f.arrayBuffer()); const b=boite(scene), s=b.getSize(new THREE.Vector3());
+  try{ const scene=await lire(await f.arrayBuffer()); scene.rotation.y+=tourner; const b=boite(scene), s=b.getSize(new THREE.Vector3());
     if(b.isEmpty()||!(s.x>0)) throw new Error('vide');
     let tri=0, tex=new Set(); scene.traverse(o=>{ if(o.isMesh){ const g=o.geometry; tri+=(g.index?g.index.count:g.attributes.position.count)/3; for(const m of [].concat(o.material)) if(m.map) tex.add(m.map); } });
     charge={scene,d:[s.x,s.y,s.z],nom:f.name.replace(/\.glb$/i,'').replace(/[_-]+/g,' ').slice(0,60),taille:f.size};
@@ -106,10 +106,10 @@ async function prendre(f){
     majDims(); fen.querySelector('.g3-info').hidden=false; dire('Vérifiez les dimensions (en cm), puis « Ajouter ».');
   }catch(e){ charge=null; dire('Ce fichier .glb n’a pas pu être lu.',true); }
 }
-// modèle reçu d'ailleurs (Tripo, depuis le panneau photo) : lu comme un fichier choisi, nom et largeur repris (proportions
-// du modèle gardées)
-export async function importerModele(f,{nom,largeur,message}={}){
-  await prendre(f); if(!charge) return false;
+// modèle reçu d'ailleurs (Tripo, depuis le panneau photo) : lu comme un fichier choisi, tourné si son avant n'est pas vers
+// +z comme les meubles du site, nom et largeur repris (proportions du modèle gardées)
+export async function importerModele(f,{nom,largeur,message,tourner=0}={}){
+  await prendre(f,tourner); if(!charge) return false;
   if(nom) fen.querySelector('#g3-nom').value=nom;
   if(largeur){ fen.querySelector('#g3-prop').checked=true; fen.querySelector('#g3-l').value=String(largeur); majDims('l'); }
   if(message) dire(message);
