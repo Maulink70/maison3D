@@ -546,3 +546,9 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
 .recu-produit img{width:96px;height:96px;object-fit:contain;background:#fff;border-radius:8px;border:1px solid var(--line)}
 .recu-produit div{display:grid;gap:3px}
 #recu-page{text-decoration:none;justify-self:start}
+.ph-recents{display:grid;gap:6px;margin-top:4px;justify-items:start}
+.ph-recents-liste{display:grid;gap:6px;width:100%}
+.ph-recents-liste[hidden]{display:none}
+.ph-recents-liste ul{list-style:none;margin:0;padding:0;display:grid;gap:4px}
+.ph-recents-liste li{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:4px 0;border-bottom:1px solid var(--line);font-size:13px}
+.ph-recents-liste li span{min-width:0;overflow-wrap:anywhere}

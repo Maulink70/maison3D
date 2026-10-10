@@ -10,6 +10,8 @@ if(!c||typeof c!=='object') return refus('Demande illisible');
 const moi=lireJeton(c.jeton); if(!moi) return refus('Connexion nécessaire',401);
 const API='https://openapi.tripo3d.ai/v3';
 if(c.action==='solde') return [{json:{op:'solde',req:{method:'GET',url:API+'/account/balance'}}}];
+// modèles récents (liste de Tripo : date, type, crédits, numéro de tâche) : un modèle perdu côté site se reprend par « suivre »
+if(c.action==='recents') return [{json:{op:'solde',quoi:'recents',req:{method:'GET',url:API+'/account/usage'}}}];
 if(c.action==='demarrer'){
   const m=typeof c.image==='string'&&c.image.length<=14000000&&c.image.match(/^data:image\/(png|jpeg);base64,([A-Za-z0-9+/=]+)$/);
   if(!m) return refus('Image refusée (png ou jpeg, 10 Mo au plus)');
