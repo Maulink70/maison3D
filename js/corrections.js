@@ -104,20 +104,20 @@ function repereUVMur(o,zMur){
 
 // Fenêtre de la salle de bain du rez : dans le modèle, de 0,89 à 1,26 m dans le mur carrelé de la baignoire (z = -28,00) ;
 // en réalité au-dessus du carrelage, de 1,26 à 1,87 m, dans le pan nord du toit (photos calées, 11 octobre 2026).
-// L'ancien trou est carrelé, le pan du toit (face intérieure, peau extérieure) est percé, avec un ébrasement intérieur
+// L'ancien trou est carrelé (au nu du mur), le pan du toit (face intérieure, peau extérieure) est percé, avec un ébrasement intérieur
 // (dessus, côtés) et une petite lucarne dehors (joues, toit) ; la fenêtre elle-même est refaite par fenetres.js
 export const FEN_SDB={x0:11.738, x1:13.093, y0:1.26, y1:1.87, yAncien:0.89, zMur:-27.998, zInt:-27.799};
 const zPenteInt=y=>-27.799+(y-1.26)*0.50088, zPenteExt=y=>-28.166+(y-1.26)*0.5;   // pan nord : face intérieure, peau extérieure
 function fenetreSalleDeBain(rez,mur,carrelage){
   const F=FEN_SDB, faceDe=(pts,n)=>{ const v=new THREE.Vector3().subVectors(pts[1],pts[0]).cross(new THREE.Vector3().subVectors(pts[2],pts[0])).normalize(); return v.dot(n)>0.99; };
   let murs=[]; rez.traverse(o=>{ if(o.isMesh&&o.material===mur) murs.push(o); });
-  // 1. ancien trou : son tableau (x = 11,738) et la face cachée à z = -27,799 (1,26 → 1,55 m, elle serait dans la nouvelle fenêtre)
-  for(const o of murs) neutraliser(o,pts=>pts.every(q=>Math.abs(q.x-F.x0)<0.002&&q.y>F.yAncien-0.002&&q.y<F.y0+0.002&&q.z>F.zMur-0.002&&q.z<F.zInt+0.002)
-    ||pts.every(q=>Math.abs(q.z-F.zInt)<0.002&&q.y>F.y0-0.002&&q.y<1.552&&q.x>F.x0-0.002)&&faceDe(pts,V(0,0,1)));
-  //    carrelage dans le même calepinage côté pièce, peinture côté dehors
+  // 1. ancien trou : la face cachée à z = -27,799 (1,26 → 1,55 m) partirait dans la nouvelle fenêtre : neutralisée
+  for(const o of murs) neutraliser(o,pts=>pts.every(q=>Math.abs(q.z-F.zInt)<0.002&&q.y>F.y0-0.002&&q.y<1.552&&q.x>F.x0-0.002)&&faceDe(pts,V(0,0,1)));
+  //    carrelage au nu du mur (z = -27,799, comme à gauche et à droite : le creux de l'ancienne fenêtre reste fermé dans le mur,
+  //    son tableau gardé ; au fond, il ouvrait l'épaisseur du mur ouest, que le plan comptait alors comme une pièce), peinture dehors
   const rect=(x0,x1,y0,y1,z,sens)=>sens>0?[[V(x0,y0,z),V(x1,y0,z),V(x1,y1,z)],[V(x0,y0,z),V(x1,y1,z),V(x0,y1,z)]]:[[V(x0,y0,z),V(x1,y1,z),V(x1,y0,z)],[V(x0,y0,z),V(x0,y1,z),V(x1,y1,z)]];
-  const uv=carrelage?repereUVMur(carrelage,F.zMur):null;
-  if(carrelage) carrelage.parent.attach(maillage(rect(F.x0,F.x1,F.yAncien,F.y0,F.zMur,1),carrelage.material,uv));
+  const uv=carrelage?repereUVMur(carrelage,F.zInt):null;
+  if(carrelage) carrelage.parent.attach(maillage(rect(11.308,F.x1,F.yAncien,F.y0,F.zInt,1),carrelage.material,uv));   // depuis le mur ouest de la pièce : mur plat, comme sur la photo
   rez.attach(maillage(rect(F.x0,F.x1,F.yAncien,F.y0,F.zMur,-1),mur));
   // 2. pan du toit percé : face intérieure et peau extérieure (jusqu'au toit de la lucarne, 2 mm au-dessus du cadre)
   const r={x0:F.x0,x1:F.x1,y0:F.y0,y1:F.y1}, rExt={...r,y1:F.y1+0.002};

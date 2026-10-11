@@ -66,11 +66,11 @@ function devant(hits,d){ return hits.some(h=>!h.face||nf.copy(h.face.normal).app
 // marches ; mi-hauteur ; tête). Meubles : sept hauteurs, des pieds de table basse à la tête (le tapis ne gêne pas).
 // marge : distance gardée devant l'obstacle
 const H_MURS=[0.45,1.0,EYE+0.05], H_MEUBLES=[0.12,0.3,0.45,0.7,1.0,1.3,EYE+0.05];
-export function bloque(v,marge=0.28,avecMeubles=true){
+export function bloque(v,marge=0.28,avecMeubles=true,margeMurs=marge){
   const {camera,colliders,fenetres}=app, len=v.length(), d=v.clone().normalize();
   const autres=[...obstaclesPortes(),...fenetres.filter(visible)];
   for(const h of H_MURS){
-    rc.set(o.set(camera.position.x,groundY+h,camera.position.z),d); rc.far=len+marge;
+    rc.set(o.set(camera.position.x,groundY+h,camera.position.z),d); rc.far=len+margeMurs;
     if(rc.intersectObjects(colliders,false).length||rc.intersectObjects(autres,false).length) return true;
   }
   if(!avecMeubles) return false;
@@ -86,21 +86,23 @@ export function bloque(v,marge=0.28,avecMeubles=true){
 // de 22 cm d'un mur, d'une vitre ou d'une porte sur le côté, sauf s'il en éloigne (on peut toujours se dégager)
 const COTE=0.22, nCote=new THREE.Vector3(), dCote=new THREE.Vector3(), qCote=new THREE.Vector3();
 function cote(p,d,obst){ rc.set(o.set(p.x,groundY+0.7,p.z),d); rc.far=COTE+0.05; const h=rc.intersectObjects(obst,false)[0]; return h?h.distance:Infinity; }
-function avancer(v,marge,avecMeubles=true){
-  if(!v.length()||bloque(v,marge,avecMeubles)) return false;
+function avancer(v,marge,avecMeubles=true,margeMurs=marge){
+  if(!v.length()||bloque(v,marge,avecMeubles,margeMurs)) return false;
   const c=app.camera.position, obst=[...app.colliders,...obstaclesPortes(),...app.fenetres.filter(visible)];
   nCote.set(-v.z,0,v.x).normalize(); qCote.copy(c).add(v);
   for(const s of [1,-1]){ dCote.copy(nCote).multiplyScalar(s); const apres=cote(qCote,dCote,obst); if(apres<COTE&&apres<cote(c,dCote,obst)-0.001) return false; }
   c.add(v); return true;
 }
 
-// Après une téléportation : on s'écarte des murs et des meubles trop proches (40 cm), pour ne pas avoir le nez dessus
+// Après une téléportation : on s'écarte des murs et des meubles trop proches (60 cm ; 40 cm jusqu'au 11 octobre 2026,
+// on se retrouvait le nez au mur), pour ne pas avoir le nez dessus
+const DEGAGE=0.6;
 function degager(){
   const {camera,colliders,fenetres}=app, obst=[...colliders,...obstaclesPortes(),...fenetres.filter(visible),...meubles(1)], pousse=new THREE.Vector3();
   for(let k=0;k<12;k++){ const a=k*Math.PI/6, d=new THREE.Vector3(Math.sin(a),0,Math.cos(a));
-    for(const h of [0.45,1.0,EYE]){ rc.set(o.set(camera.position.x,groundY+h,camera.position.z),d); rc.far=0.4;
-      const hit=rc.intersectObjects(obst,false)[0]; if(hit){ pousse.addScaledVector(d,-(0.4-hit.distance)); break; } } }
-  if(pousse.length()>0.4) pousse.setLength(0.4);
+    for(const h of [0.45,1.0,EYE]){ rc.set(o.set(camera.position.x,groundY+h,camera.position.z),d); rc.far=DEGAGE;
+      const hit=rc.intersectObjects(obst,false)[0]; if(hit){ pousse.addScaledVector(d,-(DEGAGE-hit.distance)); break; } } }
+  if(pousse.length()>DEGAGE) pousse.setLength(DEGAGE);
   if(pousse.length()>0.01&&!bloque(pousse,0.05)) camera.position.add(pousse);
 }
 
@@ -110,13 +112,23 @@ export function solSous(p){
   const h=rc.intersectObjects(app.floors,false)[0];
   return h&&Math.abs(h.point.y-p.y)<0.08?h.point.y:null;
 }
-// Toucher bref sur le sol : un pas (70 cm) vers le point touché, en douceur (accélération, ralentissement à l'arrivée) ;
-// arrêt à 55 cm d'un mur, d'une porte fermée ou d'un meuble (Mauro : « 1 clic = 1 pas »)
-export const PAS=0.7;
+// Toucher bref : un pas (70 cm) vers le point touché, en douceur (accélération, ralentissement à l'arrivée) ; arrêt à 80 cm
+// d'un mur, d'une vitre ou d'une porte fermée, à 55 cm d'un meuble (Mauro : « 1 clic = 1 pas »). Un mur ou un meuble
+// touché (pas de sol sous le point) : le pas va vers lui, au sol ; si l'on est déjà trop près pour avancer, on recule d'un
+// pas (Mauro, 11 octobre 2026 : « plaqué au mur, dans l'impossibilité de bouger » : face à un mur, on ne voit plus le sol)
+export const PAS=0.7, ARRET_MUR=0.8, ARRET_MEUBLE=0.55;
 export function glisserVers(p){
-  const y=solSous(p); if(y===null) return false;
-  const c=app.camera.position, d=new THREE.Vector3(p.x-c.x,0,p.z-c.z); if(d.length()>PAS) d.setLength(PAS);
-  cible=new THREE.Vector3(c.x+d.x,y,c.z+d.z); vitesse=0; return true;
+  const c=app.camera.position, sol=solSous(p), d=new THREE.Vector3(p.x-c.x,0,p.z-c.z);
+  if(d.length()<0.05) return false; if(d.length()>PAS) d.setLength(PAS);
+  if(sol===null&&bloque(d.clone().setLength(0.15),ARRET_MEUBLE,true,ARRET_MUR)){   // à moins de 95 cm du mur touché
+    d.negate(); if(bloque(d.clone().setLength(0.05),0.3)) return false; }
+  cible=new THREE.Vector3(c.x+d.x,sol??groundY,c.z+d.z); vitesse=0; return true;
+}
+// Zoom arrière au-delà du champ le plus large (95°) : on recule d'autant, la perspective reste juste (Mauro, 11 octobre 2026)
+export function reculer(m){
+  if(!(m>0)) return; cible=null;
+  const v=new THREE.Vector3(Math.sin(yaw),0,Math.cos(yaw)).multiplyScalar(Math.min(m,0.5));
+  avancer(v,0.3)||avancer(v.multiplyScalar(0.5),0.3)||avancer(v.multiplyScalar(0.5),0.3);
 }
 // Appui long sur le sol : téléportation (même dans une autre pièce visible, ou en bas depuis la mezzanine)
 export function teleporter(p){
@@ -140,7 +152,7 @@ export function walk(dt){
     const d=new THREE.Vector3(cible.x-camera.position.x,0,cible.z-camera.position.z), dist=d.length();
     if(dist<0.03) cible=null;
     else { const k=app.vitesse; vitesse=Math.min(1.6*k,(0.3+dist*1.3)*k,vitesse+2.5*k*dt); const pas=Math.min(dist,vitesse*dt);
-      if(!avancer(d.setLength(pas),0.55)) cible=null; }
+      if(!avancer(d.setLength(pas),ARRET_MEUBLE,true,ARRET_MUR)) cible=null; }
   }
   rc.set(o.set(camera.position.x,groundY+0.75,camera.position.z),down); rc.far=4;
   const h=rc.intersectObjects(floors,false)[0];

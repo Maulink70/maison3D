@@ -3,7 +3,7 @@ import * as THREE from 'three';
 import {app, $, css, champVisite} from './app.js';
 import {chargerModele} from './modele.js';
 import {initVues, demarrerVues} from './vues.js';
-import {initVisite, walk, regarder, teleporter, solSous} from './visite.js';
+import {initVisite, walk, regarder, teleporter, solSous, reculer} from './visite.js';
 import {initEdition, toucher, viser, buildList, select} from './edition.js';
 import {initSauvegarde, restore} from './sauvegarde.js';
 import {majPortes} from './portes.js';
@@ -41,16 +41,18 @@ const marque=new THREE.Mesh(new THREE.RingGeometry(0.16,0.25,40),new THREE.MeshB
 marque.rotation.x=-Math.PI/2; marque.renderOrder=10; marque.visible=false; marque.raycast=()=>{}; app.scene.add(marque);
 
 // Zoom en 1re personne : molette (PC) ou pincement à deux doigts (tablette) ; on change le champ de vision
-// (champVisite : 35° à 95° en largeur), on ne bouge pas : zoomer en arrière montre plus de la pièce
+// (champVisite : 35° à 95° en largeur) ; au-delà de 95°, le zoom arrière fait reculer (perspective juste, on se décolle d'un mur)
+const LARGE=95;
+function zoomVisite(f,avant){ if(f>LARGE&&f>avant) reculer(2*Math.log(f/Math.max(LARGE,avant))); champVisite(f); }
 const {canvas}=app;
 // calage d'une photo (calage.js) : le zoom règle l'angle de vue de la photo
-canvas.addEventListener('wheel',e=>{ if(app.mode!=='walk') return; e.preventDefault(); const k=Math.exp(e.deltaY*0.0012); if(calageActif()) zoomCalage(fovCalage()*k); else champVisite(app.fovVisite*k); },{passive:false});
+canvas.addEventListener('wheel',e=>{ if(app.mode!=='walk') return; e.preventDefault(); const k=Math.exp(e.deltaY*0.0012); if(calageActif()) zoomCalage(fovCalage()*k); else zoomVisite(app.fovVisite*k,app.fovVisite); },{passive:false});
 const doigts=new Map(); let pince=null;
 const ecart=()=>{ const [a,b]=[...doigts.values()]; return Math.hypot(a.x-b.x,a.y-b.y); };
 canvas.addEventListener('pointerdown',e=>{ doigts.set(e.pointerId,{x:e.clientX,y:e.clientY});
-  if(doigts.size===2&&app.mode==='walk') pince={d:ecart(),fov:calageActif()?fovCalage():app.fovVisite}; });
+  if(doigts.size===2&&app.mode==='walk') pince={d:ecart(),fov:calageActif()?fovCalage():app.fovVisite,f:app.fovVisite}; });
 canvas.addEventListener('pointermove',e=>{ if(!doigts.has(e.pointerId)) return; doigts.set(e.pointerId,{x:e.clientX,y:e.clientY});
-  if(pince&&doigts.size===2){ const f=pince.fov*pince.d/Math.max(20,ecart()); if(calageActif()) zoomCalage(f); else champVisite(f); } });
+  if(pince&&doigts.size===2){ const f=pince.fov*pince.d/Math.max(20,ecart()); if(calageActif()) zoomCalage(f); else { zoomVisite(f,pince.f); pince.f=f; } } });
 for(const t of ['pointerup','pointercancel']) canvas.addEventListener(t,e=>{ doigts.delete(e.pointerId); if(doigts.size<2) pince=null; });
 
 // Pointeur : glisser = regarder (1re personne) ; toucher bref = porte, sol ou meuble selon le mode ;
