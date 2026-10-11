@@ -107,7 +107,7 @@ function majPieces(){
   for(const b of fen.querySelectorAll('[data-onglet]')){ const k=b.dataset.onglet, n=k==='rendus'?lesRendus().length:k==='photos'?lesPhotos().length:0;
     b.textContent=ONGLETS[k]+(n?' · '+n:''); b.setAttribute('aria-pressed',String(k===onglet)); }
   const bouton=(id,texte)=>{ const n=l.filter(p=>!id||p.piece===id).length, b=el('button',{type:'button',class:'cat-idee','aria-pressed':String(filtre===id),'data-piece':id||''},texte+(n?' · '+n:''));
-    b.onclick=()=>{ filtre=id; if(id) fen.querySelector('#gal-piece').value=id; majPieces(); majGrille(); }; return b; };
+    b.onclick=()=>{ filtre=id; if(id) fen.querySelector('#gal-piece').value=id; majMode(); majPieces(); majGrille(); }; return b; };
   z.append(bouton(null,'Toutes'));
   for(const p of PIECES) z.append(bouton(p.id,p.nom));
 }
@@ -129,7 +129,7 @@ function carteRendu(r,i,l){
 function majGrille(){
   if(!fen) return; const g=fen.querySelector('.gal-grille'); g.replaceChildren();
   if(onglet==='rendus'){ const l=rendusVisibles();
-    if(!l.length){ g.append(el('p',{class:'vide'},'Aucun rendu'+(filtre?' pour cette pièce':'')+'. Onglet « Photos » : touchez une photo, puis « Faire un montage » (en Éditer).')); return; }
+    if(!l.length){ g.append(el('p',{class:'vide'},'Aucun rendu'+(filtre?' pour cette pièce':'')+'. Onglet « Photos » : touchez une photo, puis « Faire un montage ».')); return; }
     l.forEach((r,i)=>g.append(carteRendu(r,i,l))); return; }
   const l=visibles();
   if(!l.length){ g.append(el('p',{class:'vide'},filtre?'Aucune photo de cette pièce.'+(onglet==='preparer'?' Ajoutez-en ci-dessus.':app.edition?' Ajoutez-en dans l’onglet « Préparer ».':''):'Aucune photo.')); return; }
@@ -147,8 +147,8 @@ function majMode(){
   if(onglet==='rendus'){ aide.textContent='Les rendus réalistes de chaque pièce, les plus récents d’abord : touchez-en un pour le voir en grand, en avant / après.'; return; }
   if(onglet==='preparer'){ const n=lesPhotos().length, c=lesPhotos().filter(p=>p.calage).length;
     aide.textContent=`À faire une fois pour toutes : ajouter les photos de chaque pièce et caler la maquette dessus (${c} calée${c>1?'s':''} sur ${n}). Une photo calée apparaît dans la visite 3D (icône d’appareil photo) et place à l’endroit voulu les meubles mis en 3D depuis un montage.`; return; }
-  aide.textContent=app.edition?'Touchez une photo, puis « Faire un montage » : posez-y des meubles (images de produits), effacez ce que vous ne voulez plus, et lancez un rendu réaliste.'
-    :'Touchez une photo pour la voir en grand. Pour faire un montage (rendu réaliste), passez en « Éditer ».';
+  aide.textContent=(filtre?`Les photos de « ${nomPiece(filtre)} » (les autres pièces : pastilles ci-dessus). `:'')
+    +'Touchez une photo : « Voir dans la maquette » (photo calée) ou « Faire un montage » (votre demande écrite, des meubles posés sur la photo, des zones à effacer, puis un rendu réaliste).';
 }
 function construireFenetre(){
   fen=el('div',{id:'galerie-fenetre',class:'fenetre',role:'dialog','aria-modal':'true','aria-label':'Photo réaliste'});
@@ -286,7 +286,7 @@ function montrerRendu(p){
   const t=q('#vis-telecharger'); t.hidden=!fini; t.removeAttribute('href');
   if(fini) imageRendu(p).then(u=>{ if(courante()===p&&u){ img.src=u; img.classList.remove('flou'); t.href=u; t.download='Maison3D '+p.titre.replace(/[\\/:*?"<>|]+/g,' ')+'.jpg'; } });
   q('#vis-voir').hidden=q('#vis-caler').hidden=true; q('.vis-edition').hidden=true;
-  q('.vis-avap').hidden=!(fini&&p.avant); q('#vis-image').hidden=!(app.edition&&fini); q('#vis-image').textContent='Nouveau montage sur ce rendu';
+  q('.vis-avap').hidden=!(fini&&p.avant); q('#vis-image').hidden=!fini; q('#vis-image').textContent='Nouveau montage sur ce rendu';   // le montage ne touche pas la maquette : en Visite aussi
   q('#vis-suppr').hidden=!app.edition; majAvap();
 }
 function montrer(){
@@ -295,7 +295,7 @@ function montrer(){
   if(estRendu(p)){ montrerRendu(p); return; }
   const prep=ctx==='preparer'&&app.edition;
   q('.vis-attente').hidden=true; q('#vis-telecharger').hidden=true; q('.vis-avap').hidden=true; avap='non'; majAvap();
-  q('#vis-image').hidden=!app.edition||prep; q('#vis-image').textContent='Faire un montage'; q('#vis-suppr').hidden=!prep;
+  q('#vis-image').hidden=prep; q('#vis-image').textContent='Faire un montage';   // Visite et Éditer (Mauro, 11 octobre 2026) q('#vis-suppr').hidden=!prep;
   q('.vis-titre strong').textContent=p.nom;
   q('.vis-titre span').textContent=nomPiece(p.piece)+' · '+(idx+1)+' / '+liste.length+(prep?(p.calage?' · maquette calée':' · maquette pas encore calée'):'');
   img.classList.add('flou'); img.src=p.vignette||''; img.alt=p.nom;
@@ -321,5 +321,6 @@ export function faireMontage(p,produit){
 export function voirPhoto(p,l=[p]){ ouvrirVisionneuse(l,Math.max(0,l.indexOf(p)),'photos'); }
 
 export function initGalerie(){
-  $('photos').onclick=e=>{ e.stopPropagation(); ouvrirGalerie(!fen||fen.hidden); };
+  // le bouton ouvre les photos de la pièce où l'on est (1re personne) ou que l'on regarde (maquette, plan) ; toutes sinon
+  $('photos').onclick=e=>{ e.stopPropagation(); if(fen&&!fen.hidden){ ouvrirGalerie(false); return; } ouvrirGalerie(true,pieceIci(),'photos'); };
 }

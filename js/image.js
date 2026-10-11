@@ -168,7 +168,7 @@ function consigne(precisions){
   return L.join('\n');
 }
 async function preparer(){
-  if(!mi) return; if(!app.edition){ dire('Les rendus se lancent en « Éditer » (ils consomment des crédits kie.ai).',true); return; }
+  if(!mi) return;   // en Visite aussi (Mauro, 11 octobre 2026 : le montage ne touche pas la maquette) ; confirmation avant chaque rendu (crédits)
   if(!mi.objets.length&&!mi.zones.length&&!fen.querySelector('#mi-precisions').value.trim()){ dire('Écrivez votre demande (par exemple « ajoute de la décoration dans cette chambre »), ajoutez un objet ou une zone à effacer.',true); fen.querySelector('#mi-precisions').focus(); return; }
   const z=fen.querySelector('.mi-confirmer'), ok=z.querySelector('#mi-ok'); z.hidden=false; ok.disabled=true;
   z.querySelector('.mi-cout').textContent='Préparation…';
