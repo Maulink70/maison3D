@@ -2,7 +2,8 @@
 // sur l'appareil : on ne les retape pas) ; on visite la variante « Actuel » sans pouvoir modifier. Connecté : nom,
 // état de l'enregistrement (envoyé, en cours, hors connexion), changer le mot de passe, sauvegarder les données Airtable
 // sur l'appareil (exporter.js), se déconnecter.
-// Une pastille sur le bouton dit l'état : verte = tout est enregistré, orange = envoi en attente, grise = hors connexion.
+// Une pastille dit l'état : verte = tout est enregistré, orange = envoi en attente, grise = hors connexion ; depuis le
+// 11 octobre 2026, elle est sur la disquette des variantes (variantes.js), le bouton du compte garde l'état (data-etat).
 import {$} from './app.js';
 import {appel, connecte, moi, ouvrirSession, fermerSession} from './api.js';
 import {nommer} from './icones.js';
@@ -15,10 +16,12 @@ const el=(nom,attrs={},texte)=>{ const n=document.createElement(nom); for(const 
 
 // état de l'enregistrement, donné par synchro.js
 export function etatEnregistrement(code,texte){
-  etat={code,texte}; const b=$('compte'); if(!b) return;
+  etat={code,texte}; const v=$('variantes'); if(v) v.dataset.etat=connecte()?code:'';   // pastille sur la disquette (variantes.js)
+  const b=$('compte'); if(!b) return;
   b.dataset.etat=connecte()?code:'';
   if($('cx-etat')) $('cx-etat').textContent=texte;
 }
+export const etatActuel=()=>etat;
 // demande de connexion (par exemple en touchant « Éditer » sans compte)
 export function demanderConnexion(raison,ensuite){ suite=ensuite||null; ouvrir(true,raison); }
 

@@ -1,4 +1,6 @@
-// Variantes nommées (étape 3) : bouton « Variantes » en tête de barre, avec le nom de la variante affichée. Le menu
+// Variantes nommées (étape 3) : bouton « Variantes » en tête de barre. Depuis le 11 octobre 2026 (Mauro : le nom de la
+// variante rendait le bouton trop long), c'est une disquette avec la pastille de l'enregistrement automatique (verte :
+// tout est enregistré) ; le nom de la variante affichée est sous « Appart. Diolly » (#brand-variante). Le menu
 // liste les variantes (qui l'a modifiée en dernier, et quand) ; toucher une variante l'affiche. Connecté : créer une
 // variante (copie de celle affichée), renommer (✎), supprimer (×, deux touchers ; elle reste récupérable dans Airtable,
 // case « Supprimée »). Sans compte : « Actuel » seulement. Liste commune à tous les comptes.
@@ -9,7 +11,7 @@ import {lesVariantes, varianteCourante, afficherVariante, nouvelleListe} from '.
 import {lireDisposition} from './sauvegarde.js';
 import {nommer} from './icones.js';
 import {caler} from './calques.js';
-import {demanderConnexion} from './compte.js';
+import {demanderConnexion, etatActuel} from './compte.js';
 import {comparer} from './comparer.js';
 
 let enEdition=null, aSupprimer=null, message='';
@@ -20,14 +22,18 @@ const quand=t=>{ if(!t) return ''; const d=new Date(t); if(isNaN(d)) return '';
 const dire=(t)=>{ message=t; majMenu(); };
 
 function majBouton(){
-  const b=$('variantes'), v=varianteCourante(); if(!b) return;
-  b.querySelector('.ib-texte').textContent=v?v.nom:'Actuel';
-  nommer(b,'Variante affichée : '+(v?v.nom:'Actuel')+(v?.fixe?' (non modifiable)':connecte()?' (changer, créer, renommer)':''));
+  const b=$('variantes'), v=varianteCourante(), nom=v?v.nom:'Actuel'; if(!b) return;
+  $('brand-variante').textContent=nom;
+  const e=etatActuel(), etat=!connecte()?'':v?.fixe?' · non modifiable':e.code==='ok'?' · tout est enregistré':e.code==='envoi'?' · enregistrement…':e.code==='hors'?' · hors connexion, envoi au retour du réseau':'';
+  nommer(b,'Variantes (enregistrement automatique) : « '+nom+' » affichée'+etat);
 }
 function majMenu(){
   const m=$('variantes-menu'); if(m.hidden) return;
   m.replaceChildren(el('div',{class:'menu-titre'},'Variantes'));
   const liste=lesVariantes(), cour=varianteCourante();
+  // enregistrement automatique : chaque changement part tout seul dans la variante affichée
+  const e=etatActuel(); if(connecte()) m.append(el('p',{class:'var-etat','data-etat':cour?.fixe?'':e.code},cour?.fixe?'« Base » ne se modifie pas : créez-en une copie pour travailler.':
+    (e.code==='ok'?'✓ ':'')+(e.texte||'…')+(e.code==='ok'?' Chaque changement s’enregistre tout seul.':'')));
   if(!liste.length) m.append(el('p',{class:'vide'},'Chargement des variantes…'));
   for(const v of liste){
     const li=el('div',{class:'vue','data-variante':v.id});
@@ -38,7 +44,8 @@ function majMenu(){
       li.append(i,ok); m.append(li); setTimeout(()=>{ i.focus(); i.select(); }); continue;
     }
     const b=el('button',{type:'button',class:'aller-vue'}); if(cour&&v.id===cour.id) b.setAttribute('aria-current','true');
-    b.append(el('span',{},v.nom),el('span',{class:'m2'},v.fixe?'maquette d’origine, non modifiable':v.modifieePar?v.modifieePar+', '+quand(v.modifieeLe):''));
+    const affichee=cour&&v.id===cour.id, qui=v.fixe?'maquette d’origine, non modifiable':v.modifieePar?'modifiée par '+v.modifieePar+', '+quand(v.modifieeLe):'';
+    b.append(el('span',{},v.nom),el('span',{class:'m2'},affichee?'affichée'+(qui?' · '+qui:''):qui));
     b.onclick=async()=>{ if(cour&&v.id===cour.id){ ouvrir(false); return; }
       dire('Chargement de « '+v.nom+' »…'); const ok=await afficherVariante(v.id);
       if(ok){ message=''; ouvrir(false); } else dire('Les derniers changements ne sont pas encore partis (hors connexion) : réessayez quand le réseau revient.'); };
