@@ -40,6 +40,9 @@ switch(ctx.action){
     return refus('Opération inconnue');
   case 'historique':
     if(!estId(corps.variante)) return refus('Variante inconnue');
+    // tout : toutes les lignes, par pages de 100 (sauvegarde des données, 11 octobre 2026) ; sinon les n dernières
+    if(corps.tout) return sortie([{method:'GET',url:url('historique','?'+formule('{Variante id}='+texte(corps.variante))+'&'+tri('Quand','desc')+'&pageSize=100'+
+      (typeof corps.offset==='string'&&/^[\w/.-]{1,200}$/.test(corps.offset)?'&offset='+enc(corps.offset):''))}]);
     return sortie([{method:'GET',url:url('historique','?'+formule('{Variante id}='+texte(corps.variante))+'&'+tri('Quand','desc')+'&maxRecords='+Math.min(100,Math.max(1,corps.n|0||50)))}]);
   case 'motdepasse':
     if(!corps.ancien||!corps.nouveau||String(corps.nouveau).length<6) return refus('Le nouveau mot de passe doit faire au moins 6 caractères');

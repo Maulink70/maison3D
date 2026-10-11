@@ -291,6 +291,9 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
 .cx-raison{color:var(--ink);font-weight:500;margin-bottom:4px}
 .cx-qui,.cx-etat{margin:4px 10px;font-size:13px}
 .cx-etat{color:var(--muted)}
+.cx-sauver-note{margin:0 10px 4px;max-width:300px}
+#cx-sauver-etat{max-width:300px}
+#cx-sauver-etat:empty{display:none}
 #variantes-menu .vue .aller-vue[aria-current]{font-weight:600;color:var(--accent)}
 #variantes-menu button[aria-current]::after{content:"affichée"}
 /* Comparaison de deux variantes : barre verticale à faire glisser, noms des variantes de part et d'autre */

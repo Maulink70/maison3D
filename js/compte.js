@@ -1,6 +1,7 @@
 // Compte (étape 3) : bouton rond en bout de barre. Sans compte : formulaire de connexion (nom et mot de passe, retenus
 // sur l'appareil : on ne les retape pas) ; on visite la variante « Actuel » sans pouvoir modifier. Connecté : nom,
-// état de l'enregistrement (envoyé, en cours, hors connexion), changer le mot de passe, se déconnecter.
+// état de l'enregistrement (envoyé, en cours, hors connexion), changer le mot de passe, sauvegarder les données Airtable
+// sur l'appareil (exporter.js), se déconnecter.
 // Une pastille sur le bouton dit l'état : verte = tout est enregistré, orange = envoi en attente, grise = hors connexion.
 import {$} from './app.js';
 import {appel, connecte, moi, ouvrirSession, fermerSession} from './api.js';
@@ -8,6 +9,8 @@ import {nommer} from './icones.js';
 import {caler} from './calques.js';
 
 let etat={code:'local',texte:''}, suite=null;   // suite : ce qu'on voulait faire (passer en Éditer) avant de se connecter
+const pl=(n,m)=>n+' '+m+(n>1?'s':'');
+let sauve={enCours:false,texte:''};               // sauvegarde des données Airtable en cours (le menu peut être refermé entre-temps)
 const el=(nom,attrs={},texte)=>{ const n=document.createElement(nom); for(const [k,v] of Object.entries(attrs)) n.setAttribute(k,v); if(texte!==undefined) n.textContent=texte; return n; };
 
 // état de l'enregistrement, donné par synchro.js
@@ -58,9 +61,22 @@ function construire(raison){
     if(r.ok){ f.reset(); f.hidden=true; msg.textContent=''; m.querySelector('.cx-etat').textContent='Mot de passe changé.'; }
     else msg.textContent=r.horsLigne?'Pas de connexion au serveur : réessayez plus tard.':(r.erreur||'Impossible de changer le mot de passe');
   };
+  // sauvegarde des données Airtable sur l'appareil (exporter.js, Mauro, 11 octobre 2026) : pas la maquette (GitHub)
+  const bs=el('button',{type:'button',id:'cx-sauver'},'Sauvegarder les données Airtable sur cet appareil');
+  const ns=el('p',{class:'cx-note cx-sauver-note'},'Un fichier .zip : variantes, objets ajoutés, photos, rendus, vues, mesures, historique. Seulement les données d’Airtable : la maquette (le site et le modèle 3D) se sauvegarde depuis GitHub.');
+  const es=el('p',{class:'cx-etat',id:'cx-sauver-etat',role:'status'},sauve.texte);
+  bs.disabled=sauve.enCours;
+  bs.onclick=async()=>{ if(sauve.enCours) return;
+    const dire=t=>{ sauve.texte=t; const e=$('cx-sauver-etat'); if(e) e.textContent=t; };
+    sauve.enCours=true; bs.disabled=true; dire('Préparation…');
+    try{ const {sauvegarderDonnees}=await import('./exporter.js'); const r=await sauvegarderDonnees(dire);
+      dire(`Téléchargé : ${r.nom} (${(r.octets/1048576).toFixed(1).replace('.',',')} Mo · ${pl(r.variantes,'variante')}, ${pl(r.photos,'photo')}, ${pl(r.rendus,'rendu')}, ${pl(r.fichiers,'fichier')})`+
+        (r.manquants.length?` · ${r.manquants.length} fichier${r.manquants.length>1?'s':''} introuvable${r.manquants.length>1?'s':''} (liste dans LISEZMOI.txt)`:'')+'.'); }
+    catch(e){ dire('Sauvegarde impossible : '+(e?.message||e)); }
+    finally{ sauve.enCours=false; const b=$('cx-sauver'); if(b) b.disabled=false; } };
   const sortir=el('button',{type:'button',id:'cx-sortir'},'Se déconnecter');
   sortir.onclick=()=>{ fermerSession(); ouvrir(false); };
-  m.append(bm,f,sortir);
+  m.append(bm,f,bs,ns,es,sortir);
 }
 function majBouton(){ const b=$('compte'); nommer(b,connecte()?'Compte : '+moi():'Se connecter'); b.dataset.etat=connecte()?etat.code:''; b.classList.toggle('connecte',connecte()); }
 

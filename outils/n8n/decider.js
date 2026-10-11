@@ -82,7 +82,8 @@ switch(ctx.action){
     const ids=lignes(0).map(r=>r.id); return sortie({ok:true,effacees:ids.length},effacer('mesures',ids));
   }
   case 'historique':
-    return sortie({ok:true,lignes:lignes(0).map(r=>({id:r.id,texte:r.fields['Résumé']||'',t:Date.parse(r.fields['Quand']||'')||0,qui:r.fields['Personne']||'',ch:json(r.fields['Détail'],[])}))});
+    return sortie({ok:true,lignes:lignes(0).map(r=>({id:r.id,texte:r.fields['Résumé']||'',t:Date.parse(r.fields['Quand']||'')||0,qui:r.fields['Personne']||'',ch:json(r.fields['Détail'],[])})),
+      offset:(lus[0]&&lus[0].body&&lus[0].body.offset)||null});
   case 'fichier': {
     if(c.op==='creer') return sortie({ok:true,creee:'fichier'},[{method:'POST',url:url('fichiers'),body:{records:[{fields:{'Nom':String(c.nom||'fichier').slice(0,120),
       'Type':c.type==='glb'?'glb':'photo','Taille':Math.max(0,+c.taille||0),'Créé par':moi.n,'Créé le':maintenant}}],typecast:true}}]);
