@@ -10,6 +10,7 @@ import {vuePlan, allerVuePlan, niveauDuPlan, style as styleDuPlan, stylePlan} fr
 import {animerVers} from './aller.js';
 import {caler} from './calques.js';
 import {pieceEn} from './pieces.js';
+import {ouvrirPointsVue} from './pointsliste.js';
 
 const CLE='maison3d-cameras';
 let vues=[], aSupprimer=null, enEdition=null;
@@ -89,6 +90,9 @@ export function initCameras(){
   b.onclick=ajouter;
   i.onkeydown=e=>{ e.stopPropagation(); if(e.key==='Enter') ajouter(); if(e.key==='Escape'){ ouvrir(false); $('vues').focus(); } };
   f.append(i,b); m.append(f,el('div',{id:'vues-liste'}));
+  // les points de vue des photos calées (pointsliste.js) : un écran à part
+  const gp=el('div',{class:'menu-groupe'}), bp=el('button',{type:'button',id:'vues-photos'}); bp.append(el('span',{},'📷 Points de vue des photos…'),el('span',{class:'m2'},'photos calées'));
+  bp.onclick=()=>{ ouvrir(false); ouvrirPointsVue(true); }; gp.append(bp); m.append(gp);
   $('vues').onclick=e=>{ e.stopPropagation(); ouvrir(m.hidden); };
   addEventListener('pointerdown',e=>{ if(!m.hidden&&!m.contains(e.target)&&!$('vues').contains(e.target)) ouvrir(false); });
   m.addEventListener('keydown',e=>{ if(e.key==='Escape'){ e.stopPropagation(); ouvrir(false); $('vues').focus(); } });

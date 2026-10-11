@@ -658,6 +658,11 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
 #f-tableau{width:100%;font-size:12.5px;padding:6px 10px}
 .pr-produit a.btn{text-decoration:none;color:inherit}
 
+/* Écran « Points de vue des photos » (pointsliste.js) */
+.pv-aide{margin:0 0 8px;font-size:13px;color:var(--muted)}
+.pv-compte{font-size:12.5px;color:var(--muted)}
+#pv-fenetre .tab-outils{margin-bottom:8px}
+
 /* Mode jeu (PC, jeu.js) : bouton manette dans le coin libre du pavé, viseur au centre de la vue, aide passagère ;
    curseur « Souris » (sensibilité) sous « Vitesse ». Tablette et téléphone : ni bouton ni curseur. */
 #pad #jeu{grid-area:1/1;width:auto;height:auto;color:var(--ink)}

@@ -10,6 +10,7 @@ import {setLevel} from './vues.js';
 import {cadrerPlan} from './plan.js';
 import {caler} from './calques.js';
 import {isoler} from './isoler.js';
+import {ouvrirPointsVue} from './pointsliste.js';
 
 let anim=null;
 const doux=matchMedia('(prefers-reduced-motion: reduce)');
@@ -108,6 +109,10 @@ export function initAller(){
     }
     m.append(g);
   }
+  // les points de vue des photos calées (pointsliste.js) : un écran à part
+  const gp=document.createElement('div'); gp.className='menu-groupe'; const bp=document.createElement('button'); bp.type='button'; bp.id='aller-photos';
+  bp.innerHTML='<span>📷 Points de vue des photos…</span><span class="m2">photos calées</span>'; bp.onclick=()=>{ ouvrir(false); ouvrirPointsVue(true); };
+  gp.append(bp); m.append(gp);
   bouton().onclick=e=>{ e.stopPropagation(); ouvrir(m.hidden); };
   addEventListener('pointerdown',e=>{ if(!m.hidden&&!m.contains(e.target)&&!bouton().contains(e.target)) ouvrir(false); });
   m.addEventListener('keydown',e=>{
