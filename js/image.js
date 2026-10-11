@@ -174,7 +174,7 @@ async function preparer(){
   const z=fen.querySelector('.mi-confirmer'), ok=z.querySelector('#mi-ok'); z.hidden=false; ok.disabled=true;
   z.querySelector('.mi-cout').textContent='Préparation…';
   try{ prep={composee:await composer()}; z.querySelector('img').src=prep.composee; }catch(e){ z.querySelector('.mi-cout').textContent='Préparation impossible : '+(e.message||e); return; }
-  prep.solde=await soldeKie(); remplirModeles(); majCout();
+  prep.solde=await soldeKie(); remplirModeles(); choisirNombre(1); majCout();
 }
 // Modèle de kie.ai pour le rendu (Mauro, 11 octobre 2026) : menu d'après la liste du workflow n8n, choix retenu sur l'appareil
 const CLE_MODELE='maison3d-modele-rendu';
@@ -187,12 +187,17 @@ function remplirModeles(){
   s.replaceChildren(...l.map(m=>el('option',{value:m.id},m.nom)));
   s.value=l.some(m=>m.id===garde)?garde:l[0].id;
 }
+// nombre de rendus des mêmes images (1 à 4, Mauro, 11 octobre 2026) : 1 à chaque ouverture (crédits)
+const nombreChoisi=()=>+(fen.querySelector('.mi-nombre button[aria-pressed="true"]')?.dataset.n||1);
+function choisirNombre(n){ for(const x of fen.querySelectorAll('.mi-nombre button')) x.setAttribute('aria-pressed',String(+x.dataset.n===n)); }
+const virgule=v=>String(+v.toFixed(2)).replace('.',',');
 function majCout(){
-  if(!prep) return; const m=modeleChoisi(), n=nbImages(m), c=coutRendu(m,n), z=fen.querySelector('.mi-confirmer'), ok=z.querySelector('#mi-ok'), solde=prep.solde;
+  if(!prep) return; const m=modeleChoisi(), n=nbImages(m), u=coutRendu(m,n), k=nombreChoisi(), c=u*k, z=fen.querySelector('.mi-confirmer'), ok=z.querySelector('#mi-ok'), solde=prep.solde;
   const coupe=!seule()&&mi.objets.length>n-2?` · ${m.nom} n'accepte que ${m.max} images : ${n-2} objet${n-2>1?'s':''} sur ${mi.objets.length} envoyé${n-2>1?'s':''}`:'';
-  z.querySelector('.mi-cout').textContent=`Lancer le rendu ? Coût : ${String(c).replace('.',',')} crédits kie.ai (≈ ${(c*0.005).toFixed(2).replace('.',',')} $)`
-    +(solde!=null?` · solde : ${Math.floor(solde).toLocaleString('fr-FR')} crédits`:'')+' · environ 1 minute'+coupe;
+  z.querySelector('.mi-cout').textContent=`Coût : ${k>1?k+' × '+virgule(u)+' = ':''}${virgule(c)} crédits kie.ai (≈ ${(c*0.005).toFixed(2).replace('.',',')} $)`
+    +(solde!=null?` · solde : ${Math.floor(solde).toLocaleString('fr-FR')} crédits`:'')+` · environ 1 minute${k>1?', en même temps':''}`+coupe;
   z.querySelector('.mi-note').textContent=m.note||'';
+  ok.textContent=k>1?`Oui, lancer ${k} rendus`:'Oui, lancer le rendu';
   ok.disabled=solde!=null&&solde<c; if(ok.disabled) z.querySelector('.mi-cout').textContent+=' : plus assez de crédits.';
 }
 async function lancer(){
@@ -203,14 +208,18 @@ async function lancer(){
     const m=modeleChoisi(), n=nbImages(m), photo=await reduire(mi.url,2048), images=seule()?[photo.url]:[prep.composee,photo.url,...mi.objets.slice(0,n-2).map(o=>o.img)];
     try{ localStorage.setItem(CLE_MODELE,m.id); }catch{}
     const detail=[...mi.objets.map(o=>`Ajouté (photo) : ${o.nom}${o.L&&o.P&&o.H?` (${o.L} × ${o.P} × ${o.H} cm)`:''}`),...mi.zones.map((_,k)=>`Zone effacée ${k+1}`),...(precisions?[`Demande : ${precisions.slice(0,200)}`]:[]),`Modèle : ${m.nom}`];
-    const r=await demarrerRendu({images,modele:m.id,consigne:consigne(precisions,seule()?0:n-2),ratio:ratioDe(b.image.w,b.image.h),titre:`${b.nom} · montage`,
+    const k=nombreChoisi(), r=await demarrerRendu({images,modele:m.id,nombre:k,consigne:consigne(precisions,seule()?0:n-2),ratio:ratioDe(b.image.w,b.image.h),titre:`${b.nom} · montage`,
       champs:{piece:b.piece,photo:b.photo||'',avant:b.image,variante:'',mode:'image',detail}});
     if(!r.id){ dire(r.erreur,true); ok.disabled=false; return; }
     z.hidden=true; prep=null;
-    dire('Rendu en cours chez kie.ai… (environ 1 minute ; vous pouvez fermer : il arrivera dans les rendus de la pièce)');
-    await suivre(r,s=>{ if(!fen.hidden) dire(`Rendu en cours chez kie.ai… ${s} s`); });
-    if(r.etat==='fini') dire('Rendu prêt : « Photo réaliste », onglet « Rendus », pour le voir en avant / après.');
-    else dire('Le rendu a échoué : '+(r.erreur||'raison inconnue'),true);
+    const lot=r.lot||[r], N=lot.length, refus=r.refusees?` (${r.refusees} refusé${r.refusees>1?'s':''} par kie.ai)`:'';
+    dire((N>1?`${N} rendus en cours chez kie.ai${refus}…`:'Rendu en cours chez kie.ai…')+' (environ 1 minute ; vous pouvez fermer : '+(N>1?'ils arriveront':'il arrivera')+' dans les rendus de la pièce)');
+    let dernier=0; const etat=()=>{ const f=lot.filter(x=>x.etat==='fini').length; return N>1?`${N} rendus en cours chez kie.ai… ${f} / ${N} prêt${f>1?'s':''} · ${dernier} s`:`Rendu en cours chez kie.ai… ${dernier} s`; };
+    await Promise.all(lot.map(x=>suivre(x,s=>{ dernier=Math.max(dernier,s); if(!fen.hidden) dire(etat()); }).then(()=>{ if(!fen.hidden&&N>1) dire(etat()); })));
+    const prets=lot.filter(x=>x.etat==='fini').length;
+    if(prets===N) dire(N>1?`${N} rendus prêts : « Photo réaliste », onglet « Rendus », pour les voir en avant / après.`:'Rendu prêt : « Photo réaliste », onglet « Rendus », pour le voir en avant / après.');
+    else if(prets) dire(`${prets} rendu${prets>1?'s':''} prêt${prets>1?'s':''} sur ${N} (« Photo réaliste », onglet « Rendus ») ; les autres ont échoué : ${lot.find(x=>x.etat!=='fini')?.erreur||'raison inconnue'}`,true);
+    else dire((N>1?'Les rendus ont échoué : ':'Le rendu a échoué : ')+(r.erreur||'raison inconnue'),true);
   }catch(e){ dire('Rendu impossible : '+(e.message||e),true); ok.disabled=false; }
 }
 
@@ -235,8 +244,11 @@ function construire(){
         <p class="mat-aide">Sur la page du produit : copiez son lien (ou l’image : appui long ou clic droit, « Copier l’image »), revenez ici et collez-le. Sur PC, Ctrl+V marche aussi.</p>
       </div>
       <div class="mi-objets"></div>
-      <div class="mi-confirmer" hidden><img alt="Photo avec les objets posés"><div>
-        <label class="mi-modele">Modèle <select id="mi-modele" aria-label="Modèle de kie.ai pour le rendu"></select></label> <span class="mi-note"></span>
+      <div class="mi-confirmer" hidden><img alt="Photo avec les objets posés"><div class="mi-conf">
+        <h3 class="mi-conf-titre">Lancer le rendu réaliste</h3>
+        <div class="mi-conf-ligne"><span class="mi-conf-lib">Modèle</span><select id="mi-modele" aria-label="Modèle de kie.ai pour le rendu"></select></div>
+        <p class="mi-note"></p>
+        <div class="mi-conf-ligne"><span class="mi-conf-lib">Nombre de rendus</span><span class="seg mi-nombre" role="group" aria-label="Nombre de rendus">${[1,2,3,4].map(n=>`<button type="button" data-n="${n}" aria-pressed="${n===1}">${n}</button>`).join('')}</span></div>
         <p class="mi-cout"></p>
         <div class="ph-boutons"><button type="button" class="btn primary" id="mi-ok">Oui, lancer le rendu</button><button type="button" class="btn" id="mi-non">Annuler</button></div></div></div>
       <p class="ph-message" role="status"></p>
@@ -249,7 +261,8 @@ function construire(){
   q('#mi-coller').onclick=coller; q('#mi-choisir').onclick=()=>q('#mi-fichier').click();
   q('#mi-fichier').onchange=e=>{ const f=e.target.files[0]; e.target.value=''; depuisFichier(f); };
   q('#mi-lien-lire').onclick=lien;
-  q('#mi-rendu').onclick=preparer; q('#mi-modele').onchange=majCout; q('#mi-ok').onclick=lancer; q('#mi-non').onclick=()=>{ q('.mi-confirmer').hidden=true; prep=null; };
+  q('#mi-rendu').onclick=preparer; q('#mi-modele').onchange=majCout;
+  for(const b of fen.querySelectorAll('.mi-nombre button')) b.onclick=()=>{ for(const x of fen.querySelectorAll('.mi-nombre button')) x.setAttribute('aria-pressed',String(x===b)); majCout(); }; q('#mi-ok').onclick=lancer; q('#mi-non').onclick=()=>{ q('.mi-confirmer').hidden=true; prep=null; };
   for(const b of BOUTIQUES){ const x=el('button',{type:'button',class:'cat-idee',title:'Lien : '+b.lien},b.nom);
     x.onclick=()=>{ const t=q('#mi-q').value.trim(); open(lienRecherche(b,t),'_blank','noopener'); dire(`${b.nom} s’ouvre dans un nouvel onglet${b.recherche&&t?' sur votre recherche':''} : choisissez le produit, copiez son lien${b.lien==='copier l’image'?' ou plutôt son image (ce site refuse la lecture automatique)':''}, puis revenez ici et collez-le.`); };
     q('.mi-boutiques').append(x); }

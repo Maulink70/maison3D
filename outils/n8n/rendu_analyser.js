@@ -18,10 +18,11 @@ if(c.action==='demarrer'){
   if(typeof c.consigne!=='string'||c.consigne.length<10||c.consigne.length>8000) return refus('Consigne manquante ou trop longue');
   const s=$getWorkflowStaticData('global'), jour=new Date().toISOString().slice(0,10);
   if(s.jour!==jour){ s.jour=jour; s.n=0; }
-  if((s.n||0)>=30) return refus('Limite de 30 rendus par jour atteinte : réessayez demain.',429);
-  s.n=(s.n||0)+1;
+  const nombre=Math.min(4,Math.max(1,Math.round(+c.nombre||1)));   // 1 à 4 rendus des mêmes images (Mauro, 11 octobre 2026)
+  if((s.n||0)+nombre>30) return refus((s.n||0)>=30?'Limite de 30 rendus par jour atteinte : réessayez demain.':'Limite de 30 rendus par jour : il en reste '+(30-(s.n||0))+' aujourd’hui.',429);
+  s.n=(s.n||0)+nombre;
   const t=Date.now(), ratio=RATIOS.includes(c.ratio)?c.ratio:'4:3', titre=String(c.titre||'Maison3D').replace(/[\u0000-\u001f]/g,' ').slice(0,100);
-  return im.map((d,k)=>({json:{op:'demarrer',k,consigne:c.consigne,ratio,titre,qui:moi.n,modele:m.id,
+  return im.map((d,k)=>({json:{op:'demarrer',k,consigne:c.consigne,ratio,titre,qui:moi.n,modele:m.id,nombre,
     req:{method:'POST',url:'https://kieai.redpandaai.co/api/file-base64-upload',body:{base64Data:d,uploadPath:'maison3d-rendus',fileName:'rendu-'+t+'-'+k+'.'+(d.slice(11,15).replace(/[^a-z]/g,'')||'jpg')}}}}));
 }
 if(c.action==='suivre'){

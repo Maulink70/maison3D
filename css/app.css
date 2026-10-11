@@ -539,6 +539,18 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
 .mi-confirmer[hidden]{display:none}
 .mi-confirmer img{width:min(260px,100%);border-radius:8px}
 .mi-cout{margin:0 0 8px;font-weight:500}
+/* confirmation du rendu : modèle, nombre de rendus, coût (11 octobre 2026) */
+.mi-conf{flex:1 1 300px;min-width:0;display:flex;flex-direction:column;gap:8px}
+.mi-conf-titre{margin:0;font-size:15px;font-weight:600;color:#eef1f3}
+.mi-conf-ligne{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.mi-conf-lib{min-width:8.5em;color:#a9b3bb;font-size:13px}
+#mi-modele{font:inherit;padding:6px 8px;border:1px solid #3a4248;border-radius:8px;background:#1b2024;color:#eef1f3;min-width:0;max-width:100%}
+.mi-note{margin:-4px 0 0;color:#a9b3bb;font-size:12.5px}
+.mi-note:empty{display:none}
+.mi-nombre{background:#1b2024;border-color:#3a4248}
+.mi-nombre button{color:#a9b3bb;min-width:40px}
+.mi-nombre button[aria-pressed="true"]{background:#2a3a48;color:#fff}
+.mi-conf .mi-cout{margin:0;color:#e3e8eb}
 .mode-image .ph-message{margin:0;color:#c9d2d8}
 .mode-image .ph-message.cx-erreur{color:#f0a196}
 .recu-produit{display:flex;gap:12px;align-items:center}

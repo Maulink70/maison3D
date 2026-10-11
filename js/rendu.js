@@ -190,16 +190,21 @@ export async function chargerRendus(){
 const annoncer=()=>dispatchEvent(new CustomEvent('rendus'));
 export async function enregistrerRendu(r,champs){ const x=await appel('rendu',{op:'enregistrer',rendu:{id:r.id,...champs}}); if(x.ok){ Object.assign(r,champs); delete r.nouveau; annoncer(); } return x; }
 export async function supprimerRendu(r){ const x=await appel('rendu',{op:'supprimer',id:r.id}); if(x.ok){ rendus=lesRendus().filter(q=>q!==r); annoncer(); } return x; }
-// lance une tâche kie.ai (images, consigne) et la note dans l'historique (état « attente ») ; renvoie la ligne, ou {erreur}
-export async function demarrerRendu({images,consigne:texte,ratio,titre,champs,modele}){
-  const r0=await n8nRendu({action:'demarrer',images,consigne:texte,ratio,titre:'Maison3D · '+titre,...(modele?{modele}:{})});
+// lance 1 à 4 tâches kie.ai (mêmes images, même consigne : nombre) et les note dans l'historique (état « attente »), une ligne
+// par rendu ; renvoie la première ligne (les autres dans r.lot, avec elle), ou {erreur}
+export async function demarrerRendu({images,consigne:texte,ratio,titre,champs,modele,nombre=1}){
+  const r0=await n8nRendu({action:'demarrer',images,consigne:texte,ratio,titre:'Maison3D · '+titre,...(modele?{modele}:{}),...(nombre>1?{nombre}:{})});
   if(!r0.ok) return {erreur:(r0.horsLigne?'Pas de connexion : ':'')+(r0.erreur||'kie.ai a refusé le rendu')};
-  const r={id:'rd'+Date.now().toString(36)+Math.random().toString(36).slice(2,6),titre,consigne:texte,tache:r0.tache,etat:'attente',erreur:'',
-    creePar:moi()||'',creeLe:new Date().toISOString(),vignette:'',image:null,...champs};
-  const x=await appel('rendu',{op:'enregistrer',rendu:{...r,nouveau:true}});
-  (rendus||(rendus=[])).unshift(r); annoncer();
-  if(!x.ok) r.avertissement='rendu lancé, mais pas encore noté dans l’historique : '+(x.erreur||'erreur');
-  return r;
+  const taches=Array.isArray(r0.taches)&&r0.taches.length?r0.taches:[r0.tache], lot=[];
+  for(const [i,tache] of taches.entries()){
+    const r={id:'rd'+Date.now().toString(36)+Math.random().toString(36).slice(2,6),titre:taches.length>1?`${titre} (${i+1}/${taches.length})`:titre,consigne:texte,tache,etat:'attente',erreur:'',
+      creePar:moi()||'',creeLe:new Date().toISOString(),vignette:'',image:null,...champs};
+    const x=await appel('rendu',{op:'enregistrer',rendu:{...r,nouveau:true}});
+    (rendus||(rendus=[])).unshift(r); lot.push(r);
+    if(!x.ok) r.avertissement='rendu lancé, mais pas encore noté dans l’historique : '+(x.erreur||'erreur');
+  }
+  annoncer(); lot[0].lot=lot; if(r0.refusees) lot[0].refusees=r0.refusees;
+  return lot[0];
 }
 const enSuivi=new Set();
 // suit une tâche kie.ai jusqu'au résultat (8 min au plus), puis garde l'image (Fichiers) et sa vignette

@@ -222,7 +222,7 @@ else:
   print('workflow Catalogue non publié : SKETCHFAB_CRED (id de la clé « Sketchfab Maison3D » dans n8n) manquant')
 
 # ---------- workflow « Maison3D Rendu » (étape 5, livraison 2) : rendu réaliste d'une photo de pièce (kie.ai) ----------
-# POST /webhook/maison3d-rendu (texte JSON) : solde → {solde, modeles} ; demarrer {images, consigne, ratio, titre, modele} → {tache} ;
+# POST /webhook/maison3d-rendu (texte JSON) : solde → {solde, modeles} ; demarrer {images, consigne, ratio, titre, modele, nombre 1-4} → {tache, taches} ;
 # suivre {tache} → {etat, image}. Même clé kie.ai que le nettoyage (KIE ci-dessus). Clé externe de Familia (adresse de
 # rappel : le rendu arrive aussi dans la galerie Familia) : FAMILIA_CLE=<32 caractères> python3 outils/n8n/deployer.py ;
 # sans elle, la clé du workflow déjà publié est reprise (jamais dans le dépôt) ; aucune clé : pas de rappel Familia.
@@ -250,7 +250,7 @@ nodesR=[
  siR('Solde ?',660,0,'={{ $json.op === "solde" }}'), kieR('Lire le solde',880,-300,False), codeR('Solde','rendu_solde.js',1100,-300), repR('Réponse solde',1320,-300),
  siR('Démarrer ?',880,0,'={{ $json.op === "demarrer" }}'),
  kieR('Envoyer les images',1100,-100,True), codeR('Préparer la tâche','rendu_tache.js',1320,-100), siR('Images reçues ?',1540,-100,'={{ $json.req != null }}'),
- kieR('Créer la tâche',1760,-200,True), codeR('Tâche créée','ia_reponse_tache.js',1980,-200), repR('Réponse tâche',2200,-200), repR('Refus kie',1760,0),
+ kieR('Créer la tâche',1760,-200,True), codeR('Tâche créée','rendu_reponse_taches.js',1980,-200), repR('Réponse tâche',2200,-200), repR('Refus kie',1760,0),
  kieR('Lire la tâche',1100,200,False), codeR('État','ia_etat.js',1320,200), siR('Prêt ?',1540,200,'={{ $json.url != null }}'),
  dlR, codeR('Image','ia_image.js',1760,300), repR('Réponse image',1980,300), repR('Réponse état',1760,100)]
 conR={'Demande du site':{'main':[[mm('Analyser')]]},'Analyser':{'main':[[mm('Valide ?')]]},'Valide ?':{'main':[[mm('Solde ?')],[mm('Refus')]]},
