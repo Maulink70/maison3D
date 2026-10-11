@@ -1,9 +1,11 @@
 // Point d'entrée : assemble les modules, charge le modèle, lance la boucle d'affichage
 import * as THREE from 'three';
 import {app, $, css, champVisite} from './app.js';
+import {ETAGE_FLOOR} from './config.js';
+import {pieceEn} from './pieces.js';
 import {chargerModele} from './modele.js';
-import {initVues, demarrerVues} from './vues.js';
-import {initVisite, walk, regarder, teleporter, solSous, reculer} from './visite.js';
+import {initVues, demarrerVues, setMode} from './vues.js';
+import {initVisite, walk, regarder, teleporter, solSous, reculer, reprendreVisite} from './visite.js';
 import {initEdition, toucher, viser, buildList, select} from './edition.js';
 import {initSauvegarde, restore} from './sauvegarde.js';
 import {majPortes} from './portes.js';
@@ -57,16 +59,27 @@ canvas.addEventListener('pointermove',e=>{ if(!doigts.has(e.pointerId)) return; 
 for(const t of ['pointerup','pointercancel']) canvas.addEventListener(t,e=>{ doigts.delete(e.pointerId); if(doigts.size<2) pince=null; });
 
 // Pointeur : glisser = regarder (1re personne) ; toucher bref = porte, sol ou meuble selon le mode ;
-// appui long sur le sol (1re personne) = téléportation au relâcher
+// appui long sur le sol = téléportation au relâcher (1re personne), ou passage en 1re personne à cet endroit (maquette)
 let pd=null;
+const appuiLong=()=>app.mobilierPret&&!app.mesure&&!app.gizmoDrag&&(app.mode==='walk'||(app.mode==='orbit'&&!eclatActif()&&!comparaisonActive()));
+// Maquette : appui long sur le sol = en 1re personne à cet endroit, regard dans le sens de la maquette (Mauro, 11 octobre 2026)
+// seulement le sol d'une pièce, au niveau du rez ou de l'étage (vue « Tout » : pas le dessus d'un plafond ni l'escalier)
+function solDePiece(p){ const y=solSous(p); if(y===null) return null; const niv=Math.abs(y)<0.25?'rez':Math.abs(y-ETAGE_FLOOR)<0.25?'etage':null;
+  return niv&&pieceEn(p.x,p.z,niv)?y:null; }
+function entrerIci(p){
+  const y=solDePiece(p); if(y===null) return;
+  const d=app.orbit.target.clone().sub(app.camera.position), yaw=Math.atan2(-d.x,-d.z);
+  app.level=y>ETAGE_FLOOR-0.8?'etage':'rez'; setMode('walk');
+  reprendreVisite({x:p.x,y,z:p.z,yaw,pitch:-0.05}); teleporter(p);
+}
 const fin=()=>{ if(pd) clearTimeout(pd.minuterie); marque.visible=false; pd=null; };
 canvas.addEventListener('contextmenu',e=>e.preventDefault());
 canvas.addEventListener('pointerdown',e=>{
   if(pd){ pd.multi=true; clearTimeout(pd.minuterie); marque.visible=false; pd.tele=null; return; }
   pd={x:e.clientX,y:e.clientY,lx:e.clientX,ly:e.clientY,t:performance.now(),id:e.pointerId};
-  if(app.mode==='walk'&&app.mobilierPret&&!app.mesure) pd.minuterie=setTimeout(()=>{
+  if(appuiLong()) pd.minuterie=setTimeout(()=>{
     if(!pd||pd.drag||pd.multi) return; const h=viser(pd.x,pd.y);
-    if(h&&solSous(h.point)!==null){ pd.tele=h.point.clone(); marque.position.set(h.point.x,h.point.y+0.02,h.point.z); marque.visible=true; }
+    if(h&&(app.mode==='walk'?solSous(h.point):solDePiece(h.point))!==null){ pd.tele=h.point.clone(); marque.position.set(h.point.x,h.point.y+0.02,h.point.z); marque.visible=true; }
   },550);
 });
 canvas.addEventListener('pointermove',e=>{
@@ -78,7 +91,7 @@ canvas.addEventListener('pointermove',e=>{
 canvas.addEventListener('pointerup',e=>{
   if(!pd||pd.id!==e.pointerId) return;
   const dt=performance.now()-pd.t;
-  if(pd.tele) teleporter(pd.tele);
+  if(pd.tele){ if(app.mode==='orbit') entrerIci(pd.tele); else teleporter(pd.tele); }
   else if(!pd.drag&&!pd.multi&&dt<600&&!app.gizmoDrag&&app.mobilierPret&&!eclatActif()&&!comparaisonActive()){ if(app.mesure) mesureToucher(e.clientX,e.clientY); else if(calageActif()) toucherCalage(e); else toucher(e); }   // vue éclatée : rien à toucher
   fin();
 });

@@ -87,14 +87,17 @@ export function select(name){
 
 // couleur générale de l'objet (les matières choisies partie par partie gardent leur motif, prennent cette couleur)
 export function paint(it,hex){ it.color=hex||null; majApparence(it); }
-export function setHidden(it,h){ it.hidden=h; it.g.visible=!h; const row=document.querySelector('.row[data-n="'+CSS.escape(it.name)+'"]'); if(row){row.classList.toggle('off',h); row.querySelector('.eye').textContent=h?'Afficher':'Masquer';} }
+export function setHidden(it,h){ it.hidden=h; it.g.visible=!h; const row=document.querySelector('.row[data-n="'+CSS.escape(it.name)+'"]'); if(row){row.classList.toggle('off',h); row.querySelector('.eye').textContent=h?'Afficher':'Masquer';} majMasques(); }
 // tout l'élément à son état d'origine (place, rotation, couleur, taille, matières, affiché)
 export function resetItem(it){ if(!it.ajout) appliquerEtat(it,origineDe(it.name)); }
 
 // Liste rangée par étage (celui où l'on se trouve d'abord), puis mobilier / portes et fenêtres, par ordre alphabétique.
-// Filtres : niveau (Tout / Rez / Étage) et recherche sur le nom (sans tenir compte des accents ni des majuscules).
+// Filtres : niveau (Tout / Rez / Étage), affichés ou masqués (Tous / Affichés / Masqués (n) : Mauro, 11 octobre 2026, « trop
+// long à chercher le seul masqué ») et recherche sur le nom (sans tenir compte des accents ni des majuscules).
 // Reconstruite au chargement, au changement d'étage et à chaque ajout ou retrait de meuble (évènement « meubles »).
-const filtre={niveau:'tout',texte:''};
+const filtre={niveau:'tout',texte:'',vis:'tous'};
+const listes=i=>i.meta.c==='meuble'||i.meta.c==='ouverture';
+function majMasques(){ const n=Object.values(app.items).filter(i=>listes(i)&&i.hidden).length; $('f-masques').textContent='Masqués'+(n?` (${n})`:''); }
 const sansAccent=t=>t.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
 export function buildList(){
   const box=$('list'); box.innerHTML='';
@@ -105,7 +108,7 @@ export function buildList(){
   for(const lvl of niveaux){
     const blocs=[];
     for(const cat of ['meuble','ouverture']){
-      const its=Object.values(app.items).filter(i=>i.lvl===lvl&&i.meta.c===cat&&(!cherche||sansAccent(i.meta.l).includes(cherche)))
+      const its=Object.values(app.items).filter(i=>i.lvl===lvl&&i.meta.c===cat&&(!cherche||sansAccent(i.meta.l).includes(cherche))&&(filtre.vis==='tous'||(filtre.vis==='masques')===!!i.hidden))
         .sort((a,b)=>a.meta.l.localeCompare(b.meta.l,'fr'));
       if(its.length) blocs.push([cat,its]);
     }
@@ -124,8 +127,10 @@ export function buildList(){
       }
     }
   }
-  if(!total){ const v=document.createElement('div'); v.className='attente'; v.textContent=cherche?'Aucun meuble ne correspond à « '+filtre.texte.trim()+' ».':'Aucun meuble.'; box.appendChild(v); }
+  if(!total){ const v=document.createElement('div'); v.className='attente'; v.textContent=cherche?'Aucun meuble ne correspond à « '+filtre.texte.trim()+' ».':filtre.vis==='masques'?'Aucun meuble masqué.':'Aucun meuble.'; box.appendChild(v); }
+  majMasques();
 }
+function filtrerVisibles(v){ filtre.vis=v; for(const k of ['tous','affiches','masques']) $('f-'+k).setAttribute('aria-pressed',String(k===v)); buildList(); }
 function filtrerNiveau(n){ filtre.niveau=n; for(const k of ['tout','rez','etage']) $('f-'+k).setAttribute('aria-pressed',String(k===n)); buildList(); }
 
 // Panneau (feuille en bas sur téléphone)
@@ -163,6 +168,9 @@ export function initEdition(){
   addEventListener('niveau',()=>{ if(app.mobilierPret) buildList(); });
   addEventListener('meubles',()=>{ if(app.mobilierPret) buildList(); });
   for(const k of ['tout','rez','etage']) $('f-'+k).onclick=()=>filtrerNiveau(k);
+  for(const k of ['tous','affiches','masques']) $('f-'+k).onclick=()=>filtrerVisibles(k);
+  // un meuble affiché ou masqué (bouton, annuler, autre appareil) sort de la liste « Affichés » ou « Masqués »
+  addEventListener('disposition',()=>{ if(app.mobilierPret) filtre.vis==='tous'?majMasques():buildList(); });
   $('f-texte').oninput=e=>{ filtre.texte=e.target.value; if(app.mobilierPret) buildList(); };
   if(mq.matches) openSheet(false);
 }
