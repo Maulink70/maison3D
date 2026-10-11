@@ -14,12 +14,12 @@ import {varianteCourante} from './synchro.js';
 import {entrerPlan, sortirPlan, niveauPlan, stylePlan, style as styleDuPlan} from './plan.js';
 
 const UI='maison3d-ui';
-function memoriser(){ try{ localStorage.setItem(UI,JSON.stringify({edition:app.edition,vue:app.mode,niveau:app.level,vitesse:app.vitesse,plan:styleDuPlan})); }catch{} }
+function memoriser(){ try{ localStorage.setItem(UI,JSON.stringify({edition:app.edition,vue:app.mode,niveau:app.level,vitesse:app.vitesse,souris:app.souris,plan:styleDuPlan})); }catch{} }
 export function prefs(){ try{ return JSON.parse(localStorage.getItem(UI)||'{}')||{}; }catch{ return {}; } }
 
 const AIDE={
   vo:'Visite : glisser pour tourner autour, molette ou pincement pour zoomer, deux doigts pour décaler. Touchez une porte ou une fenêtre pour l’ouvrir ou la fermer. « Aller à » cadre une pièce. Pour modifier un meuble, passez en « Éditer ».',
-  vw:'Visite : glisser pour regarder, flèches, WASD (ZQSD sur clavier français) ou boutons pour marcher. Touchez le sol pour faire un pas, appui long pour vous téléporter. « Aller à » mène à la porte d’une pièce ; la vitesse se règle en bas à gauche. Molette ou pincement : zoom. Les portes s’ouvrent à votre approche (bouton « Portes auto ») ; touchez une porte ou une fenêtre pour l’ouvrir ou la fermer.',
+  vw:'Visite : glisser pour regarder, flèches, WASD (ZQSD sur clavier français) ou boutons pour marcher. Touchez le sol pour faire un pas, appui long pour vous téléporter. « Aller à » mène à la porte d’une pièce ; la vitesse se règle en bas à gauche. Molette ou pincement : zoom. Sur PC, double-clic dans la vue (ou bouton manette) : mode jeu, la souris tourne le regard, Maj pour courir, Échap pour rendre la souris. Les portes s’ouvrent à votre approche (bouton « Portes auto ») ; touchez une porte ou une fenêtre pour l’ouvrir ou la fermer.',
   eo:'Éditer : touchez un meuble pour le déplacer, le tourner, changer sa couleur ou le masquer. Glisser pour tourner autour.',
   ew:'Éditer en 1re personne : touchez un meuble pour le modifier. Touchez le sol pour faire un pas, appui long pour vous téléporter.',
   vp:'Plan : glisser pour vous déplacer, molette ou pincement pour zoomer. « Architecte » : murs coupés à 1 m, meubles en contour, portes avec leur ouverture ; « Réaliste » : la maquette vue de dessus.',
@@ -75,6 +75,9 @@ export function setMode(m){
 // Vitesse de marche : facteur 0,5 à 2, affiché en km/h (1 = 1,5 m/s = 5,4 km/h)
 function majVitesse(v){ app.vitesse=Math.min(2,Math.max(0.5,+v||1)); $('vitesse').value=String(app.vitesse);
   $('vitesse-val').textContent=(5.4*app.vitesse).toFixed(1).replace('.',',')+' km/h'; }
+// Sensibilité de la souris en mode jeu (jeu.js, PC seulement) : facteur 0,2 à 3
+function majSouris(v){ app.souris=Math.min(3,Math.max(0.2,+v||1)); $('souris').value=String(app.souris);
+  $('souris-val').textContent='× '+app.souris.toFixed(1).replace('.',','); }
 // Boutons « Ouvrir les portes » / « Fermer les portes » ; « Portes auto : oui / non » (ouverture à l'approche en 1re personne) ;
 // « Ouvrir les fenêtres » / « Fermer les fenêtres » (jamais d'automatisme pour les fenêtres)
 // boutons à icône : l'état est dans l'icône (porte ouverte / fermée), la pastille (aria-pressed) et le nom de l'infobulle
@@ -95,11 +98,12 @@ export function initVues(){
   $('auto').onclick=()=>{ portesAuto(!app.portesAuto); majPortesBouton(); };
   $('fenetres').onclick=()=>{ toutesFenetres(!app.fenetresOuvertes); majPortesBouton(); };
   $('vitesse').oninput=e=>{ majVitesse(e.target.value); memoriser(); };
-  majPortesBouton(); majVitesse(1);
+  $('souris').oninput=e=>{ majSouris(e.target.value); memoriser(); };
+  majPortesBouton(); majVitesse(1); majSouris(1);
 }
 // Au chargement : reprend les derniers choix (Visite et Maquette la première fois)
 export function demarrerVues(){
-  const p=prefs(); majVitesse(p.vitesse); stylePlan(p.plan); setEdition(!!p.edition,false);
+  const p=prefs(); majVitesse(p.vitesse); majSouris(p.souris); stylePlan(p.plan); setEdition(!!p.edition,false);
   if(p.niveau==='rez'||p.niveau==='etage') app.level=p.niveau;
   setMode(p.vue==='walk'||p.vue==='plan'?p.vue:'orbit');
 }

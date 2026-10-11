@@ -7,7 +7,7 @@ import {obstaclesPortes} from './portes.js';
 
 let yaw=Math.PI, pitch=0, groundY=0, cible=null, vitesse=0;
 let hauteur=EYE, roulis=0;   // calage d'une photo (calage.js) : hauteur des yeux et inclinaison de côté réglables
-export const keys={fwd:0,back:0,left:0,right:0};
+export const keys={fwd:0,back:0,left:0,right:0,run:0};   // run : Maj maintenue = courir (× 2)
 
 function majNiveau(floor){
   if(app.level===floor) return;
@@ -143,7 +143,7 @@ export function walk(dt){
   if(f||s){
     cible=null;
     const fw=new THREE.Vector3(-Math.sin(yaw),0,-Math.cos(yaw)), rt=new THREE.Vector3(Math.cos(yaw),0,-Math.sin(yaw));
-    const mv=fw.multiplyScalar(f).add(rt.multiplyScalar(s)).normalize().multiplyScalar(1.5*app.vitesse*dt);
+    const mv=fw.multiplyScalar(f).add(rt.multiplyScalar(s)).normalize().multiplyScalar(1.5*app.vitesse*(keys.run?2:1)*dt);
     // pas bloqué : demi-pas puis quart de pas (on s'approche au plus près, quelle que soit la vitesse d'affichage),
     // sinon on glisse le long de l'obstacle
     const essayer=v=>avancer(v)||avancer(v.clone().multiplyScalar(0.5))||avancer(v.clone().multiplyScalar(0.25));
@@ -162,8 +162,9 @@ export function walk(dt){
   majNiveau(groundY>ETAGE_FLOOR-0.8?'etage':'rez');
 }
 export function enMouvement(){ return !!cible; }
+export function arreter(){ cible=null; }   // pas en cours annulé (double-clic du mode jeu)
 
-const KEYMAP={KeyW:'fwd',ArrowUp:'fwd',KeyS:'back',ArrowDown:'back',KeyA:'left',ArrowLeft:'left',KeyD:'right',ArrowRight:'right'};
+const KEYMAP={KeyW:'fwd',ArrowUp:'fwd',KeyS:'back',ArrowDown:'back',KeyA:'left',ArrowLeft:'left',KeyD:'right',ArrowRight:'right',ShiftLeft:'run',ShiftRight:'run'};
 // une saisie en cours (nom, recherche, dimensions) garde ses touches ; un curseur, une case ou un bouton touché à la
 // souris garde le clavier mais pas les lettres (Mauro, 11 octobre 2026 : W, A, S, D ne marchaient plus après le curseur
 // « Vitesse ») ; les flèches restent au curseur. Un champ caché (fenêtre refermée) ne compte pas.
@@ -176,12 +177,12 @@ function saisie(t,code){
 }
 export function initVisite(){
   addEventListener('keydown',e=>{ if(app.mode!=='walk'||e.ctrlKey||e.metaKey||e.altKey) return; const k=KEYMAP[e.code]; if(!k||saisie(e.target,e.code)) return;
-    keys[k]=1; e.preventDefault(); });
+    keys[k]=1; if(k!=='run') e.preventDefault(); });
   addEventListener('keyup',e=>{ const k=KEYMAP[e.code]; if(k) keys[k]=0; });
   addEventListener('blur',()=>{for(const k in keys) keys[k]=0;});
   const pad=$('pad');
   pad.addEventListener('contextmenu',e=>e.preventDefault());   // appui long : pas de menu du navigateur
-  for(const b of pad.querySelectorAll('button')){
+  for(const b of pad.querySelectorAll('button[data-k]')){
     const k=b.dataset.k;
     const on=e=>{e.preventDefault();keys[k]=1;b.classList.add('active');b.setPointerCapture?.(e.pointerId);};
     const off=()=>{keys[k]=0;b.classList.remove('active');};

@@ -39,8 +39,9 @@ import {initTableau, ouvrirTableau} from './tableau.js';
 import {cadrerObjet} from './aller.js';
 import {initCalage, majCalage, calageActif, fovCalage, zoomCalage, toucherCalage} from './calage.js';
 import {initPointsVue, majPointsVue} from './pointsvue.js';
+import {initJeu, majJeu, doubleClic, centreVue} from './jeu.js';
 
-initIcones(); initCompte(); initSynchro(); initVariantes(); initComparer(); initVues(); initVisite(); initEdition(); initSauvegarde(); initAller(); initPlan(); initCalques(); initMesure(); initImpression(); initIsoler(); initCameras(); initHistorique(); initPartage(); initAlertes(); initObjets(); initRevetements(); initGalerie(); initCalage(); initRecu(); initPointsVue(); initProduits();
+initIcones(); initCompte(); initSynchro(); initVariantes(); initComparer(); initVues(); initVisite(); initEdition(); initSauvegarde(); initAller(); initPlan(); initCalques(); initMesure(); initImpression(); initIsoler(); initCameras(); initHistorique(); initPartage(); initAlertes(); initObjets(); initRevetements(); initGalerie(); initCalage(); initRecu(); initPointsVue(); initProduits(); initJeu();
 // tableau des meubles : toucher un nom le montre (sélectionné en Éditer) ; bouton du panneau
 initTableau(it=>{ if(app.edition&&!it.hidden) select(it.name); cadrerObjet(it); }); $('f-tableau').onclick=()=>ouvrirTableau(true);
 
@@ -79,16 +80,19 @@ function entrerIci(p){
 }
 const fin=()=>{ if(pd) clearTimeout(pd.minuterie); marque.visible=false; pd=null; };
 canvas.addEventListener('contextmenu',e=>e.preventDefault());
+// mode jeu (jeu.js, souris capturée) : on vise au centre de la vue (viseur), le regard suit la souris (pas de glisser)
+const ou=e=>app.modeJeu?centreVue():[e.clientX,e.clientY];
 canvas.addEventListener('pointerdown',e=>{
   if(pd){ pd.multi=true; clearTimeout(pd.minuterie); marque.visible=false; pd.tele=null; return; }
-  pd={x:e.clientX,y:e.clientY,lx:e.clientX,ly:e.clientY,t:performance.now(),id:e.pointerId};
+  const [x,y]=ou(e);
+  pd={x,y,lx:x,ly:y,t:performance.now(),id:e.pointerId};
   if(appuiLong()) pd.minuterie=setTimeout(()=>{
     if(!pd||pd.drag||pd.multi) return; const h=viser(pd.x,pd.y);
     if(h&&(app.mode==='walk'?solSous(h.point):solDePiece(h.point))!==null){ pd.tele=h.point.clone(); marque.position.set(h.point.x,h.point.y+0.02,h.point.z); marque.visible=true; }
   },550);
 });
 canvas.addEventListener('pointermove',e=>{
-  if(!pd||pd.id!==e.pointerId) return;
+  if(!pd||pd.id!==e.pointerId||app.modeJeu) return;
   if(!pd.drag&&Math.hypot(e.clientX-pd.x,e.clientY-pd.y)>8){ pd.drag=true; clearTimeout(pd.minuterie); marque.visible=false; pd.tele=null; }
   if(pd.drag&&app.mode==='walk'&&!app.gizmoDrag&&!pd.multi) regarder(e.clientX-pd.lx,e.clientY-pd.ly);
   pd.lx=e.clientX; pd.ly=e.clientY;
@@ -97,7 +101,9 @@ canvas.addEventListener('pointerup',e=>{
   if(!pd||pd.id!==e.pointerId) return;
   const dt=performance.now()-pd.t;
   if(pd.tele){ if(app.mode==='orbit') entrerIci(pd.tele); else teleporter(pd.tele); }
-  else if(!pd.drag&&!pd.multi&&dt<600&&!app.gizmoDrag&&app.mobilierPret&&!eclatActif()&&!comparaisonActive()){ if(app.mesure) mesureToucher(e.clientX,e.clientY); else if(calageActif()) toucherCalage(e); else toucher(e); }   // vue éclatée : rien à toucher
+  else if(!pd.drag&&!pd.multi&&dt<600&&!app.gizmoDrag&&app.mobilierPret&&!eclatActif()&&!comparaisonActive()&&!doubleClic(e)){   // vue éclatée : rien à toucher
+    const [x,y]=ou(e), t={clientX:x,clientY:y};
+    if(app.mesure) mesureToucher(x,y); else if(calageActif()) toucherCalage(t); else toucher(t); }
   fin();
 });
 canvas.addEventListener('pointercancel',fin);
@@ -134,6 +140,6 @@ app.renderer.setAnimationLoop(()=>{
   const bas=barre.getBoundingClientRect().bottom-$('app').getBoundingClientRect().top;
   $('bandeaux').style.top=(bas+8)+'px';   // bandeaux sous la barre, même sur téléphone
   $('panel').style.top=innerWidth>760?(bas+10)+'px':'';   // panneau des meubles sous la barre (qui peut tenir sur 2 lignes)
-  majCalage();   // après les bandeaux : cadre de la photo sous eux, caméra à l'angle de vue de la photo
+  majJeu(); majCalage();   // après les bandeaux : cadre de la photo sous eux, caméra à l'angle de vue de la photo
   rendre();
 });

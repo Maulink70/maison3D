@@ -10,6 +10,7 @@ import {viser} from './edition.js';
 import {versEcran, versMonde, niveauDuPlan, murs} from './plan.js';
 import {etat} from './calques.js';
 import {decalage} from './eclate.js';
+import {centreVue} from './jeu.js';
 
 const CLE='maison3d-mesures', NS='http://www.w3.org/2000/svg', AIMANT=14;
 let mesures=[], premier=null, survol=null;
@@ -190,5 +191,6 @@ export function initMesure(){
   let attente=null;
   const survoler=e=>{ if(!app.mesure||!premier||e.pointerType==='touch'||e.buttons) return; attente=[e.clientX,e.clientY]; };
   $('plan').addEventListener('pointermove',survoler); app.canvas.addEventListener('pointermove',survoler);
-  const boucle=()=>{ if(attente&&premier){ const q=pointSous(...attente); survol=q?q.p:null; } attente=null; requestAnimationFrame(boucle); }; requestAnimationFrame(boucle);
+  // mode jeu (souris capturée) : le trait suit le viseur, à chaque image
+  const boucle=()=>{ const a=app.modeJeu&&app.mesure?centreVue():attente; if(a&&premier){ const q=pointSous(...a); survol=q?q.p:null; } attente=null; requestAnimationFrame(boucle); }; requestAnimationFrame(boucle);
 }

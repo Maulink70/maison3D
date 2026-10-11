@@ -639,3 +639,16 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
 .tab-pastille{display:inline-block;width:11px;height:11px;border-radius:3px;border:1px solid var(--line);vertical-align:-1px}
 #f-tableau{width:100%;font-size:12.5px;padding:6px 10px}
 .pr-produit a.btn{text-decoration:none;color:inherit}
+
+/* Mode jeu (PC, jeu.js) : bouton manette dans le coin libre du pavé, viseur au centre de la vue, aide passagère ;
+   curseur « Souris » (sensibilité) sous « Vitesse ». Tablette et téléphone : ni bouton ni curseur. */
+#pad #jeu{grid-area:1/1;width:auto;height:auto;color:var(--ink)}
+#pad #jeu .ico{width:24px;height:24px}
+#pad #jeu[aria-pressed="true"]{background:var(--accent-soft);color:var(--accent)}
+#vitesse-box{flex-direction:column;align-items:stretch;gap:4px}
+#vitesse-box .vb-ligne{display:flex;align-items:center;gap:8px}
+#vitesse-box label{min-width:3.7em}
+#viseur{position:fixed;z-index:30;width:6px;height:6px;margin:-3px 0 0 -3px;border-radius:50%;background:#fff;box-shadow:0 0 0 1.5px rgba(0,0,0,.7);pointer-events:none}
+#jeu-aide{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:30;width:max-content;max-width:min(680px,calc(100vw - 32px));background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:var(--r);padding:8px 14px;font-size:13px;line-height:1.4;text-align:center;pointer-events:none;box-shadow:0 4px 18px rgba(0,0,0,.18)}
+@media (hover:none),(pointer:coarse){ #jeu,#vitesse-box .vb-souris{display:none!important} }
+@media (hover:hover) and (pointer:fine){ #pad{bottom:100px} }
