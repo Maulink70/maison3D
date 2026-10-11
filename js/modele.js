@@ -86,11 +86,14 @@ function installerStructure(root){
   habillerConstruits(root); poserCoordonnees(root);   // marches en pierre, nez de marche, faces refaites
 }
 
-// Remplace la carcasse SketchUp de la bibliothèque (seule pièce de plus de 2 m de haut) ; les livres restent
+// Remplace la carcasse SketchUp de la bibliothèque (seule pièce de plus de 2 m de haut) ; les livres du modèle restent,
+// en élément à part, « Livres (bibliothèque) » (Mauro, 11 octobre 2026 : pouvoir poser autre chose sur les meubles)
 function remplacerEtagere(node,root){
   const vieux=[];
   node.traverse(o=>{ if(o.isMesh&&new THREE.Box3().setFromObject(o).getSize(new THREE.Vector3()).y>2) vieux.push(o); });
   for(const o of vieux) o.removeFromParent();
+  const livres=[]; node.traverse(o=>{ if(o.isMesh) livres.push(o); });
+  if(livres.length){ const l=new THREE.Group(); l.name='rez__livres'; root.add(l); node.updateMatrixWorld(true); for(const o of livres) l.attach(o); }
   const g=fusionner(construireEtagere()); root.add(g); node.attach(g);
 }
 

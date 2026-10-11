@@ -84,7 +84,12 @@ function chevet(nom,x){
   const g=groupe(nom), z0=-27.80, z1=-27.40;
   boite(g,x-0.225,x+0.225,0.02,0.50,z0,z1-0.016,MAT.laqueCreme);
   for(const [y0,y1] of [[0.03,0.26],[0.26,0.49]]) boite(g,x-0.222,x+0.222,y0+0.003,y1-0.003,z1-0.016,z1,MAT.laqueCreme,true);
-  cylindre(g,x+0.08,0.50,0.70,-27.62,0.008,MAT.chrome);                   // petite lampe champignon
+  return g;
+}
+// Petite lampe champignon posée sur le chevet : un élément à part (Mauro, 11 octobre 2026 : pouvoir poser autre chose)
+function lampeChevet(nom,x){
+  const g=groupe(nom);
+  cylindre(g,x+0.08,0.50,0.70,-27.62,0.008,MAT.chrome);
   const abat=new THREE.Mesh(new THREE.SphereGeometry(0.09,16,8,0,Math.PI*2,0,Math.PI/2),MAT.lumiere); abat.position.set(x+0.08,0.66,-27.62); g.add(abat);
   return g;
 }
@@ -174,6 +179,6 @@ function wcSdb(root){
 
 export function construirePieces(root){
   return [commode(), porteEntree(), porteReduit(), aspirateur(), sacsTri(), plafonnier('rez__plafonnier_entree',12.40,-21.85), plafonnier('rez__plafonnier_degagement',13.95,-23.70),
-    lit(), chevet('rez__chevet_1',16.20), chevet('rez__chevet_2',18.71), lustre(),
+    lit(), chevet('rez__chevet_1',16.20), chevet('rez__chevet_2',18.71), lampeChevet('rez__lampe_chevet_1',16.20), lampeChevet('rez__lampe_chevet_2',18.71), lustre(),
     douche(), vasque(), secheServiettes(), wcSdb(root), plafonnier('rez__plafonnier_sdb',12.40,-25.60), globeWC()];
 }

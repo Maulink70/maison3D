@@ -78,12 +78,17 @@ function commodeMezzanine(){
 }
 
 // ---------- Mezzanine : coin bureau (aile ouest, au-dessus de l'entrée) ----------
-// Bureau haut à plateau blanc sur deux pieds colonnes, contre le mur ouest et le mur sud (photo calée), avec son écran
+// Bureau haut à plateau blanc sur deux pieds colonnes, contre le mur ouest et le mur sud (photo calée) ; son écran est un
+// élément à part (Mauro, 11 octobre 2026 : pouvoir poser autre chose sur le bureau)
+const BUREAU_MEZZ={x0:11.47, x1:12.07, z0:-22.22, z1:-21.12, h:0.98};
 function bureauMezzanine(){
-  const g=groupe('etage__bureau_mezzanine'), x0=11.47, x1=12.07, z0=-22.22, z1=-21.12, h=0.98;
+  const {x0,x1,z0,z1,h}=BUREAU_MEZZ, g=groupe('etage__bureau_mezzanine');
   boite(g,x0,x1,F+h,F+h+0.03,z0,z1,MAT.blanc);
   for(const z of [z0+0.12,z1-0.12]){ cylindre(g,11.77,F,F+h,z,0.03,M.metalGris); boite(g,x0+0.03,x1-0.03,F,F+0.03,z-0.03,z+0.03,M.metalGris); }
-  const zc=(z0+z1)/2;
+  return g;
+}
+function ecranMezzanine(){
+  const {z0,z1,h}=BUREAU_MEZZ, g=groupe('etage__ecran_mezzanine'), zc=(z0+z1)/2;
   boite(g,11.58,11.70,F+h+0.03,F+h+0.04,zc-0.10,zc+0.10,MAT.noir); boite(g,11.60,11.62,F+h+0.04,F+h+0.16,zc-0.02,zc+0.02,MAT.noir);
   boite(g,11.62,11.65,F+h+0.12,F+h+0.46,zc-0.28,zc+0.28,MAT.noir); boite(g,11.65,11.651,F+h+0.135,F+h+0.445,zc-0.265,zc+0.265,MAT.verreNoir);
   return g;
@@ -161,11 +166,15 @@ function etagereChambre(){
   sphere(g,x1+e+0.012,F+0.36,z1-0.075,0.012,MAT.chrome,10);
   return g;
 }
-// Écran et tour d'ordinateur sur le bureau noir (plateau du modèle à 0,77 m)
-function ordinateurChambre(){
-  const g=groupe('etage__ordinateur_chambre'), y=F+0.77, zc=-23.69;
+// Écran et tour d'ordinateur sur le bureau noir (plateau du modèle à 0,77 m) : deux éléments à part
+function ecranChambre(){
+  const g=groupe('etage__ecran_chambre'), y=F+0.77, zc=-23.69;
   boite(g,19.08,19.26,y,y+0.01,zc-0.12,zc+0.12,MAT.noir); boite(g,19.15,19.18,y+0.01,y+0.14,zc-0.03,zc+0.03,MAT.noir);
   boite(g,19.10,19.14,y+0.10,y+0.46,zc-0.31,zc+0.31,MAT.noir); boite(g,19.099,19.10,y+0.115,y+0.445,zc-0.295,zc+0.295,MAT.verreNoir);
+  return g;
+}
+function ordinateurChambre(){
+  const g=groupe('etage__ordinateur_chambre'), y=F+0.77;
   boite(g,18.86,19.30,y,y+0.48,-23.20,-22.98,M.boitier);                                    // boîtier transparent
   boite(g,18.90,19.26,y+0.03,y+0.45,-23.17,-23.01,MAT.sombre); boite(g,18.95,19.20,y+0.20,y+0.34,-23.16,-23.02,MAT.chrome);   // carte et ventilateur
   return g;
@@ -217,10 +226,10 @@ export function construireEtage(root){
   if(douche){ const bloc=[]; douche.traverse(o=>{ if(o.isMesh&&o.material.name==='Material_377') bloc.push(o); }); for(const o of bloc) o.removeFromParent();
     douche.updateMatrixWorld(true); douche.attach(rideauDouche()); }
   return [litMezzanine(), armoireMezzanine(), fauteuil(), commodeMezzanine(),
-    bureauMezzanine(), tabouret('etage__tabouret_mezzanine_1',12.38,-21.45,MAT.blanc,MAT.blanc), tabouret('etage__tabouret_mezzanine_2',12.33,-22.25,MAT.blanc,MAT.blanc),
+    bureauMezzanine(), ecranMezzanine(), tabouret('etage__tabouret_mezzanine_1',12.38,-21.45,MAT.blanc,MAT.blanc), tabouret('etage__tabouret_mezzanine_2',12.33,-22.25,MAT.blanc,MAT.blanc),
     applique('etage__spot_mezzanine_1',14.10,'x',-24.05,F+1.90,1,0.08,0.08), applique('etage__spot_mezzanine_2',16.70,'x',-24.60,F+1.90,-1,0.08,0.08),
     applique('etage__applique_bureau',-22.75,'z',11.85,F+1.70,1,0.20,0.20), applique('rez__applique_escalier',12.87,'x',-18.22,2.80,1,0.18,0.26),
     armoiresDressing(), buffetDressing(), portant(), applique('etage__applique_dressing',13.97,'x',-23.80,F+1.80,-1,0.32,0.18),
-    chevetChambre('etage__chevet_chambre',16.85), chevetChambre('etage__chevet_chambre_2',18.95), etagereChambre(), ordinateurChambre(), chaiseBureau(), applique('etage__applique_chambre',19.44,'x',-23.75,F+1.95,-1,0.36,0.12),
+    chevetChambre('etage__chevet_chambre',16.85), chevetChambre('etage__chevet_chambre_2',18.95), etagereChambre(), ecranChambre(), ordinateurChambre(), chaiseBureau(), applique('etage__applique_chambre',19.44,'x',-23.75,F+1.95,-1,0.36,0.12),
     vasqueDouche()];
 }
