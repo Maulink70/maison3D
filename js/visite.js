@@ -164,8 +164,19 @@ export function walk(dt){
 export function enMouvement(){ return !!cible; }
 
 const KEYMAP={KeyW:'fwd',ArrowUp:'fwd',KeyS:'back',ArrowDown:'back',KeyA:'left',ArrowLeft:'left',KeyD:'right',ArrowRight:'right'};
+// une saisie en cours (nom, recherche, dimensions) garde ses touches ; un curseur, une case ou un bouton touché à la
+// souris garde le clavier mais pas les lettres (Mauro, 11 octobre 2026 : W, A, S, D ne marchaient plus après le curseur
+// « Vitesse ») ; les flèches restent au curseur. Un champ caché (fenêtre refermée) ne compte pas.
+const SANS_TEXTE=/^(range|checkbox|radio|button|submit|reset|color|file)$/;
+function saisie(t,code){
+  if(!t||t===document.body||!t.isConnected||(t.offsetParent===null&&getComputedStyle(t).position!=='fixed')) return false;
+  if(t.isContentEditable||t.tagName==='TEXTAREA'||t.tagName==='SELECT') return true;
+  if(t.tagName!=='INPUT') return false;
+  return SANS_TEXTE.test(t.type)?(t.type==='range'&&code.startsWith('Arrow')):true;
+}
 export function initVisite(){
-  addEventListener('keydown',e=>{ if(app.mode!=='walk'||e.target.tagName==='INPUT') return; const k=KEYMAP[e.code]; if(k){keys[k]=1;e.preventDefault();} });
+  addEventListener('keydown',e=>{ if(app.mode!=='walk'||e.ctrlKey||e.metaKey||e.altKey) return; const k=KEYMAP[e.code]; if(!k||saisie(e.target,e.code)) return;
+    keys[k]=1; e.preventDefault(); });
   addEventListener('keyup',e=>{ const k=KEYMAP[e.code]; if(k) keys[k]=0; });
   addEventListener('blur',()=>{for(const k in keys) keys[k]=0;});
   const pad=$('pad');
