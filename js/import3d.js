@@ -124,6 +124,21 @@ async function prendreFichiers(fichiers,{tourner=0,origine=null}={}){
   montrer(r.scene,{nom:r.nom,octets:r.octets,tourner,origine});
   if(charge&&r.manquants.length) dire(`Textures absentes : ${r.manquants.slice(0,4).join(', ')}${r.manquants.length>4?'…':''}. Choisissez-les avec le modèle (ou son .zip) ; sinon l’objet reste sans elles.`);
 }
+// allègement fait dès que le modèle est lu (Mauro, 11 octobre 2026 : connaître le poids avant d'ajouter), sur une copie (le
+// modèle lu reste tel quel pour « Redresser »), gardé tant que l'orientation ne change pas ; « Ajouter » le reprend
+const orientation=s=>s.rotation.toArray().slice(0,3).map(v=>(+v).toFixed(4)).join();
+const enMo=o=>o>=1048576?(o/1048576).toFixed(1).replace('.',',')+' Mo':Math.max(1,Math.round(o/1024))+' Ko';
+function alleger(){
+  const c=charge; if(!c) return null; const cle=orientation(c.scene);
+  if(c.prep?.cle===cle) return c.prep.p;
+  const ligne=fen.querySelector('.g3-poids'); ligne.textContent='Une fois allégé dans Maison3D : calcul du poids…';
+  const p=(async()=>{ const r=await preparer(c.scene.clone(true),()=>{}), relu=await lire(await r.blob.arrayBuffer());
+    return {...r,taille:boite(relu).getSize(new THREE.Vector3())}; })();
+  c.prep={cle,p};
+  p.then(r=>{ if(charge===c&&c.prep?.p===p) ligne.textContent=`Une fois allégé dans Maison3D : ${enMo(r.blob.size)} · ${Math.round(r.triangles).toLocaleString('fr-FR')} triangles`; },
+    e=>{ if(c.prep?.p===p) c.prep=null; if(charge===c) ligne.textContent='Poids une fois allégé : inconnu ('+(e?.message||e)+').'; });
+  return p;
+}
 // modèle couché (axe vertical différent selon les logiciels) : un quart de tour à chaque appui
 function redresser(){
   if(!charge) return; charge.scene.rotation.x-=Math.PI/2;
@@ -143,7 +158,7 @@ function montrer(scene,{nom='',octets=0,tourner=0,origine=null}={}){
   fen.querySelector('#g3-nom').value=charge.nom;
   fen.querySelector('.g3-detail').textContent=(octets?`${(octets/1048576).toFixed(1).replace('.',',')} Mo · `:'')+`${Math.round(tri).toLocaleString('fr-FR')} triangles · ${tex.size} texture${tex.size>1?'s':''}${sortes.size?' ('+[...sortes].join(', ')+')':''} · taille dans le fichier : ${[s.x,s.z,s.y].map(v=>v.toFixed(2).replace('.',',')).join(' × ')} (L × P × H)`;
   const o=fen.querySelector('.g3-origine'); o.hidden=!origine; if(origine) o.textContent=texteOrigine(origine);
-  majDims(); fen.querySelector('.g3-info').hidden=false; dire('Vérifiez les dimensions (en cm), puis « Ajouter ».');
+  majDims(); fen.querySelector('.g3-info').hidden=false; dire('Vérifiez les dimensions (en cm), puis « Ajouter ».'); alleger();
 }
 // « Fichier 3D : 2,4 Mo · 120 000 triangles » (Mauro, 11 octobre 2026 : le poids après allègement ne se voyait qu'à l'envoi)
 export function texteFichier(a){
@@ -176,9 +191,8 @@ async function ajouter(){
   if(!charge) return; const L=lireCm('#g3-l'), P=lireCm('#g3-p'), H=lireCm('#g3-h'); if(!L||!P||!H){ dire('Indiquez les trois dimensions (cm).',true); return; }
   const b=fen.querySelector('#g3-ajouter'); b.disabled=true;
   try{
-    dire('Allègement du modèle…'); const {blob,triangles,parties}=await preparer(charge.scene,dire);
-    const relu=await lire(await blob.arrayBuffer()), s=boite(relu).getSize(new THREE.Vector3());
-    dire(`Envoi (${(blob.size/1048576).toFixed(1).replace('.',',')} Mo, ${Math.round(triangles).toLocaleString('fr-FR')} triangles)…`);
+    dire('Allègement du modèle…'); const {blob,triangles,taille:s}=await alleger();
+    dire(`Envoi (${enMo(blob.size)}, ${Math.round(triangles).toLocaleString('fr-FR')} triangles)…`);
     const nom=fen.querySelector('#g3-nom').value.trim().slice(0,60)||'Objet 3D';
     const r=await envoyerFichier(blob,{nom,type:'glb'}); if(r.erreur){ dire(r.erreur,true); return; }
     const it=ajouterObjet({t:'glb',f:'glb',p:{L:+(L/100).toFixed(4),P:+(P/100).toFixed(4),H:+(H/100).toFixed(4)},fic:{id:r.id,n:r.n},d:[+s.x.toFixed(5),+s.y.toFixed(5),+s.z.toFixed(5)],n:nom,
@@ -197,6 +211,7 @@ function construireFenetre(){
     <div class="g3-info" hidden>
       <p class="mat-aide g3-origine" hidden></p>
       <p class="mat-aide g3-detail"></p>
+      <p class="mat-aide g3-poids"></p>
       <label class="dimrow"><span>Unité du fichier</span><select id="g3-unite"><option value="m">mètres</option><option value="cm">centimètres</option><option value="mm">millimètres</option></select></label>
       <label class="dimrow"><span>Nom</span><input type="text" id="g3-nom" maxlength="60"></label>
       <label class="dimrow"><span>Largeur</span><input type="number" id="g3-l" min="1" max="2000" step="0.5"><span class="unite">cm</span></label>
