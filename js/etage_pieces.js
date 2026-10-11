@@ -78,9 +78,9 @@ function commodeMezzanine(){
 }
 
 // ---------- Mezzanine : coin bureau (aile ouest, au-dessus de l'entrée) ----------
-// Bureau haut à plateau blanc sur deux pieds colonnes, contre le mur ouest, avec son écran
+// Bureau haut à plateau blanc sur deux pieds colonnes, contre le mur ouest et le mur sud (photo calée), avec son écran
 function bureauMezzanine(){
-  const g=groupe('etage__bureau_mezzanine'), x0=11.47, x1=12.07, z0=-22.45, z1=-21.35, h=0.98;
+  const g=groupe('etage__bureau_mezzanine'), x0=11.47, x1=12.07, z0=-22.22, z1=-21.12, h=0.98;
   boite(g,x0,x1,F+h,F+h+0.03,z0,z1,MAT.blanc);
   for(const z of [z0+0.12,z1-0.12]){ cylindre(g,11.77,F,F+h,z,0.03,M.metalGris); boite(g,x0+0.03,x1-0.03,F,F+0.03,z-0.03,z+0.03,M.metalGris); }
   const zc=(z0+z1)/2;
@@ -217,7 +217,7 @@ export function construireEtage(root){
   if(douche){ const bloc=[]; douche.traverse(o=>{ if(o.isMesh&&o.material.name==='Material_377') bloc.push(o); }); for(const o of bloc) o.removeFromParent();
     douche.updateMatrixWorld(true); douche.attach(rideauDouche()); }
   return [litMezzanine(), armoireMezzanine(), fauteuil(), commodeMezzanine(),
-    bureauMezzanine(), tabouret('etage__tabouret_mezzanine_1',12.38,-21.60,MAT.blanc,MAT.blanc), tabouret('etage__tabouret_mezzanine_2',12.33,-22.15,MAT.blanc,MAT.blanc),
+    bureauMezzanine(), tabouret('etage__tabouret_mezzanine_1',12.38,-21.45,MAT.blanc,MAT.blanc), tabouret('etage__tabouret_mezzanine_2',12.33,-22.25,MAT.blanc,MAT.blanc),
     applique('etage__spot_mezzanine_1',14.10,'x',-24.05,F+1.90,1,0.08,0.08), applique('etage__spot_mezzanine_2',16.70,'x',-24.60,F+1.90,-1,0.08,0.08),
     applique('etage__applique_bureau',-22.75,'z',11.85,F+1.70,1,0.20,0.20), applique('rez__applique_escalier',12.87,'x',-18.22,2.80,1,0.18,0.26),
     armoiresDressing(), buffetDressing(), portant(), applique('etage__applique_dressing',13.97,'x',-23.80,F+1.80,-1,0.32,0.18),

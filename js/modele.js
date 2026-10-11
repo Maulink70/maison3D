@@ -112,11 +112,20 @@ function teinter(root){
     n.traverse(o=>{ if(o.isMesh&&t[o.material.name]!==undefined){ o.material=o.material.clone(); o.material.color.set(t[o.material.name]); } }); }
 }
 
+// Places corrigées d'après les photos calées (11 octobre 2026) : nœuds du modèle déplacés (x, z en mètres) avant la création des meubles
+const DEPLACES={'rez__Bar_cuisine':[0,0.60],   // îlot : allée de ~1,1 m devant les meubles du fond (0,6 m dans le modèle)
+  'rez__meuble_salon':[0,0.25]};               // buffet : 25 cm plus au sud (trois photos du salon)
+function deplacer(root){
+  for(const [nom,[dx,dz]] of Object.entries(DEPLACES)){ const n=root.getObjectByName(nom); if(!n) continue;
+    const p=n.getWorldPosition(new THREE.Vector3()); p.x+=dx; p.z+=dz; n.parent.worldToLocal(p); n.position.copy(p); n.updateMatrixWorld(true); }
+}
+
 function installerMobilier(root){
   corrigerVitres(root); retirerPanneauxSurVitres(root); teinter(root); seuilBaie(root);
   app.model.add(root); root.updateMatrixWorld(true); app.mobilier=root;   // racine du mobilier : les objets ajoutés y sont rangés
   const etagere=root.getObjectByName('rez__armoire'); if(etagere) remplacerEtagere(etagere,root);
   const buffet=root.getObjectByName('rez__meuble_salon'); if(buffet) remplacerBuffet(buffet,root);
+  deplacer(root);
   for(const n of [...construireBuanderie(root),...construireCuisine(),...construireSalon(),...construirePieces(root),...construireEtage(root)]) root.add(fusionner(n));
   installerPortes(root); installerFenetres(root);
   const tapis=root.getObjectByName('rez__tapis_salon'); if(tapis) tapis.scale.y=1.75;   // poils longs : 3,5 cm d'épaisseur au lieu de 2

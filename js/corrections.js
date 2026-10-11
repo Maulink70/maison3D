@@ -55,6 +55,87 @@ function faceMur(contour,zMur,mat,trous=[]){
   return new THREE.Mesh(g,m);
 }
 
+// Pièces d'un triangle (coordonnées monde) privé du rectangle r = {x0, x1, y0, y1} (mesuré en x et y ; z suit le plan du
+// triangle) : quatre polygones convexes (Sutherland-Hodgman), dans le sens du triangle
+function triangleMoinsRect(P,r){
+  const n=new THREE.Vector3().subVectors(P[1],P[0]).cross(new THREE.Vector3().subVectors(P[2],P[0])), d=n.dot(P[0]);
+  const zDe=(x,y)=>(d-n.x*x-n.y*y)/n.z;
+  const couper=(poly,k,v,garde)=>{ const out=[]; for(let i=0;i<poly.length;i++){ const A=poly[i], B=poly[(i+1)%poly.length], ia=garde(A[k],v), ib=garde(B[k],v);
+    if(ia) out.push(A); if(ia!==ib){ const t=(v-A[k])/(B[k]-A[k]); out.push([A[0]+t*(B[0]-A[0]),A[1]+t*(B[1]-A[1])]); } } return out; };
+  const inf=(a,v)=>a<=v, sup=(a,v)=>a>=v, T=P.map(q=>[q.x,q.y]), milieu=couper(couper(T,0,r.x0,sup),0,r.x1,inf);
+  const morceaux=[couper(T,0,r.x0,inf),couper(T,0,r.x1,sup),couper(milieu,1,r.y0,inf),couper(milieu,1,r.y1,sup)], tris=[];
+  for(const m of morceaux) for(let i=1;i+1<m.length;i++){ const t=[m[0],m[i],m[i+1]];
+    if(Math.abs((t[1][0]-t[0][0])*(t[2][1]-t[0][1])-(t[2][0]-t[0][0])*(t[1][1]-t[0][1]))<1e-7) continue;
+    tris.push(t.map(([x,y])=>new THREE.Vector3(x,y,zDe(x,y)))); }
+  return tris;
+}
+// Perce un rectangle dans les faces planes d'un maillage (test : le triangle est-il dans le plan voulu ?) : triangles
+// touchés neutralisés, refaits sans le rectangle dans un maillage frère (même matériau)
+function percer(o,test,r){
+  o.updateMatrixWorld(true); const nouveaux=[]; let n=0;
+  neutraliser(o,pts=>{ if(!test(pts)) return false;
+    const xs=pts.map(q=>q.x), ys=pts.map(q=>q.y);
+    if(Math.max(...xs)<=r.x0+1e-4||Math.min(...xs)>=r.x1-1e-4||Math.max(...ys)<=r.y0+1e-4||Math.min(...ys)>=r.y1-1e-4) return false;
+    nouveaux.push(...triangleMoinsRect(pts,r)); n++; return true; });
+  if(nouveaux.length) o.parent.attach(maillage(nouveaux,o.material));
+  return n;
+}
+// Maillage d'une liste de triangles en coordonnées monde (coordonnées de texture posées ensuite, ou par uv(q))
+function maillage(tris,mat,uv=null){
+  const g=new THREE.BufferGeometry(), pts=tris.flat();
+  g.setAttribute('position',new THREE.Float32BufferAttribute(pts.flatMap(q=>[q.x,q.y,q.z]),3));
+  g.setAttribute('uv',new THREE.Float32BufferAttribute(pts.flatMap(q=>uv?uv(q):[0,0]),2));
+  g.computeVertexNormals(); return new THREE.Mesh(g,mat);
+}
+const V=(x,y,z)=>new THREE.Vector3(x,y,z);
+// Coordonnées de texture d'un mur à z constant : u et v fonctions affines de x et y, retrouvées sur un triangle existant
+function repereUVMur(o,zMur){
+  const g=o.geometry, p=g.attributes.position, uv=g.attributes.uv, idx=g.index; if(!uv) return null;
+  for(let t=0;t<idx.count;t+=3){
+    const k=[0,1,2].map(i=>idx.getX(t+i)), pts=k.map(i=>new THREE.Vector3().fromBufferAttribute(p,i).applyMatrix4(o.matrixWorld));
+    if(!pts.every(q=>Math.abs(q.z-zMur)<0.003)) continue;
+    const m=new THREE.Matrix3().set(pts[0].x,pts[0].y,1, pts[1].x,pts[1].y,1, pts[2].x,pts[2].y,1);
+    if(Math.abs(m.determinant())<1e-4) continue;
+    const inv=m.invert(), cu=new THREE.Vector3(...k.map(i=>uv.getX(i))).applyMatrix3(inv), cv=new THREE.Vector3(...k.map(i=>uv.getY(i))).applyMatrix3(inv);
+    return q=>[cu.x*q.x+cu.y*q.y+cu.z, cv.x*q.x+cv.y*q.y+cv.z];
+  }
+  return null;
+}
+
+// Fenêtre de la salle de bain du rez : dans le modèle, de 0,89 à 1,26 m dans le mur carrelé de la baignoire (z = -28,00) ;
+// en réalité au-dessus du carrelage, de 1,26 à 1,87 m, dans le pan nord du toit (photos calées, 11 octobre 2026).
+// L'ancien trou est carrelé, le pan du toit (face intérieure, peau extérieure) est percé, avec un ébrasement intérieur
+// (dessus, côtés) et une petite lucarne dehors (joues, toit) ; la fenêtre elle-même est refaite par fenetres.js
+export const FEN_SDB={x0:11.738, x1:13.093, y0:1.26, y1:1.87, yAncien:0.89, zMur:-27.998, zInt:-27.799};
+const zPenteInt=y=>-27.799+(y-1.26)*0.50088, zPenteExt=y=>-28.166+(y-1.26)*0.5;   // pan nord : face intérieure, peau extérieure
+function fenetreSalleDeBain(rez,mur,carrelage){
+  const F=FEN_SDB, faceDe=(pts,n)=>{ const v=new THREE.Vector3().subVectors(pts[1],pts[0]).cross(new THREE.Vector3().subVectors(pts[2],pts[0])).normalize(); return v.dot(n)>0.99; };
+  let murs=[]; rez.traverse(o=>{ if(o.isMesh&&o.material===mur) murs.push(o); });
+  // 1. ancien trou : son tableau (x = 11,738) et la face cachée à z = -27,799 (1,26 → 1,55 m, elle serait dans la nouvelle fenêtre)
+  for(const o of murs) neutraliser(o,pts=>pts.every(q=>Math.abs(q.x-F.x0)<0.002&&q.y>F.yAncien-0.002&&q.y<F.y0+0.002&&q.z>F.zMur-0.002&&q.z<F.zInt+0.002)
+    ||pts.every(q=>Math.abs(q.z-F.zInt)<0.002&&q.y>F.y0-0.002&&q.y<1.552&&q.x>F.x0-0.002)&&faceDe(pts,V(0,0,1)));
+  //    carrelage dans le même calepinage côté pièce, peinture côté dehors
+  const rect=(x0,x1,y0,y1,z,sens)=>sens>0?[[V(x0,y0,z),V(x1,y0,z),V(x1,y1,z)],[V(x0,y0,z),V(x1,y1,z),V(x0,y1,z)]]:[[V(x0,y0,z),V(x1,y1,z),V(x1,y0,z)],[V(x0,y0,z),V(x0,y1,z),V(x1,y1,z)]];
+  const uv=carrelage?repereUVMur(carrelage,F.zMur):null;
+  if(carrelage) carrelage.parent.attach(maillage(rect(F.x0,F.x1,F.yAncien,F.y0,F.zMur,1),carrelage.material,uv));
+  rez.attach(maillage(rect(F.x0,F.x1,F.yAncien,F.y0,F.zMur,-1),mur));
+  // 2. pan du toit percé : face intérieure et peau extérieure (jusqu'au toit de la lucarne, 2 mm au-dessus du cadre)
+  const r={x0:F.x0,x1:F.x1,y0:F.y0,y1:F.y1}, rExt={...r,y1:F.y1+0.002};
+  const dansPlan=(f)=>pts=>pts.every(q=>Math.abs(q.z-f(q.y))<0.004);
+  for(const o of murs){ percer(o,dansPlan(zPenteInt),r); percer(o,dansPlan(zPenteExt),rExt); }
+  // 3. ébrasement intérieur : dessus (horizontal, vers le bas) et côtés (triangles), de la fenêtre à la face du pan
+  const zH=zPenteInt(F.y1), tris=[
+    [V(F.x0,F.y1,F.zInt),V(F.x0,F.y1,zH),V(F.x1,F.y1,zH)],[V(F.x0,F.y1,F.zInt),V(F.x1,F.y1,zH),V(F.x1,F.y1,F.zInt)],
+    [V(F.x0,F.y0,F.zInt),V(F.x0,F.y1,F.zInt),V(F.x0,F.y1,zH)], [V(F.x1,F.y0,F.zInt),V(F.x1,F.y1,zH),V(F.x1,F.y1,F.zInt)]];
+  // 4. lucarne : joues (sous et au-dessus du croisement de la peau extérieure avec le plan de la fenêtre), toit débordant de 2 cm
+  const yT=F.y1+0.002, yX=1.26+(F.zMur+28.166)/0.5, zT=zPenteExt(yT);
+  for(const [x,s] of [[F.x0,-1],[F.x1,1]]){
+    const bas=[V(x,F.y0,zPenteExt(F.y0)),V(x,F.y0,F.zMur),V(x,yX,F.zMur)], haut=[V(x,yX,F.zMur),V(x,yT,F.zMur),V(x,yT,zT)];
+    for(const t of [bas,haut]) tris.push(faceDe(t,V(s,0,0))?t:[t[0],t[2],t[1]]); }
+  tris.push([V(F.x0-0.02,yT,F.zMur-0.02),V(F.x1+0.02,yT,zT),V(F.x1+0.02,yT,F.zMur-0.02)],[V(F.x0-0.02,yT,F.zMur-0.02),V(F.x0-0.02,yT,zT),V(F.x1+0.02,yT,zT)]);
+  rez.attach(maillage(tris,mur));
+}
+
 // Ouverture de la porte d'entrée dans le mur z = -21,11 (le modèle n'a qu'un mur plein) : x 11,62 → 12,60, 2,14 m
 export const ENTREE={x0:11.62, x1:12.60, h:2.14, zInt:-21.108, zExt:-20.908};
 
@@ -92,6 +173,8 @@ export function corrigerStructure(root){
   //    (sur la largeur de la baie seulement, x 12,88 → 18,60 : plus loin, c'était le bas du mur, fente de 4 cm sur la pelouse,
   //    vue par Mauro le 9 octobre 2026)
   if(mur) rez.traverse(o=>{ if(o.isMesh&&o.material===mur) neutraliser(o,pts=>pts.every(q=>q.x>12.6&&q.x<18.60&&q.y>-0.005&&q.y<0.085&&q.z>-14.35&&q.z<-14.13)); });
+  // 4 bis. Fenêtre de la salle de bain remontée au-dessus du carrelage (photos calées)
+  if(rez&&mur) fenetreSalleDeBain(rez,mur,carrelageSdb);
   // 5. Porte d'entrée : on perce le mur (ses deux faces) et on les refait autour de l'ouverture
   if(rez&&mur){
     const E=ENTREE, dans=(pts,z,xa,xb,yb)=>pts.every(q=>Math.abs(q.z-z)<0.004&&q.x>xa-0.005&&q.x<xb+0.005&&q.y>-0.005&&q.y<yb+0.005);

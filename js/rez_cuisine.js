@@ -61,24 +61,25 @@ function tabouret(nom,x,z){
 }
 
 // Longue suspension au-dessus de l'îlot
-function suspension(){
+function suspension(){   // au-dessus de l'îlot, 60 cm plus au sud que dans le modèle (photos calées, 11 octobre 2026)
   const g=groupe('rez__suspension_cuisine');
-  boite(g,16.25,17.95,1.78,1.82,-23.30,-23.18,MAT.inox);
-  boite(g,16.30,17.90,1.775,1.78,-23.28,-23.20,MAT.lumiere);
-  for(const x of [16.55,17.65]) cylindre(g,x,1.82,2.40,-23.24,0.003,MAT.sombre);
+  boite(g,16.25,17.95,1.78,1.82,-22.70,-22.58,MAT.inox);
+  boite(g,16.30,17.90,1.775,1.78,-22.68,-22.60,MAT.lumiere);
+  for(const x of [16.55,17.65]) cylindre(g,x,1.82,2.40,-22.64,0.003,MAT.sombre);
   return g;
 }
 
 // Coin repas : table blanche (plateau en verre opaque), longue banquette bordeaux côté cuisine, 3 chaises bordeaux côté salon
 function table(){
-  const g=groupe('rez__table_repas'), x0=15.95, x1=17.75, z0=-21.15, z1=-20.25;
+  const g=groupe('rez__table_repas'), x0=15.95, x1=17.75, z0=-20.55, z1=-19.65;   // 60 cm plus au sud (photos calées)
   boite(g,x0,x1,0.72,0.75,z0,z1,MAT.verreOpaque);                          // plateau en verre opaque
   boite(g,x0+0.06,x1-0.06,0.66,0.72,z0+0.06,z1-0.06,MAT.inox);
   for(const [x,z] of [[x0+0.07,z0+0.07],[x1-0.07,z0+0.07],[x0+0.07,z1-0.07],[x1-0.07,z1-0.07]]) boite(g,x-0.025,x+0.025,0,0.66,z-0.025,z+0.025,MAT.inox);
   return g;
 }
 function banquette(){
-  const g=groupe('rez__banquette'), x0=15.90, x1=17.85, z0=-21.85, z1=-21.45;
+  // 1,60 m (et non 1,95), dossier contre le bord nord de la table : mesurée sur les photos calées (11 octobre 2026)
+  const g=groupe('rez__banquette'), x0=16.05, x1=17.65, z0=-20.92, z1=-20.52;
   boite(g,x0,x1,0.08,0.38,z0,z1,MAT.cuir); boite(g,x0,x1,0.38,0.46,z0,z1,MAT.cuirClair);
   for(const x of [x0+0.08,x1-0.08]) boite(g,x-0.03,x+0.03,0,0.08,z0+0.05,z1-0.05,MAT.inox);
   // dossier côté cuisine (on s'assoit face à la table, d'après Mauro le 9 octobre 2026) : coussin sur toute la longueur,
@@ -96,6 +97,7 @@ function chaise(nom,x,z){
 }
 
 export function construireCuisine(){
-  return [meubles(), tabouret('rez__tabouret_1',16.45,-22.45), tabouret('rez__tabouret_2',17.15,-22.45), tabouret('rez__tabouret_3',17.85,-22.45),
-    suspension(), table(), banquette(), chaise('rez__chaise_1',16.30,-20.00), chaise('rez__chaise_2',16.85,-20.00), chaise('rez__chaise_3',17.40,-20.00)];
+  // tabourets devant l'îlot, déplacé avec lui de 60 cm vers le sud ; chaises sous le bord sud de la table (photos calées)
+  return [meubles(), tabouret('rez__tabouret_1',16.45,-21.85), tabouret('rez__tabouret_2',17.15,-21.85), tabouret('rez__tabouret_3',17.85,-21.85),
+    suspension(), table(), banquette(), chaise('rez__chaise_1',16.38,-19.60), chaise('rez__chaise_2',16.85,-19.60), chaise('rez__chaise_3',17.32,-19.60)];
 }

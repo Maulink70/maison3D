@@ -5,8 +5,8 @@
 // dressing, chambre et douche de l'étage) sont décalés d'environ 50 cm vers l'intérieur : la porte qui s'ouvre à
 // l'approche passait à travers la caméra.
 export const PIECES=[
-  {id:'salon',      nom:'Salon',            niveau:'rez',   rects:[[12.87,-21.11,19.44,-14.34]],                              arrivee:[16.6,-20.4],  vers:[16.6,-14.4]},
-  {id:'cuisine',    nom:'Cuisine',          niveau:'rez',   rects:[[15.00,-24.93,19.44,-21.11],[13.82,-22.58,15.00,-21.11]], arrivee:[16.0,-21.45], vers:[17.3,-23.2]},
+  {id:'salon',      nom:'Salon',            niveau:'rez',   rects:[[12.87,-21.11,19.44,-14.34]],                              arrivee:[18.3,-20.3],  vers:[16.6,-14.4]},
+  {id:'cuisine',    nom:'Cuisine',          niveau:'rez',   rects:[[15.00,-24.93,19.44,-21.11],[13.82,-22.58,15.00,-21.11]], arrivee:[15.55,-21.3], vers:[17.3,-23.2]},
   {id:'entree',     nom:'Entrée',           niveau:'rez',   rects:[[11.45,-22.58,13.82,-21.11]],                              arrivee:[11.75,-21.4], vers:[13.8,-21.4]},
   {id:'degagement', nom:'Dégagement',       niveau:'rez',   rects:[[13.08,-24.93,14.87,-22.58]],                              arrivee:[13.6,-22.9],  vers:[13.9,-24.9]},
   {id:'chambre',    nom:'Chambre',          niveau:'rez',   rects:[[14.88,-27.80,19.44,-25.01],[13.08,-26.03,14.88,-25.01]], arrivee:[14.5,-25.5],  vers:[19.4,-25.9]},

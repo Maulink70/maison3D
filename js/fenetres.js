@@ -24,8 +24,10 @@ export const FENETRES=[
     meneaux:[[-26.21,-26.15]],                                       // deux fenêtres collées (précisé par Mauro)
     ouvrants:[{a:[-26.908,-26.21], y:[1.09,2.03], p:0.08, type:'battant', charniere:-26.908, part:1, poignee:[-26.255,1.47]},
               {a:[-26.15,-25.163], y:[1.09,2.03], p:0.08, type:'battant', charniere:-25.163, part:1, poignee:[-26.105,1.47]}]},
-  {nom:'rez__Fenetre_salle_de_bain', axe:'z', int:-27.778, ext:-27.998, a:[11.738,13.093], y:[0.89,1.26], d:[0.02,0.02,0.02,0.02],
-    ouvrants:[{a:[11.758,13.073], y:[0.91,1.24], p:0.02, type:'bas', part:0.3, poignee:[12.45,1.225]}], store:{a:[11.77,13.06],y:[0.915,1.215]}},
+  // salle de bain : remontée au-dessus du carrelage, de 1,26 à 1,87 m (photos calées ; le mur et le toit sont refaits dans
+  // corrections.js), cadre et ouvrant en bois comme sur la photo ; le store du modèle (vers) est agrandi à la nouvelle vitre
+  {nom:'rez__Fenetre_salle_de_bain', axe:'z', int:-27.799, ext:-27.998, a:[11.738,13.093], y:[1.26,1.87], d:[0.05,0.05,0.05,0.05],
+    ouvrants:[{a:[11.788,13.043], y:[1.31,1.82], p:0.06, type:'bas', part:0.3, poignee:[12.415,1.795]}], store:{a:[11.77,13.06],y:[0.915,1.215],vers:[1.375,1.775]}},
   {nom:'rez__store_fenetre', axe:'z', int:-21.128, ext:-20.908, a:[11.458,12.533], y:[3.60,4.32], d:[0.06,0.06,0.06,0.06], bois:'Material_13',
     ouvrants:[{a:[11.518,12.473], y:[3.66,4.26], p:0.08, type:'bas', part:0.3, poignee:[11.965,4.215]}], store:{a:[11.59,12.40],y:[3.67,4.18]}},
   {nom:'etage__Fenetre_chambre_etage', axe:'x', int:19.418, ext:19.538, a:[-25.423,-24.248], y:[3.76,5.185], d:[0.06,0.06,0.06,0.325],
@@ -83,7 +85,11 @@ function fenetre(root,f){
     node.traverse(m=>{ if(!m.isMesh||/Material_297|Material_13|Material_30[01]/.test(m.material.name)||m.userData.vitre) return;
       const x=extraire(m,c=>{ const a=f.axe==='x'?c.z:c.x, d=f.axe==='x'?c.x:c.z, dd=(d-f.int)*s;
         return a>la&&a<ha&&c.y>ly&&c.y<hy&&dd>-0.03&&dd<0.08; });
-      if(x) stores.push(x); }); }
+      if(x) stores.push(x); });
+    // store déplacé avec la fenêtre (salle de bain) : sa hauteur [ly, hy] devient vers, en coordonnées monde
+    if(f.store.vers){ const [ny,my]=f.store.vers, k=(my-ny)/(hy-ly);
+      const T=new THREE.Matrix4().makeTranslation(0,ny,0).multiply(new THREE.Matrix4().makeScale(1,k,1)).multiply(new THREE.Matrix4().makeTranslation(0,-ly,0));
+      for(const m of stores) m.geometry.applyMatrix4(T); } }   // morceaux extraits en coordonnées monde
   const vieux=[]; node.traverse(o=>{ if(o.isMesh) vieux.push(o); }); for(const o of vieux) o.removeFromParent();
   // dormant : montants, traverses, caisson, meneaux, sur toute l'épaisseur
   const g=new THREE.Group(), [A0,A1]=f.a, [Y0,Y1]=f.y, [dg,dd,db,dh]=f.d;

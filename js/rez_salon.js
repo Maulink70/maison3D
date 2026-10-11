@@ -75,7 +75,7 @@ function lampadaire(){
 }
 // Lampe à poser sur le buffet (pied argenté, abat-jour blanc)
 function lampeBuffet(){
-  const g=groupe('rez__lampe_buffet'), x=19.12, z=-20.85, y=0.925;
+  const g=groupe('rez__lampe_buffet'), x=19.12, z=-20.60, y=0.925;   // suit le buffet (25 cm plus au sud)
   sphere(g,x,y+0.12,z,0.11,MAT.chrome); cylindre(g,x,y+0.22,y+0.32,z,0.012,MAT.chrome);
   cylindre(g,x,y+0.30,y+0.52,z,0.19,MAT.lumiere,0.13);
   return g;
