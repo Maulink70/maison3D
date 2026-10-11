@@ -60,6 +60,22 @@ export function toitSud(){
   return g;
 }
 
+// Haut des murs est et ouest du salon sous le pan sud (audit des vides du 11 octobre 2026) : le bord des murs du modèle
+// descend un peu plus vite que le pan sud ajouté, fente de 0 (z −17) à 5 cm (baie) entre le mur et le toit, visible de la
+// mezzanine en regard rasant. Bande dans la peinture du mur, 1 mm devant lui, de 8 cm sous le toit à 1 cm au-dessus
+export function jointsToitSud(mat){
+  const g=new THREE.Group(); g.name='rez__joints_toit';
+  for(const [x,vers] of [[19.437,-1],[12.870,1]]){
+    const za=-17.6, zb=-14.30, y=yToitSud, pts=[[x,y(za)-0.08,za],[x,y(zb)-0.08,zb],[x,y(zb)+0.01,zb],[x,y(za)+0.01,za]];
+    const geo=new THREE.BufferGeometry(); geo.setAttribute('position',new THREE.Float32BufferAttribute(pts.flat(),3));
+    geo.setIndex([0,1,2,0,2,3]); geo.computeVertexNormals();
+    if(Math.sign(geo.attributes.normal.getX(0))!==vers){ geo.setIndex([0,2,1,0,3,2]); geo.computeVertexNormals(); }
+    g.add(new THREE.Mesh(geo,mat));
+  }
+  g.traverse(o=>{ o.raycast=()=>{}; });
+  return g;
+}
+
 // Détails muraux de l'entrée : tableau électrique et cache bas (mur ouest, x = 11,45)
 export function decorEntree(){
   const g=new THREE.Group(); g.name='rez__decor_entree';

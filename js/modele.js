@@ -7,11 +7,11 @@ import {META, FICHIERS, GARDE_CORPS, ETAGE_FLOOR, SOL_WC} from './config.js';
 import {construireEtagere} from './etagere.js';
 import {construireBuanderie, carrelerSol, carrelerMursWC} from './buanderie.js';
 import {fusionner, MAT} from './formes.js';
-import {remplacerEscalier, remplacerCloison, cloisonReduit, toitSud, decorEntree} from './rez_structure.js';
+import {remplacerEscalier, remplacerCloison, cloisonReduit, toitSud, decorEntree, jointsToitSud} from './rez_structure.js';
 import {construireCuisine} from './rez_cuisine.js';
 import {construireSalon, construireBuffet} from './rez_salon.js';
 import {construirePieces} from './rez_pieces.js';
-import {plafondsPin, solDouche, murAubergine, ouvrirPorteDouche, carrelerDouche} from './etage_structure.js';
+import {plafondsPin, solDouche, murAubergine, ouvrirPorteDouche, carrelerDouche, faitage} from './etage_structure.js';
 import {construireEtage} from './etage_pieces.js';
 import {installerPortes} from './portes.js';
 import {installerFenetres} from './fenetres.js';
@@ -78,7 +78,11 @@ function installerStructure(root){
   if(esc) remplacerEscalier(esc,root); if(clo) remplacerCloison(clo,root);
   root.add(fusionner(cloisonReduit()),solDouche(),corrections);
   for(const child of [...root.children]) ajouterFixe(child,child.name!=='rez__escalier');
+  let peint=null, peintRez=null; root.traverse(o=>{ if(!o.isMesh||o.material.side!==THREE.FrontSide) return;
+    if(!peint&&o.material.name==='Material_363') peint=o.material; if(!peintRez&&o.material.name==='Material_6') peintRez=o.material; });
   root.add(gardeCorps(),toitSud(),fusionner(decorEntree()),plafondsPin(),fusionner(murAubergine()));
+  if(peint) root.add(faitage(peint));   // fente au faîte fermée
+  if(peintRez) root.add(jointsToitSud(peintRez));   // haut des murs est et ouest du salon, sous le pan sud
   habillerConstruits(root); poserCoordonnees(root);   // marches en pierre, nez de marche, faces refaites
 }
 

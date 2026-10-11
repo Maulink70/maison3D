@@ -40,11 +40,22 @@ function pente(g,x0,x1,z0,z1,yToit,mat){
 export function plafondsPin(){
   const g=new THREE.Group(); g.name='etage__plafonds_pin';
   const pin=new THREE.MeshStandardMaterial({map:texPin(),roughness:0.7});
-  pente(g,16.78,19.44,-25.50,-22.83,yToitSud,pin);                                         // chambre de l'étage
-  pente(g,11.31,13.97,-25.50,-22.83,yToitSud,pin);                                         // dressing
+  pente(g,16.78,19.44,-25.525,-22.83,yToitSud,pin);                                        // chambre de l'étage (jusque derrière le pan nord)
+  pente(g,11.31,13.97,-25.525,-22.83,yToitSud,pin);                                        // dressing
   pente(g,16.78,19.44,-22.75,-21.40,yToitSud,pin); pente(g,17.62,19.44,-21.40,-21.19,yToitSud,pin);   // douche + WC
   g.traverse(o=>{ o.raycast=()=>{}; });
   return g;
+}
+
+// Faîte (Mauro, 11 octobre 2026 : « il y a du vide » dans la chambre de l'étage) : le pan nord du modèle s'arrête à 5,72 m
+// (z −25,545), le pan sud ajouté et les lames de pin au faîte (5,80 m, z −25,50) : une fente de 5 cm laissait voir le
+// ciel sur toute la longueur de l'étage. Bande dans la peinture du pan nord, exactement sur son plan (passe par son bord
+// haut, z −25,545 à 5,719 m ; pente 1 / 2), tournée vers l'intérieur, de 5,66 m (sous le bord du modèle) à 5,86 m (au-delà
+// du bord du pan sud, z −25,50 à 5,80 m) : aucun jour, même pour un regard rasant
+export function faitage(mat){
+  const z=y=>-25.545+(y-5.719)/2, y0=5.66, y1=5.86;
+  const m=plafond([[11.11,y0,z(y0)],[19.64,y0,z(y0)],[19.64,y1,z(y1)],[11.11,y1,z(y1)]],mat); m.name='etage__faitage';
+  m.raycast=()=>{}; return m;
 }
 
 // Sol de la douche + WC : dans le modèle il est 34 cm trop bas (2,40 m) ; carrelage bleu ardoise des photos

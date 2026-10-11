@@ -128,6 +128,9 @@ function baie(root){
     piece(gp,f,a0+pg,a1-pd,b.bas,b.bas+0.10,d0,d1,bois); piece(gp,f,a0+pg,a1-pd,b.haut-0.09,b.haut,d0,d1,bois);
     const v=piece(gp,f,a0+pg,a1-pd,b.bas+0.10,b.haut-0.09,(d0+d1)/2-0.003,(d0+d1)/2+0.003,VERRE); v.userData.vitre=true; };
   panneau(g,b.fixe[0],b.fixe[1],b.ext-0.08,b.ext,0.13,0.09);
+  // recouvrement entre les deux rails, au bord du panneau fixe (audit des vides du 11 octobre 2026 : un regard rasant le
+  // long de la baie passait entre les deux panneaux) ; 5 mm de jeu avec le panneau coulissant, qui passe devant
+  piece(g,f,b.fixe[0],b.fixe[0]+0.04,b.bas,b.haut,b.int+0.085,b.ext-0.08,bois);
   marquerVitres(fusionner(g)); node.attach(g);
   // panneau coulissant, rail intérieur ; poignée de tirage verticale côté pièce
   const pivot=new THREE.Group(); pivot.name=b.nom+'__ouvrant';
