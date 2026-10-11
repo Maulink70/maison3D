@@ -4,17 +4,17 @@ body{margin:0}
 :root{
   --bg:#e9ecee; --scene:#dfe3e6; --panel:#ffffff; --ink:#1c2227; --muted:#5b6670;
   --line:#d3d9de; --accent:#2c5a86; --accent-soft:#e1eaf3; --danger:#a33a2c;
-  --photo:#d9681e; --photo-fonce:#b9520f;   /* « Photo réaliste » : bouton de la barre et appareils photo de la 3D (Mauro, 11 octobre 2026) */
+  --photo:#2e8a4e; --photo-fonce:#226b3c;   /* « Photo réaliste » : bouton de la barre et appareils photo de la 3D (Mauro, 11 octobre 2026) */
   --font-ui:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
   --font-data:"IBM Plex Mono",ui-monospace,"Cascadia Mono",Consolas,monospace;
   --r:10px;
 }
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
   --bg:#14181b; --scene:#1b2024; --panel:#1f2529; --ink:#e5e9ec; --muted:#98a3ac;
-  --line:#2f373d; --accent:#82b2df; --accent-soft:#233444; --danger:#e48a7c; --photo:#e8792c; --photo-fonce:#f09450; color-scheme:dark}}
+  --line:#2f373d; --accent:#82b2df; --accent-soft:#233444; --danger:#e48a7c; --photo:#3aa865; --photo-fonce:#55c07e; color-scheme:dark}}
 :root[data-theme="dark"]{
   --bg:#14181b; --scene:#1b2024; --panel:#1f2529; --ink:#e5e9ec; --muted:#98a3ac;
-  --line:#2f373d; --accent:#82b2df; --accent-soft:#233444; --danger:#e48a7c; --photo:#e8792c; --photo-fonce:#f09450; color-scheme:dark}
+  --line:#2f373d; --accent:#82b2df; --accent-soft:#233444; --danger:#e48a7c; --photo:#3aa865; --photo-fonce:#55c07e; color-scheme:dark}
 html,body{height:100%}
 body{background:var(--bg);color:var(--ink);font-family:var(--font-ui);font-size:14px;overflow:hidden}
 #app{position:fixed;inset:env(safe-area-inset-top,0px) 0 env(safe-area-inset-bottom,0px) 0}
@@ -575,7 +575,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
 #points-photo{position:absolute;inset:0;pointer-events:none;overflow:hidden}
 #points-photo[hidden]{display:none}
 .ib.pv-photo{position:absolute;left:-17px;top:-17px;width:34px;height:34px;border-radius:50%;background:var(--photo);color:#fff;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.35);pointer-events:auto;cursor:pointer;will-change:transform}
-.ib.pv-photo:hover:not(:disabled){background:var(--photo-fonce);color:#fff;box-shadow:0 0 0 3px rgba(217,104,30,.3),0 2px 6px rgba(0,0,0,.35)}
+.ib.pv-photo:hover:not(:disabled){background:var(--photo-fonce);color:#fff;box-shadow:0 0 0 3px color-mix(in srgb,var(--photo) 30%,transparent),0 2px 6px rgba(0,0,0,.35)}
 .ib.pv-photo[hidden]{display:none}
 .pv-photo .ico{width:18px;height:18px}
 .pv-pointe{position:absolute;left:50%;top:50%;width:0;height:0;transform-origin:0 0;pointer-events:none}
