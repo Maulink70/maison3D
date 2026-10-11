@@ -515,6 +515,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
 @media (max-width:760px){ .cal-transp input{width:96px} .cal-b{width:34px} }
 /* Étape 5, livraisons 2 et 3 : rendus (confirmation, historique, avant / après), mode Image, produit reçu */
 .gal-onglets{justify-self:start}
+.gal-haut{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px}
 .gal-attente{display:grid;place-items:center;width:100%;height:100%;font-size:12.5px;color:var(--muted)}
 .cat-info.echec{color:var(--danger)}
 .rendu-carte{width:min(720px,100%)}

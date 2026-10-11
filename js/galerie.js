@@ -15,6 +15,7 @@ import {ETAGE_FLOOR} from './config.js';
 import {caler, voirAvecMaquette} from './calage.js';
 import {chargerRendus, lesRendus, imageRendu, imageAvant, supprimerRendu} from './rendu.js';
 import {ouvrirModeImage} from './image.js';
+import {ouvrirPointsVue} from './pointsliste.js';
 
 const MAXI=2048, VIGN=320, DIAPO=4000;
 const el=(nom,attrs={},texte)=>{ const n=document.createElement(nom); for(const [k,v] of Object.entries(attrs)) n.setAttribute(k,v); if(texte!==undefined) n.textContent=texte; return n; };
@@ -141,6 +142,7 @@ function majMode(){
   if(!fen) return;
   if(onglet==='preparer'&&!app.edition) onglet='photos';   // préparer les photos : en Éditer seulement
   fen.querySelector('[data-onglet="preparer"]').hidden=!app.edition||!!choix;
+  fen.querySelector('#gal-pv').hidden=!!choix;   // écran des points de vue (pointsliste.js) ; pas en choix d'une photo
   fen.querySelector('.gal-ajout').hidden=!app.edition||onglet!=='preparer';
   const aide=fen.querySelector('.gal-aide');
   if(choix){ aide.textContent=choix.texte; return; }
@@ -154,7 +156,7 @@ function construireFenetre(){
   fen=el('div',{id:'galerie-fenetre',class:'fenetre',role:'dialog','aria-modal':'true','aria-label':'Photo réaliste'});
   fen.innerHTML=`<div class="fenetre-carte gal-carte">
     <div class="fenetre-tete"><h2>Photo réaliste</h2><button type="button" class="fermer" aria-label="Fermer">×</button></div>
-    <div class="seg gal-onglets" role="group" aria-label="Photos, rendus ou préparation"><button type="button" data-onglet="photos" aria-pressed="true">Photos</button><button type="button" data-onglet="rendus" aria-pressed="false">Rendus</button><button type="button" data-onglet="preparer" aria-pressed="false" hidden>Préparer</button></div>
+    <div class="gal-haut"><div class="seg gal-onglets" role="group" aria-label="Photos, rendus ou préparation"><button type="button" data-onglet="photos" aria-pressed="true">Photos</button><button type="button" data-onglet="rendus" aria-pressed="false">Rendus</button><button type="button" data-onglet="preparer" aria-pressed="false" hidden>Préparer</button></div><button type="button" class="btn" id="gal-pv">📷 Points de vue des photos</button></div>
     <div class="gal-pieces cat-idees" role="group" aria-label="Pièce"></div>
     <div class="gal-ajout" hidden>
       <label>Ajouter dans <select id="gal-piece" aria-label="Pièce des nouvelles photos"></select></label>
@@ -170,6 +172,7 @@ function construireFenetre(){
   const q=s=>fen.querySelector(s), sel=q('#gal-piece');
   for(const niv of ['rez','etage']){ const g=el('optgroup',{label:niv==='rez'?'Rez':'Étage'}); for(const p of PIECES.filter(x=>x.niveau===niv)) g.append(el('option',{value:p.id},p.nom)); sel.append(g); }
   q('.fermer').onclick=()=>ouvrirGalerie(false);
+  q('#gal-pv').onclick=()=>{ ouvrirGalerie(false); ouvrirPointsVue(true); };
   fen.addEventListener('keydown',e=>{ e.stopPropagation(); if(e.key==='Escape') ouvrirGalerie(false); });
   fen.addEventListener('pointerdown',e=>{ if(e.target===fen) ouvrirGalerie(false); });
   q('#gal-choisir').onclick=()=>q('#gal-fichiers').click(); q('#gal-appareil').onclick=()=>q('#gal-camera').click();
