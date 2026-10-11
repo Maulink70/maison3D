@@ -203,7 +203,7 @@ function construireVisionneuse(){
       <button type="button" class="vis-b" id="vis-diapo" aria-label="Diaporama" title="Diaporama">▶</button>
       <button type="button" class="vis-b" id="vis-plein" aria-label="Plein écran" title="Plein écran">⛶</button>
       <button type="button" class="vis-b" id="vis-fermer" aria-label="Fermer" title="Fermer">×</button></div>
-    <div class="vis-zone"><img class="vis-img" alt=""><img class="vis-avant" alt="Avant" hidden>
+    <div class="vis-zone"><img class="vis-img" alt="" draggable="false"><img class="vis-avant" alt="Avant" draggable="false" hidden>
       <span class="vis-coupe" hidden aria-hidden="true"></span><span class="vis-etiq g" hidden>Avant</span><span class="vis-etiq d" hidden>Après</span>
       <span class="vis-attente" hidden></span>
       <button type="button" class="vis-fleche" id="vis-prec" aria-label="Photo précédente">‹</button>
@@ -233,9 +233,11 @@ function construireVisionneuse(){
   // barre de l'avant / après : glisser sur l'image
   const zone=q('.vis-zone'); let tire=false;
   const placer=e=>{ const r=zone.getBoundingClientRect(); coupe=Math.max(0,Math.min(1,(e.clientX-r.left)/r.width)); majAvap(); };
-  zone.addEventListener('pointerdown',e=>{ if(avap!=='barre'||e.target.closest('button')) return; tire=true; zone.setPointerCapture(e.pointerId); placer(e); e.stopImmediatePropagation(); },true);
+  // à la souris, le navigateur lançait un glisser-déposer de l'image, qui interrompait le glisser de la barre (Mauro, 11 octobre 2026)
+  zone.addEventListener('dragstart',e=>e.preventDefault());
+  zone.addEventListener('pointerdown',e=>{ if(avap!=='barre'||e.target.closest('button')) return; tire=true; zone.setPointerCapture(e.pointerId); placer(e); e.preventDefault(); e.stopImmediatePropagation(); },true);
   zone.addEventListener('pointermove',e=>{ if(tire) placer(e); });
-  for(const t of ['pointerup','pointercancel']) zone.addEventListener(t,()=>{ tire=false; });
+  for(const t of ['pointerup','pointercancel','lostpointercapture']) zone.addEventListener(t,()=>{ tire=false; });
   const renommer=async()=>{ const p=courante(), n=q('#vis-nom').value.trim(); if(!n||n===p.nom) return; const r=await enregistrerPhoto(p,{nom:n}); if(!r.ok) q('#vis-nom').value=p.nom; montrer(); };
   q('#vis-nom').onchange=renommer; q('#vis-nom').onkeydown=e=>{ e.stopPropagation(); if(e.key==='Enter') q('#vis-nom').blur(); if(e.key==='Escape'){ q('#vis-nom').value=courante().nom; q('#vis-nom').blur(); } };
   sel.onchange=async()=>{ const p=courante(); await enregistrerPhoto(p,{piece:sel.value}); montrer(); };

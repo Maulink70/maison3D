@@ -41,7 +41,7 @@ export async function ouvrirModeImage(base,produit){
   if(!b){ dire('La photo n’a pas pu être lue.',true); return; }
   if(mi.url) URL.revokeObjectURL(mi.url); mi.url=URL.createObjectURL(b); img.src=mi.url;
   await img.decode().catch(()=>{}); caler(); dessiner(); majListe();
-  dire(mi.objets.length?'':'Touchez « Ajouter un objet » : image d’un meuble (fichier, image copiée, lien d’un produit ou boutique).');
+  dire(mi.objets.length?'':'Touchez « Ajouter un objet » (image d’un meuble : fichier, image copiée, lien d’un produit ou boutique), ou écrivez simplement votre demande (« ajoute de la décoration… »), puis « Lancer le rendu… ».');
   if(produit) await ajouterProduit(produit);
 }
 function fermer(){ if(fen) fen.hidden=true; }
@@ -152,6 +152,9 @@ async function composer(){
   return c.toDataURL('image/jpeg',0.9);
 }
 function consigne(precisions){
+  // une demande écrite seule (Mauro, 11 octobre 2026 : « ajoute de la décoration dans cette chambre ») : la photo seule est envoyée
+  if(!mi.objets.length&&!mi.zones.length) return [`Edit image 1, a photo of a room (${nomPiece(mi.base.piece)} of an apartment), following this request from the owner (in French): « ${precisions.slice(0,600)} ».`,
+    'Keep everything the request does not ask to change exactly as in image 1: framing, perspective, lens, light, white balance, walls, windows, floor and the existing furniture. The result must be a photorealistic photograph of the same room, with realistic contact shadows and reflections, without any text or watermark.'].join('\n');
   const L=[`Edit image 1 into a photorealistic photograph of this room (${nomPiece(mi.base.piece)} of an apartment).`,
     'Image 1 is a photo of the room on which pictures of products are pasted where the new furniture should go (the position is approximate and the pasted size is only indicative), and RED areas mark what must be removed.',
     'Image 2 is the original photo of the room, only as a reference for the real materials and light.'];
@@ -160,14 +163,13 @@ function consigne(precisions){
   L.push('Changes:');
   mi.objets.forEach((o,k)=>L.push(`- Replace the pasted picture of "${o.nom}" by the real piece of furniture of image ${k+3}, at the correct real-world scale for its dimensions and for this room, standing on the floor or against the wall as appropriate, with the right perspective and orientation. It must look exactly like image ${k+3} (shape, colors, materials).`));
   if(mi.zones.length) L.push(`- Remove completely what is inside the ${mi.zones.length>1?mi.zones.length+' red areas':'red area'} and rebuild what is behind it (wall, floor, skirting board), so that nothing of it remains.`);
-  if(!mi.objets.length&&!mi.zones.length) L.push('- No furniture change: keep the room as it is.');
   L.push('Keep everything else exactly as in image 2: framing, perspective, lens, light, white balance, walls, floor and every other object. Add realistic contact shadows and reflections. The result must not show any red tint, pasted-picture edge, text or watermark, and must not contain any furniture that is not asked for.');
   if(precisions) L.push('Additional instructions from the owner (in French): '+precisions.slice(0,600));
   return L.join('\n');
 }
 async function preparer(){
   if(!mi) return; if(!app.edition){ dire('Les rendus se lancent en « Éditer » (ils consomment des crédits kie.ai).',true); return; }
-  if(!mi.objets.length&&!mi.zones.length){ dire('Ajoutez d’abord un objet ou une zone à effacer.',true); return; }
+  if(!mi.objets.length&&!mi.zones.length&&!fen.querySelector('#mi-precisions').value.trim()){ dire('Écrivez votre demande (par exemple « ajoute de la décoration dans cette chambre »), ajoutez un objet ou une zone à effacer.',true); fen.querySelector('#mi-precisions').focus(); return; }
   const z=fen.querySelector('.mi-confirmer'), ok=z.querySelector('#mi-ok'); z.hidden=false; ok.disabled=true;
   z.querySelector('.mi-cout').textContent='Préparation…';
   try{ prep={composee:await composer()}; z.querySelector('img').src=prep.composee; }catch(e){ z.querySelector('.mi-cout').textContent='Préparation impossible : '+(e.message||e); return; }
@@ -180,8 +182,8 @@ async function lancer(){
   const precisions=fen.querySelector('#mi-precisions').value.trim(), b=mi.base;
   dire('Envoi à kie.ai…');
   try{
-    const photo=await reduire(mi.url,2048), images=[prep.composee,photo.url,...mi.objets.slice(0,6).map(o=>o.img)];
-    const detail=[...mi.objets.map(o=>`Ajouté (photo) : ${o.nom}${o.L&&o.P&&o.H?` (${o.L} × ${o.P} × ${o.H} cm)`:''}`),...mi.zones.map((_,k)=>`Zone effacée ${k+1}`)];
+    const photo=await reduire(mi.url,2048), seule=!mi.objets.length&&!mi.zones.length, images=seule?[photo.url]:[prep.composee,photo.url,...mi.objets.slice(0,6).map(o=>o.img)];
+    const detail=[...mi.objets.map(o=>`Ajouté (photo) : ${o.nom}${o.L&&o.P&&o.H?` (${o.L} × ${o.P} × ${o.H} cm)`:''}`),...mi.zones.map((_,k)=>`Zone effacée ${k+1}`),...(precisions?[`Demande : ${precisions.slice(0,200)}`]:[])];
     const r=await demarrerRendu({images,consigne:consigne(precisions),ratio:ratioDe(b.image.w,b.image.h),titre:`${b.nom} · montage`,
       champs:{piece:b.piece,photo:b.photo||'',avant:b.image,variante:'',mode:'image',detail}});
     if(!r.id){ dire(r.erreur,true); ok.disabled=false; return; }
@@ -198,12 +200,12 @@ function construire(){
   fen=el('div',{id:'mode-image',class:'visionneuse mode-image',role:'dialog','aria-modal':'true','aria-label':'Montage photo'});
   fen.innerHTML=`<div class="vis-haut"><div class="vis-titre"><strong></strong><span></span></div>
       <button type="button" class="vis-b" id="mi-fermer" aria-label="Fermer" title="Fermer">×</button></div>
-    <div class="vis-zone mi-zone"><div class="mi-cadre"><img class="mi-photo" alt="Photo de la pièce"><div class="mi-calques"></div></div></div>
+    <div class="vis-zone mi-zone"><div class="mi-cadre"><img class="mi-photo" alt="Photo de la pièce" draggable="false"><div class="mi-calques"></div></div></div>
     <div class="mi-bas">
       <div class="mi-outils">
         <button type="button" class="btn primary" id="mi-ajouter" aria-expanded="false">📎 Ajouter un objet</button>
         <button type="button" class="btn" id="mi-effacer">Effacer une zone</button>
-        <input type="text" id="mi-precisions" maxlength="600" placeholder="Précisions (facultatif) : lumière du soir…" aria-label="Précisions pour le rendu">
+        <input type="text" id="mi-precisions" maxlength="600" placeholder="Votre demande : ajoute de la décoration, lumière du soir…" aria-label="Votre demande pour le rendu (seule, ou avec des objets)">
         <button type="button" class="btn primary" id="mi-rendu">Lancer le rendu…</button>
       </div>
       <div class="mi-ajout" hidden>
