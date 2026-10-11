@@ -222,7 +222,7 @@ else:
   print('workflow Catalogue non publié : SKETCHFAB_CRED (id de la clé « Sketchfab Maison3D » dans n8n) manquant')
 
 # ---------- workflow « Maison3D Rendu » (étape 5, livraison 2) : rendu réaliste d'une photo de pièce (kie.ai) ----------
-# POST /webhook/maison3d-rendu (texte JSON) : solde → {solde} ; demarrer {images, consigne, ratio, titre} → {tache} ;
+# POST /webhook/maison3d-rendu (texte JSON) : solde → {solde, modeles} ; demarrer {images, consigne, ratio, titre, modele} → {tache} ;
 # suivre {tache} → {etat, image}. Même clé kie.ai que le nettoyage (KIE ci-dessus). Clé externe de Familia (adresse de
 # rappel : le rendu arrive aussi dans la galerie Familia) : FAMILIA_CLE=<32 caractères> python3 outils/n8n/deployer.py ;
 # sans elle, la clé du workflow déjà publié est reprise (jamais dans le dépôt) ; aucune clé : pas de rappel Familia.
@@ -234,7 +234,8 @@ if not re.fullmatch(r'[0-9a-f]{32}',fam) and exR:
     if mf: fam=mf.group(1)
 idr=lambda nom:str(uuid.uuid5(uuid.NAMESPACE_DNS,'m3drendu-'+nom))
 def codeR(nom,f,x,y,avecLib=False):
-  js=((lib if avecLib else '')+lire(f)).replace('__SECRET__',sec).replace('__FAMILIA__',fam if re.fullmatch(r'[0-9a-f]{32}',fam) else '')
+  # la liste des modèles (rendu_modeles.js) est mise en tête des nœuds qui s'en servent
+  js=((lib if avecLib else '')+(lire('rendu_modeles.js')+'\n' if f in ('rendu_analyser.js','rendu_tache.js','rendu_solde.js') else '')+lire(f)).replace('__SECRET__',sec).replace('__FAMILIA__',fam if re.fullmatch(r'[0-9a-f]{32}',fam) else '')
   return {'id':idr(nom),'name':nom,'type':'n8n-nodes-base.code','typeVersion':2,'position':[x,y],'parameters':{'jsCode':js}}
 def siR(nom,x,y,expr): n=si(nom,x); n['id']=idr(nom); n['position']=[x,y]; n['parameters']['conditions']['conditions'][0]['leftValue']=expr; return n
 def repR(nom,x,y): n=repondre(nom,x); n['id']=idr(nom); n['position']=[x,y]; return n

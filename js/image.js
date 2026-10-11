@@ -12,7 +12,7 @@ import * as THREE from 'three';
 import {app, $} from './app.js';
 import {lireFichier} from './fichiers.js';
 import {BOUTIQUES, lienRecherche, lireProduit} from './boutiques.js';
-import {soldeKie, COUT, ratioDe, demarrerRendu, suivre, camPhoto} from './rendu.js';
+import {soldeKie, ratioDe, demarrerRendu, suivre, camPhoto, modelesRendu, coutRendu} from './rendu.js';
 import {ouvrirPhotoAvec} from './photo.js';
 import {PIECES, pieceEn} from './pieces.js';
 import {ETAGE_FLOOR} from './config.js';
@@ -151,7 +151,7 @@ async function composer(){
     g.drawImage(i,o.x*c.width+(rw-w)/2,o.y*c.height+(rh-h)/2,w,h); }
   return c.toDataURL('image/jpeg',0.9);
 }
-function consigne(precisions){
+function consigne(precisions,nRef=6){   // nRef : images des objets envoyées (le modèle en accepte parfois moins)
   // une demande écrite seule (Mauro, 11 octobre 2026 : « ajoute de la décoration dans cette chambre ») : la photo seule est envoyée
   if(!mi.objets.length&&!mi.zones.length) return [`Edit image 1, a photo of a room (${nomPiece(mi.base.piece)} of an apartment), following this request from the owner (in French): « ${precisions.slice(0,600)} ».`,
     'Keep everything the request does not ask to change exactly as in image 1: framing, perspective, lens, light, white balance, walls, windows, floor and the existing furniture. The result must be a photorealistic photograph of the same room, with realistic contact shadows and reflections, without any text or watermark.'].join('\n');
@@ -159,9 +159,10 @@ function consigne(precisions){
     'Image 1 is a photo of the room on which pictures of products are pasted where the new furniture should go (the position is approximate and the pasted size is only indicative), and RED areas mark what must be removed.',
     'Image 2 is the original photo of the room, only as a reference for the real materials and light.'];
   const dimsTexte=o=>o.L&&o.P&&o.H?`${o.L} × ${o.P} × ${o.H} cm (width × depth × height)`:o.L||o.H?`${o.L?'width '+o.L+' cm':''}${o.L&&o.H?', ':''}${o.H?'height '+o.H+' cm':''}`:'real size unknown: use a plausible size';
-  if(mi.objets.length){ L.push('Reference pictures of the new furniture:'); mi.objets.forEach((o,k)=>L.push(`- image ${k+3}: "${o.nom}" (${dimsTexte(o)}).`)); }
+  if(mi.objets.length&&nRef){ L.push('Reference pictures of the new furniture:'); mi.objets.slice(0,nRef).forEach((o,k)=>L.push(`- image ${k+3}: "${o.nom}" (${dimsTexte(o)}).`)); }
   L.push('Changes:');
-  mi.objets.forEach((o,k)=>L.push(`- Replace the pasted picture of "${o.nom}" by the real piece of furniture of image ${k+3}, at the correct real-world scale for its dimensions and for this room, standing on the floor or against the wall as appropriate, with the right perspective and orientation. It must look exactly like image ${k+3} (shape, colors, materials).`));
+  mi.objets.forEach((o,k)=>L.push(k<nRef?`- Replace the pasted picture of "${o.nom}" by the real piece of furniture of image ${k+3}, at the correct real-world scale for its dimensions and for this room, standing on the floor or against the wall as appropriate, with the right perspective and orientation. It must look exactly like image ${k+3} (shape, colors, materials).`
+    :`- Replace the pasted picture of "${o.nom}" (${dimsTexte(o)}) by the real piece of furniture it shows, at the correct real-world scale for this room, with the right perspective and orientation, looking exactly like the pasted picture.`));
   if(mi.zones.length) L.push(`- Remove completely what is inside the ${mi.zones.length>1?mi.zones.length+' red areas':'red area'} and rebuild what is behind it (wall, floor, skirting board), so that nothing of it remains.`);
   L.push('Keep everything else exactly as in image 2: framing, perspective, lens, light, white balance, walls, floor and every other object. Add realistic contact shadows and reflections. The result must not show any red tint, pasted-picture edge, text or watermark, and must not contain any furniture that is not asked for.');
   if(precisions) L.push('Additional instructions from the owner (in French): '+precisions.slice(0,600));
@@ -173,18 +174,36 @@ async function preparer(){
   const z=fen.querySelector('.mi-confirmer'), ok=z.querySelector('#mi-ok'); z.hidden=false; ok.disabled=true;
   z.querySelector('.mi-cout').textContent='Préparation…';
   try{ prep={composee:await composer()}; z.querySelector('img').src=prep.composee; }catch(e){ z.querySelector('.mi-cout').textContent='Préparation impossible : '+(e.message||e); return; }
-  const solde=await soldeKie();
-  z.querySelector('.mi-cout').textContent=`Lancer le rendu ? Coût : ${COUT} crédits kie.ai (≈ 0,09 $)`+(solde!=null?` · solde : ${Math.floor(solde).toLocaleString('fr-FR')} crédits`:'')+' · environ 1 minute';
-  ok.disabled=solde!=null&&solde<COUT; if(ok.disabled) z.querySelector('.mi-cout').textContent+=' : plus assez de crédits.';
+  prep.solde=await soldeKie(); remplirModeles(); majCout();
+}
+// Modèle de kie.ai pour le rendu (Mauro, 11 octobre 2026) : menu d'après la liste du workflow n8n, choix retenu sur l'appareil
+const CLE_MODELE='maison3d-modele-rendu';
+const seule=()=>!mi.objets.length&&!mi.zones.length;   // demande écrite seule : la photo seule part
+function modeleChoisi(){ const l=modelesRendu(), v=fen.querySelector('#mi-modele').value; return l.find(m=>m.id===v)||l[0]; }
+// images envoyées pour ce modèle : image composée, vraie photo, puis les objets tant que le modèle en accepte
+const nbImages=m=>seule()?1:Math.min(m.max,2+Math.min(6,mi.objets.length));
+function remplirModeles(){
+  const s=fen.querySelector('#mi-modele'), l=modelesRendu(); let garde=null; try{ garde=localStorage.getItem(CLE_MODELE); }catch{}
+  s.replaceChildren(...l.map(m=>el('option',{value:m.id},m.nom)));
+  s.value=l.some(m=>m.id===garde)?garde:l[0].id;
+}
+function majCout(){
+  if(!prep) return; const m=modeleChoisi(), n=nbImages(m), c=coutRendu(m,n), z=fen.querySelector('.mi-confirmer'), ok=z.querySelector('#mi-ok'), solde=prep.solde;
+  const coupe=!seule()&&mi.objets.length>n-2?` · ${m.nom} n'accepte que ${m.max} images : ${n-2} objet${n-2>1?'s':''} sur ${mi.objets.length} envoyé${n-2>1?'s':''}`:'';
+  z.querySelector('.mi-cout').textContent=`Lancer le rendu ? Coût : ${String(c).replace('.',',')} crédits kie.ai (≈ ${(c*0.005).toFixed(2).replace('.',',')} $)`
+    +(solde!=null?` · solde : ${Math.floor(solde).toLocaleString('fr-FR')} crédits`:'')+' · environ 1 minute'+coupe;
+  z.querySelector('.mi-note').textContent=m.note||'';
+  ok.disabled=solde!=null&&solde<c; if(ok.disabled) z.querySelector('.mi-cout').textContent+=' : plus assez de crédits.';
 }
 async function lancer(){
   if(!prep||!mi) return; const z=fen.querySelector('.mi-confirmer'), ok=z.querySelector('#mi-ok'); ok.disabled=true;
   const precisions=fen.querySelector('#mi-precisions').value.trim(), b=mi.base;
   dire('Envoi à kie.ai…');
   try{
-    const photo=await reduire(mi.url,2048), seule=!mi.objets.length&&!mi.zones.length, images=seule?[photo.url]:[prep.composee,photo.url,...mi.objets.slice(0,6).map(o=>o.img)];
-    const detail=[...mi.objets.map(o=>`Ajouté (photo) : ${o.nom}${o.L&&o.P&&o.H?` (${o.L} × ${o.P} × ${o.H} cm)`:''}`),...mi.zones.map((_,k)=>`Zone effacée ${k+1}`),...(precisions?[`Demande : ${precisions.slice(0,200)}`]:[])];
-    const r=await demarrerRendu({images,consigne:consigne(precisions),ratio:ratioDe(b.image.w,b.image.h),titre:`${b.nom} · montage`,
+    const m=modeleChoisi(), n=nbImages(m), photo=await reduire(mi.url,2048), images=seule()?[photo.url]:[prep.composee,photo.url,...mi.objets.slice(0,n-2).map(o=>o.img)];
+    try{ localStorage.setItem(CLE_MODELE,m.id); }catch{}
+    const detail=[...mi.objets.map(o=>`Ajouté (photo) : ${o.nom}${o.L&&o.P&&o.H?` (${o.L} × ${o.P} × ${o.H} cm)`:''}`),...mi.zones.map((_,k)=>`Zone effacée ${k+1}`),...(precisions?[`Demande : ${precisions.slice(0,200)}`]:[]),`Modèle : ${m.nom}`];
+    const r=await demarrerRendu({images,modele:m.id,consigne:consigne(precisions,seule()?0:n-2),ratio:ratioDe(b.image.w,b.image.h),titre:`${b.nom} · montage`,
       champs:{piece:b.piece,photo:b.photo||'',avant:b.image,variante:'',mode:'image',detail}});
     if(!r.id){ dire(r.erreur,true); ok.disabled=false; return; }
     z.hidden=true; prep=null;
@@ -216,7 +235,9 @@ function construire(){
         <p class="mat-aide">Sur la page du produit : copiez son lien (ou l’image : appui long ou clic droit, « Copier l’image »), revenez ici et collez-le. Sur PC, Ctrl+V marche aussi.</p>
       </div>
       <div class="mi-objets"></div>
-      <div class="mi-confirmer" hidden><img alt="Photo avec les objets posés"><div><p class="mi-cout"></p>
+      <div class="mi-confirmer" hidden><img alt="Photo avec les objets posés"><div>
+        <label class="mi-modele">Modèle <select id="mi-modele" aria-label="Modèle de kie.ai pour le rendu"></select></label> <span class="mi-note"></span>
+        <p class="mi-cout"></p>
         <div class="ph-boutons"><button type="button" class="btn primary" id="mi-ok">Oui, lancer le rendu</button><button type="button" class="btn" id="mi-non">Annuler</button></div></div></div>
       <p class="ph-message" role="status"></p>
     </div>`;
@@ -228,7 +249,7 @@ function construire(){
   q('#mi-coller').onclick=coller; q('#mi-choisir').onclick=()=>q('#mi-fichier').click();
   q('#mi-fichier').onchange=e=>{ const f=e.target.files[0]; e.target.value=''; depuisFichier(f); };
   q('#mi-lien-lire').onclick=lien;
-  q('#mi-rendu').onclick=preparer; q('#mi-ok').onclick=lancer; q('#mi-non').onclick=()=>{ q('.mi-confirmer').hidden=true; prep=null; };
+  q('#mi-rendu').onclick=preparer; q('#mi-modele').onchange=majCout; q('#mi-ok').onclick=lancer; q('#mi-non').onclick=()=>{ q('.mi-confirmer').hidden=true; prep=null; };
   for(const b of BOUTIQUES){ const x=el('button',{type:'button',class:'cat-idee',title:'Lien : '+b.lien},b.nom);
     x.onclick=()=>{ const t=q('#mi-q').value.trim(); open(lienRecherche(b,t),'_blank','noopener'); dire(`${b.nom} s’ouvre dans un nouvel onglet${b.recherche&&t?' sur votre recherche':''} : choisissez le produit, copiez son lien${b.lien==='copier l’image'?' ou plutôt son image (ce site refuse la lecture automatique)':''}, puis revenez ici et collez-le.`); };
     q('.mi-boutiques').append(x); }

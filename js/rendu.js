@@ -46,7 +46,12 @@ export async function n8nRendu(corps){
   catch{ return {ok:false,horsLigne:true,erreur:'Pas de connexion au serveur'}; }
   return r.json().catch(()=>({ok:false,erreur:'Réponse illisible'}));
 }
-export async function soldeKie(){ const r=await n8nRendu({action:'solde'}); return r.ok?r.solde:null; }
+// Modèles proposés pour les rendus : la liste vient du workflow n8n avec le solde (outils/n8n/rendu_modeles.js), le premier
+// est le choix par défaut ; ici seulement Nano Banana Pro tant que la liste n'est pas lue
+let modeles=null;
+export const modelesRendu=()=>modeles||[{id:'nano-banana-pro',nom:'Nano Banana Pro',cout:COUT,coutImage:0,max:8,note:''}];
+export const coutRendu=(m,n)=>m.cout+(m.coutImage||0)*Math.max(0,n-1);   // n : nombre d'images envoyées
+export async function soldeKie(){ const r=await n8nRendu({action:'solde'}); if(Array.isArray(r.modeles)&&r.modeles.length) modeles=r.modeles; return r.ok?r.solde:null; }
 
 // ---------- ce qui change par rapport à la Base ----------
 export function changements(){
@@ -186,8 +191,8 @@ const annoncer=()=>dispatchEvent(new CustomEvent('rendus'));
 export async function enregistrerRendu(r,champs){ const x=await appel('rendu',{op:'enregistrer',rendu:{id:r.id,...champs}}); if(x.ok){ Object.assign(r,champs); delete r.nouveau; annoncer(); } return x; }
 export async function supprimerRendu(r){ const x=await appel('rendu',{op:'supprimer',id:r.id}); if(x.ok){ rendus=lesRendus().filter(q=>q!==r); annoncer(); } return x; }
 // lance une tâche kie.ai (images, consigne) et la note dans l'historique (état « attente ») ; renvoie la ligne, ou {erreur}
-export async function demarrerRendu({images,consigne:texte,ratio,titre,champs}){
-  const r0=await n8nRendu({action:'demarrer',images,consigne:texte,ratio,titre:'Maison3D · '+titre});
+export async function demarrerRendu({images,consigne:texte,ratio,titre,champs,modele}){
+  const r0=await n8nRendu({action:'demarrer',images,consigne:texte,ratio,titre:'Maison3D · '+titre,...(modele?{modele}:{})});
   if(!r0.ok) return {erreur:(r0.horsLigne?'Pas de connexion : ':'')+(r0.erreur||'kie.ai a refusé le rendu')};
   const r={id:'rd'+Date.now().toString(36)+Math.random().toString(36).slice(2,6),titre,consigne:texte,tache:r0.tache,etat:'attente',erreur:'',
     creePar:moi()||'',creeLe:new Date().toISOString(),vignette:'',image:null,...champs};
