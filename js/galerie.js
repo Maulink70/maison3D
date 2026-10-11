@@ -214,6 +214,9 @@ function construireVisionneuse(){
       <button type="button" class="btn" id="vis-voir">Voir dans la maquette</button>
       <span class="seg vis-avap" role="group" aria-label="Avant / après"><button type="button" data-av="non" aria-pressed="true">Rendu</button><button type="button" data-av="barre" aria-pressed="false">Avant / après</button><button type="button" data-av="alterne" aria-pressed="false">Alternance</button></span>
       <a class="btn" id="vis-telecharger" download>Télécharger</a>
+      <span class="vis-partage"><button type="button" class="btn" id="vis-partager" aria-haspopup="menu" aria-expanded="false">Partager</button>
+        <span class="vis-partage-menu" role="menu" hidden><button type="button" role="menuitem" data-partage="image">Le rendu seul</button><button type="button" role="menuitem" data-partage="avap">Avant / après (une image)</button></span></span>
+      <span class="vis-info" role="status"></span>
       <span class="vis-edition">
         <input type="text" id="vis-nom" maxlength="60" aria-label="Nom de la photo">
         <select id="vis-piece" aria-label="Pièce de la photo"></select>
@@ -229,6 +232,11 @@ function construireVisionneuse(){
   q('#vis-voir').onclick=()=>{ const p=courante(), prep=ctx==='preparer'; fermerVisionneuse(); ouvrirGalerie(false); voirAvecMaquette(p,{preparer:prep}); };
   q('#vis-caler').onclick=()=>{ const p=courante(); fermerVisionneuse(); ouvrirGalerie(false); caler(p); };
   q('#vis-image').onclick=()=>{ const p=courante(); fermerVisionneuse(); ouvrirGalerie(false); faireMontage(p); };
+  // partager l'image (Mauro, 11 octobre 2026 : « pas le lien, la photo ») : une photo part directement ; un rendu propose
+  // « le rendu seul » ou « avant / après » assemblés en une seule image
+  q('#vis-partager').onclick=e=>{ e.stopPropagation(); const p=courante(); if(estRendu(p)&&p.avant) menuPartage(q('.vis-partage-menu').hidden); else partager(p,'image'); };
+  for(const b of vis.querySelectorAll('[data-partage]')) b.onclick=e=>{ e.stopPropagation(); menuPartage(false); partager(courante(),b.dataset.partage); };
+  vis.addEventListener('pointerdown',e=>{ if(!e.target.closest('.vis-partage')) menuPartage(false); });
   for(const b of vis.querySelectorAll('[data-av]')) b.onclick=()=>{ avap=b.dataset.av; majAvap(); };
   // barre de l'avant / après : glisser sur l'image
   const zone=q('.vis-zone'); let tire=false;
@@ -287,7 +295,8 @@ function montrerRendu(p){
   if(fini) imageRendu(p).then(u=>{ if(courante()===p&&u){ img.src=u; img.classList.remove('flou'); t.href=u; t.download='Maison3D '+p.titre.replace(/[\\/:*?"<>|]+/g,' ')+'.jpg'; } });
   q('#vis-voir').hidden=q('#vis-caler').hidden=true; q('.vis-edition').hidden=true;
   q('.vis-avap').hidden=!(fini&&p.avant); q('#vis-image').hidden=!fini; q('#vis-image').textContent='Nouveau montage sur ce rendu';   // le montage ne touche pas la maquette : en Visite aussi
-  q('#vis-suppr').hidden=!app.edition; majAvap();
+  q('#vis-suppr').hidden=false; majAvap();   // supprimer un rendu : en Visite aussi (Mauro, 11 octobre 2026 ; Familia garde sa copie)
+  q('#vis-partager').hidden=!fini; menuPartage(false); q('.vis-info').textContent='';
 }
 function montrer(){
   const p=courante(); if(!p) return; const q=s=>vis.querySelector(s), img=q('.vis-img');
@@ -295,7 +304,8 @@ function montrer(){
   if(estRendu(p)){ montrerRendu(p); return; }
   const prep=ctx==='preparer'&&app.edition;
   q('.vis-attente').hidden=true; q('#vis-telecharger').hidden=true; q('.vis-avap').hidden=true; avap='non'; majAvap();
-  q('#vis-image').hidden=prep; q('#vis-image').textContent='Faire un montage';   // Visite et Éditer (Mauro, 11 octobre 2026) q('#vis-suppr').hidden=!prep;
+  q('#vis-image').hidden=prep; q('#vis-image').textContent='Faire un montage'; q('#vis-suppr').hidden=!prep;   // montage : Visite et Éditer (Mauro, 11 octobre 2026)
+  q('#vis-partager').hidden=false; menuPartage(false); q('.vis-info').textContent='';
   q('.vis-titre strong').textContent=p.nom;
   q('.vis-titre span').textContent=nomPiece(p.piece)+' · '+(idx+1)+' / '+liste.length+(prep?(p.calage?' · maquette calée':' · maquette pas encore calée'):'');
   img.classList.add('flou'); img.src=p.vignette||''; img.alt=p.nom;
@@ -304,6 +314,43 @@ function montrer(){
   q('#vis-prec').hidden=q('#vis-suiv').hidden=liste.length<2; q('#vis-diapo').hidden=liste.length<2;
   q('#vis-voir').hidden=!p.calage; q('#vis-caler').hidden=!prep; q('#vis-caler').textContent=p.calage?'Recaler la maquette':'Caler la maquette';
   q('.vis-edition').hidden=!prep; q('#vis-nom').value=p.nom; q('#vis-piece').value=p.piece;
+}
+// ---------- partager l'image (WhatsApp…) ----------
+function menuPartage(oui){ const m=vis.querySelector('.vis-partage-menu'); m.hidden=!oui; vis.querySelector('#vis-partager').setAttribute('aria-expanded',String(oui)); }
+const nomFichier=t=>'Maison3D '+String(t||'image').replace(/[\\/:*?"<>|]+/g,' ').trim()+'.jpg';
+const chargerImage=src=>new Promise((ok,ko)=>{ const i=new Image(); i.onload=()=>ok(i); i.onerror=()=>ko(new Error('image illisible')); i.src=src; });
+// avant / après en une seule image : l'une sous l'autre pour une photo en largeur (lisible sur un téléphone), côte à côte en hauteur
+export async function imageAvantApres(p){
+  const [ua,ub]=await Promise.all([imageAvant(p),imageRendu(p)]); if(!ua||!ub) throw new Error('image du rendu ou photo de départ introuvable');
+  const [A,B]=await Promise.all([chargerImage(ua),chargerImage(ub)]);
+  const w=Math.min(1600,B.naturalWidth), h=Math.round(w*B.naturalHeight/B.naturalWidth), large=w>=h, ec=Math.round(w/120);
+  const c=document.createElement('canvas'); c.width=large?w:2*w+ec; c.height=large?2*h+ec:h; const g=c.getContext('2d');
+  g.fillStyle='#ffffff'; g.fillRect(0,0,c.width,c.height);
+  const poser=(img,x,y,texte)=>{ const k=Math.min(w/img.naturalWidth,h/img.naturalHeight), iw=img.naturalWidth*k, ih=img.naturalHeight*k;
+    g.fillStyle='#111'; g.fillRect(x,y,w,h); g.drawImage(img,x+(w-iw)/2,y+(h-ih)/2,iw,ih);
+    const f=Math.round(w/28); g.font=`600 ${f}px "IBM Plex Sans",system-ui,sans-serif`; const tw=g.measureText(texte).width, px=f*0.6, py=f*0.35;
+    g.fillStyle='rgba(14,17,20,.72)'; g.beginPath(); g.roundRect(x+f*0.6,y+f*0.6,tw+2*px,f+2*py,(f+2*py)/2); g.fill();
+    g.fillStyle='#fff'; g.textBaseline='top'; g.fillText(texte,x+f*0.6+px,y+f*0.6+py*1.1); };
+  poser(A,0,0,'Avant'); poser(B,large?0:w+ec,large?h+ec:0,'Après');
+  return new Promise(ok=>c.toBlob(ok,'image/jpeg',0.9));
+}
+// menu « Partager » du système (Android, Windows : WhatsApp, e-mail…) ; sinon l'image est copiée (à coller dans WhatsApp Web), sinon téléchargée
+export async function partagerImage(blob,nom,titre){
+  const f=new File([blob],nom,{type:'image/jpeg'});
+  if(navigator.canShare?.({files:[f]})){ try{ await navigator.share({files:[f],title:titre}); return 'partage'; }catch(e){ if(e.name==='AbortError') return 'annule'; } }
+  try{ const png=await new Promise(async ok=>{ const i=await chargerImage(URL.createObjectURL(blob)), c=document.createElement('canvas'); c.width=i.naturalWidth; c.height=i.naturalHeight; c.getContext('2d').drawImage(i,0,0); c.toBlob(ok,'image/png'); });
+    await navigator.clipboard.write([new ClipboardItem({'image/png':png})]); return 'copie'; }catch{}
+  const a=document.createElement('a'), u=URL.createObjectURL(blob); a.href=u; a.download=nom; document.body.append(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(u),60000); return 'telecharge';
+}
+async function partager(p,quoi){
+  const info=vis.querySelector('.vis-info'), titre=estRendu(p)?p.titre:p.nom; info.textContent='Préparation de l’image…';
+  try{
+    let blob, nom;
+    if(quoi==='avap'){ blob=await imageAvantApres(p); nom=nomFichier(titre+' avant-après'); }
+    else { const u=await (estRendu(p)?imageRendu(p):imagePhoto(p)); if(!u) throw new Error('image introuvable'); blob=await (await fetch(u)).blob(); nom=nomFichier(titre); }
+    const r=await partagerImage(blob,nom,titre);
+    info.textContent={partage:'',annule:'',copie:'Image copiée : collez-la dans WhatsApp (Ctrl+V).',telecharge:'Image téléchargée : envoyez-la depuis vos fichiers.'}[r];
+  }catch(e){ info.textContent='Partage impossible : '+(e.message||e); }
 }
 export function ouvrirVisionneuse(l,i=0,c='photos'){
   if(!vis) construireVisionneuse(); liste=[...l]; idx=Math.max(0,Math.min(i,liste.length-1)); aSupprimer=false; ctx=c;

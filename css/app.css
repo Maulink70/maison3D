@@ -509,6 +509,14 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
 .vis-avap{background:#1b2024;border-color:#3a4248}
 .vis-avap button[aria-pressed="true"]{background:#2a3a48;color:#fff}
 #vis-telecharger{text-decoration:none;display:inline-flex;align-items:center}
+/* partager (11 octobre 2026) : menu au-dessus du bouton pour un rendu (le rendu seul, avant / après en une image) */
+.vis-partage{position:relative;display:inline-flex}
+.vis-partage-menu{position:absolute;bottom:calc(100% + 6px);left:0;z-index:3;display:flex;flex-direction:column;min-width:13.5em;background:#1b2024;border:1px solid #3a4248;border-radius:10px;padding:4px;box-shadow:0 6px 20px rgba(0,0,0,.45)}
+.vis-partage-menu[hidden]{display:none}
+.vis-partage-menu button{border:0;background:transparent;color:#eef1f3;text-align:left;padding:9px 11px;border-radius:7px;font:inherit}
+.vis-partage-menu button:hover,.vis-partage-menu button:focus-visible{background:#2a3a48;outline:none}
+.vis-info{color:#c9d2d8;font-size:12.5px}
+.vis-info:empty{display:none}
 .mode-image{grid-template-rows:auto minmax(0,1fr) auto;-webkit-user-select:none;user-select:none}
 .mode-image input{-webkit-user-select:text;user-select:text}
 .mi-zone{position:relative}
