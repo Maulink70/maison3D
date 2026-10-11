@@ -4,7 +4,7 @@
 // portent sur ses propres gestes). Mis à jour à l'ouverture et après chaque enregistrement.
 import {$} from './app.js';
 import {appel, connecte} from './api.js';
-import {varianteCourante} from './synchro.js';
+import {varianteCourante, verrouillee} from './synchro.js';
 
 let vue='tous', dernier=0, enCours=false, lignes=[], cle='';
 const el=(nom,attrs={},texte)=>{ const n=document.createElement(nom); for(const [k,v] of Object.entries(attrs)) n.setAttribute(k,v); if(texte!==undefined) n.textContent=texte; return n; };
@@ -22,7 +22,7 @@ function afficher(){
     r.append(el('span',{class:'h-heure'},quand(l.t)),el('span',{class:'h-qui'},l.qui),el('span',{},l.texte)); box.append(r); }
 }
 async function rafraichir(force){
-  const v=varianteCourante(); if(!connecte()||!v||v.fixe||!$('h-details').open||vue!=='tous') return;   // Base : pas d'historique
+  const v=varianteCourante(); if(!connecte()||!v||verrouillee(v)||!$('h-details').open||vue!=='tous') return;   // une base : pas d'historique
   const c=v.id+':'+v.version; if(!force&&c===cle&&Date.now()-dernier<60000) return;
   if(enCours) return; enCours=true; if(c.split(':')[0]!==cle.split(':')[0]) lignes=[]; afficher();
   const r=await appel('historique',{variante:v.id,n:50}); enCours=false;

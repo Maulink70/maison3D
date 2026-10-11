@@ -22,12 +22,12 @@ switch(ctx.action){
     return sortie(r);
   }
   case 'etat':
-    return sortie([{method:'GET',url:url('variantes','?'+formule('NOT({Supprimée})')+'&fields%5B%5D=Nom&fields%5B%5D=Version&fields%5B%5D='+enc('Modifiée par')+'&fields%5B%5D='+enc('Modifiée le')+'&fields%5B%5D=Ordre&'+tri('Ordre'))}]);
+    return sortie([{method:'GET',url:url('variantes','?'+formule('NOT({Supprimée})')+'&fields%5B%5D=Nom&fields%5B%5D=Version&fields%5B%5D='+enc('Modifiée par')+'&fields%5B%5D='+enc('Modifiée le')+'&fields%5B%5D=Ordre&fields%5B%5D=Base&fields%5B%5D='+enc('Est une base')+'&fields%5B%5D='+enc('Masquée')+'&'+tri('Ordre'))}]);
   case 'enregistrer':
     if(!estId(corps.variante)) return refus('Variante inconnue');
     return sortie([{method:'GET',url:url('variantes','/'+corps.variante)}]);
   case 'variante':
-    if(!['creer','renommer','supprimer','ordre'].includes(corps.op)) return refus('Opération inconnue');
+    if(!['creer','renommer','supprimer','ordre','masquer'].includes(corps.op)) return refus('Opération inconnue');
     return sortie([]);
   case 'vue':
     if(corps.op==='enregistrer') return sortie([]);

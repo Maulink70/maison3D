@@ -11,7 +11,8 @@ const lot=(t,methode,recs,suite)=>{ const r=[]; for(let i=0;i<recs.length;i+=10)
 const effacer=(t,ids)=>{ const r=[]; for(let i=0;i<ids.length;i+=10) r.push({method:'DELETE',url:url(t,'?'+ids.slice(i,i+10).map(id=>'records%5B%5D='+id).join('&')),body:{}}); return r; };
 const json=(s,d)=>{ try{ const v=JSON.parse(s); return v==null?d:v; }catch(e){ return d; } };
 const variante=r=>({id:r.id,nom:r.fields['Nom']||'',disposition:json(r.fields['Disposition'],{}),version:r.fields['Version']||0,ordre:r.fields['Ordre']||0,
-  creeePar:r.fields['Créée par']||'',modifieePar:r.fields['Modifiée par']||'',modifieeLe:r.fields['Modifiée le']||null});
+  creeePar:r.fields['Créée par']||'',modifieePar:r.fields['Modifiée par']||'',modifieeLe:r.fields['Modifiée le']||null,
+  base:r.fields['Base']||'',estBase:!!r.fields['Est une base'],masquee:!!r.fields['Masquée']});   // bases (11 octobre 2026)
 const vueDe=r=>({rid:r.id,id:r.fields['Id'],nom:r.fields['Nom']||'',reglage:json(r.fields['Réglage'],null),ordre:r.fields['Ordre']||0,creeePar:r.fields['Créée par']||''});
 const point=s=>String(s||'').split(';').map(Number);
 const mesureDe=r=>({rid:r.id,id:r.fields['Id'],a:point(r.fields['A']),b:point(r.fields['B']),creeePar:r.fields['Créée par']||''});
@@ -31,7 +32,8 @@ switch(ctx.action){
     return sortie({ok:true,moi:{nom:moi.n},variantes:lignes(0).map(variante),vues:lignes(1).map(vueDe),mesures:lignes(2).map(mesureDe)});
   }
   case 'etat':
-    return sortie({ok:true,variantes:lignes(0).map(r=>({id:r.id,nom:r.fields['Nom']||'',version:r.fields['Version']||0,modifieePar:r.fields['Modifiée par']||'',modifieeLe:r.fields['Modifiée le']||null}))});
+    return sortie({ok:true,variantes:lignes(0).map(r=>({id:r.id,nom:r.fields['Nom']||'',version:r.fields['Version']||0,modifieePar:r.fields['Modifiée par']||'',modifieeLe:r.fields['Modifiée le']||null,
+      base:r.fields['Base']||'',estBase:!!r.fields['Est une base'],masquee:!!r.fields['Masquée']}))});
   case 'enregistrer': {
     // un élément : position, rotation, masqué, couleur ; taille s, matières m, objet ajouté a (étape 4) ; seuls les champs présents
     const propre=e=>{ const r={};
@@ -46,6 +48,7 @@ switch(ctx.action){
       return r; };
     const r=lus[0]&&lus[0].body; if(!r||!r.fields) return echec('Variante introuvable',404);
     if(r.fields['Supprimée']) return echec('Cette variante a été supprimée',409);
+    if(r.fields['Est une base']) return echec('Une base ne se modifie pas',409);   // bases verrouillées (choix de Mauro, 11 octobre 2026)
     const d=json(r.fields['Disposition'],{}), ch=c.changements&&typeof c.changements==='object'?c.changements:{};
     for(const [n,e] of Object.entries(ch)){ if(e===null) delete d[n]; else if(e&&typeof e==='object') d[String(n).slice(0,80)]=propre(e); }
     const version=(r.fields['Version']||0)+1;
@@ -58,12 +61,16 @@ switch(ctx.action){
       const nom=String(c.nom||'').trim().slice(0,80)||'Projet';
       const disp=c.disposition&&typeof c.disposition==='object'?c.disposition:{};
       return sortie({ok:true,creee:true},[{method:'POST',url:url('variantes'),body:{records:[{fields:{'Nom':nom,'Disposition':JSON.stringify(disp),'Ordre':+c.ordre||0,'Version':1,
+        'Base':estId(c.base)?c.base:'','Est une base':!!c.estBase,
         'Créée par':moi.n,'Créée le':maintenant,'Modifiée par':moi.n,'Modifiée le':maintenant}}],typecast:true}}]);
     }
     if(c.op==='renommer'){ if(!estId(c.id)) return echec('Variante inconnue');
       return sortie({ok:true},[{method:'PATCH',url:url('variantes'),body:{records:[{id:c.id,fields:{'Nom':String(c.nom||'').trim().slice(0,80)||'Projet','Modifiée par':moi.n,'Modifiée le':maintenant}}]}}]); }
-    if(c.op==='supprimer'){ if(!estId(c.id)) return echec('Variante inconnue');
-      return sortie({ok:true},[{method:'PATCH',url:url('variantes'),body:{records:[{id:c.id,fields:{'Supprimée':true,'Modifiée par':moi.n,'Modifiée le':maintenant}}]}}]); }
+    if(c.op==='supprimer'){ const ids=(Array.isArray(c.ids)?c.ids:[c.id]).filter(estId).slice(0,200);   // une base et ses variantes d'un coup
+      if(!ids.length) return echec('Variante inconnue');
+      return sortie({ok:true},lot('variantes','PATCH',ids.map(id=>({id,fields:{'Supprimée':true,'Modifiée par':moi.n,'Modifiée le':maintenant}})))); }
+    if(c.op==='masquer'){ if(!estId(c.id)) return echec('Variante inconnue');
+      return sortie({ok:true},[{method:'PATCH',url:url('variantes'),body:{records:[{id:c.id,fields:{'Masquée':!!c.masquee}}]}}]); }
     if(c.op==='ordre'){ const ids=(Array.isArray(c.ids)?c.ids:[]).filter(estId);
       return sortie({ok:true},lot('variantes','PATCH',ids.map((id,k)=>({id,fields:{'Ordre':k}})))); }
     return echec('Opération inconnue');

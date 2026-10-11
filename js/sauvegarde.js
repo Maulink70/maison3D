@@ -8,7 +8,7 @@ import {creerAjout, supprimerAjout} from './ajouts.js';
 import {lesSurfaces, nomsSurfaces, appliquerSurface} from './revetements.js';
 import {etatAlertes, appliquerAlertes} from './alertes.js';
 import {appel} from './api.js';
-import {lesVariantes, varianteCourante, nouvelleListe} from './synchro.js';
+import {lesVariantes, varianteCourante, nouvelleListe, verrouillee, groupeDe, BASE} from './synchro.js';
 
 const KEY='diolly3d-v1';
 // disposition actuelle : les éléments qui ne sont pas dans leur état d'origine, les objets ajoutés, les sols et murs habillés
@@ -45,11 +45,11 @@ export function restore(){
 // « Tout réinitialiser » (demande de Mauro du 10 octobre 2026 : ne rien perdre) : d'abord une copie de sauvegarde de la
 // variante affichée (« Sauvegarde de « X » (10/10 14:32) », dans le menu des variantes), puis la disposition d'origine
 async function copieDeSecours(){
-  const v=varianteCourante(), d=lireDisposition(); if(!v||v.fixe||!Object.keys(d).length) return {ok:true,nom:null};
+  const v=varianteCourante(), d=lireDisposition(); if(!v||verrouillee(v)||!Object.keys(d).length) return {ok:true,nom:null};
   const t=new Date(), deux=n=>String(n).padStart(2,'0');
   const nom=`Sauvegarde de « ${v.nom} » (${deux(t.getDate())}/${deux(t.getMonth()+1)} ${deux(t.getHours())}:${deux(t.getMinutes())})`.slice(0,80);
   const liste=lesVariantes().filter(x=>!x.fixe), ordre=liste.reduce((m,x)=>Math.max(m,x.ordre||0),0)+1;
-  const r=await appel('variante',{op:'creer',nom,disposition:d,ordre});
+  const g=groupeDe(v), r=await appel('variante',{op:'creer',nom,disposition:d,ordre,base:g===BASE.id?'':g});   // dans la même base
   if(!r.ok) return {ok:false,horsLigne:r.horsLigne};
   nouvelleListe([...liste,{...r.variante,disposition:d}]); return {ok:true,nom};
 }

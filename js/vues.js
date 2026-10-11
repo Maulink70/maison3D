@@ -10,7 +10,7 @@ import {creerCiel} from './ciel.js';
 import {nommer, poserIcone} from './icones.js';
 import {connecte} from './api.js';
 import {demanderConnexion} from './compte.js';
-import {varianteCourante} from './synchro.js';
+import {varianteCourante, verrouillee} from './synchro.js';
 import {entrerPlan, sortirPlan, niveauPlan, stylePlan, style as styleDuPlan} from './plan.js';
 
 const UI='maison3d-ui';
@@ -31,7 +31,7 @@ function majAide(){ $('hint').textContent=AIDE[(app.edition?'e':'v')+(app.mode==
 // au chargement : pas de menu ouvert d'office)
 export function setEdition(on,demande=true){
   if(on&&!connecte()){ if(demande) demanderConnexion('Connectez-vous pour modifier l’appartement.',()=>setEdition(true)); on=false; }
-  if(on&&varianteCourante()?.fixe){ if(demande) dispatchEvent(new CustomEvent('base-verrouillee')); on=false; }   // la Base ne se modifie pas
+  if(on&&verrouillee(varianteCourante())){ if(demande) dispatchEvent(new CustomEvent('base-verrouillee')); on=false; }   // une base ne se modifie pas
   app.edition=on; $('mo-visite').setAttribute('aria-pressed',String(!on)); $('mo-editer').setAttribute('aria-pressed',String(on));
   $('toggle-panel').hidden=!on; $('ajouter-boite').hidden=!on;
   if(!on){ select(null); openSheet(false); } else openSheet(!petitEcran());
@@ -89,7 +89,7 @@ function majPortesBouton(){ $('portes').setAttribute('aria-pressed',String(app.t
 export function initVues(){
   $('mo-visite').onclick=()=>setEdition(false); $('mo-editer').onclick=()=>setEdition(true);
   addEventListener('compte',()=>{ if(!connecte()&&app.edition) setEdition(false); });
-  addEventListener('variantes',()=>{ if(app.edition&&varianteCourante()?.fixe) setEdition(false,false); });   // Base affichée : retour en Visite
+  addEventListener('variantes',()=>{ if(app.edition&&verrouillee(varianteCourante())) setEdition(false,false); });   // Base affichée : retour en Visite
   $('m-orbit').onclick=()=>setMode('orbit'); $('m-walk').onclick=()=>{ if(app.level==='all') app.level='rez'; setMode('walk'); };
   $('m-plan').onclick=()=>setMode('plan');
   $('ps-archi').onclick=()=>{ stylePlan('archi'); memoriser(); }; $('ps-reel').onclick=()=>{ stylePlan('reel'); memoriser(); };

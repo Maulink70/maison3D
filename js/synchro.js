@@ -36,8 +36,16 @@ const enAttente=()=>Object.keys(attente.changements).length>0||attente.ops.lengt
 
 // « Base » (demande de Mauro du 10 octobre 2026) : la maquette telle qu'au départ, toujours en tête des variantes, ni
 // modifiable, ni renommable, ni supprimable ; pas stockée dans Airtable (sa disposition est vide : tout à sa place d'origine)
-export const BASE=Object.freeze({id:'base',nom:'Base',disposition:{},version:0,fixe:true});
+export const BASE=Object.freeze({id:'base',nom:'Base d’origine',disposition:{},version:0,fixe:true,origine:true});
 export const lesVariantes=()=>[BASE,...variantes];
+// Bases (11 octobre 2026, choix de Mauro) : « En faire une base » copie une variante en base (Airtable : « Est une base »),
+// verrouillée comme la Base d'origine mais renommable, masquable et supprimable (avec ses variantes) ; chaque variante
+// appartient à une base (champ « Base » : id de la base, vide = Base d'origine)
+export const verrouillee=v=>!!(v&&(v.fixe||v.estBase));
+export function groupeDe(v){
+  if(!v||v.id===BASE.id) return BASE.id; if(v.estBase) return v.id;
+  return v.base&&variantes.some(b=>b.id===v.base&&b.estBase)?v.base:BASE.id;
+}
 export const varianteCourante=()=>courante===BASE.id?BASE:variantes.find(v=>v.id===courante)||null;
 
 // ---------- état affiché (pastille du compte, bas du panneau) ----------
@@ -89,7 +97,7 @@ export async function charger(){
   }
   base=v.disposition||{}; version=v.version||0;
   const ici=lireDisposition();
-  if(v.fixe){   // Base : rien à envoyer, tout à sa place d'origine
+  if(verrouillee(v)){   // une base : rien à envoyer, chaque meuble à sa place dans la base
     if(Object.keys(difference(ici,base)).length) appliquerDisposition(base);
     attente.changements={}; attente.variante=v.id;
   } else if(connecte()&&((attente.variante===v.id&&Object.keys(attente.changements).length)||modifAvant)){
@@ -125,7 +133,8 @@ async function envoyer(){
       attente.ops.shift(); garderAttente();   // refusé pour une autre raison : on n'insiste pas
     }
     // 2. la disposition de la variante affichée (la Base ne se modifie pas)
-    if(attente.variante!==courante||courante===BASE.id){ attente.changements={}; if(courante===BASE.id){ garderAttente(); return true; } }
+    const bloquee=verrouillee(varianteCourante());
+    if(attente.variante!==courante||bloquee){ attente.changements={}; if(bloquee){ garderAttente(); return true; } }
     const ch={...attente.changements}, lignes=lignesAEnvoyer(false);
     if(!Object.keys(ch).length&&!lignes.length) return true;
     const avant=version;
@@ -151,7 +160,7 @@ async function envoyer(){
 }
 // changement fait ici (déplacer, tourner, masquer, recolorer, annuler…) : on le prépare et on l'envoie bientôt
 function surDisposition(e){
-  if(e.detail?.distant||!connecte()||courante===BASE.id) return;
+  if(e.detail?.distant||!connecte()||courante===BASE.id||verrouillee(varianteCourante())) return;
   if(!pret||!courante){ modifAvant=true; return; }   // modifié avant la fin du premier chargement : gardé, envoyé ensuite
   attente.variante=courante; attente.changements=difference(base,lireDisposition());
   garderAttente(); majEtat(); planifier();
@@ -163,7 +172,7 @@ async function verifier(complet){
   if(complet||!connecte()){ if(!enAttente()) await charger(); return; }
   const r=await appel('etat'); if(!r.ok){ if(r.horsLigne) majEtat(true); return; }
   const v=(r.variantes||[]).find(x=>x.id===courante);
-  const noms=(r.variantes||[]).map(x=>x.id+x.nom).join(), connus=variantes.map(x=>x.id+x.nom).join();
+  const cle=x=>x.id+x.nom+(x.masquee?'·m':'')+(x.estBase?'·b':'')+(x.base||''), noms=(r.variantes||[]).map(cle).join(), connus=variantes.map(cle).join();
   if(noms!==connus||(courante!==BASE.id&&(!v||v.version>version))){ if(enAttente()) await envoyer(); else await charger(); }
 }
 
