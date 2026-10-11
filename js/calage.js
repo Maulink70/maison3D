@@ -4,7 +4,9 @@
 // l'angle de vue et les proportions de la photo : setViewOffset fait du cadre l'image de la caméra, la 3D débordant
 // autour. On marche jusqu'à l'endroit de la prise de vue (pas, téléportation, pavé), puis on ajuste finement : tourner,
 // incliner, pencher, avancer, de côté, hauteur des yeux, angle de vue (zoom, molette ou pincement). « Valider » garde
-// le calage avec la photo (table Photos) ; « Voir avec la maquette » y revient ; « Fermer » rend la vue d'avant.
+// le calage avec la photo (table Photos) ; « Voir dans la maquette » y revient ; « Fermer » rend la vue d'avant.
+// Depuis le 11 octobre 2026, le calage est une préparation (onglet « Préparer » de « Photo réaliste », en Éditer) : le
+// bouton « Recaler » n'est proposé que si l'on vient de là, et le rendu depuis la maquette n'est plus proposé ici.
 import {app, $, champVisite} from './app.js';
 import {setMode} from './vues.js';
 import {etatVisite, reprendreVisite, allerA, etatCalage, poserCalage, ajusterCalage, finCalage, glisserVers} from './visite.js';
@@ -12,11 +14,10 @@ import {PIECES} from './pieces.js';
 import {imagePhoto, enregistrerPhoto} from './galerie.js';
 import {select, openSheet, viser} from './edition.js';
 import {basculerPorte} from './portes.js';
-import {preparerRendu} from './rendu.js';
 
 const FOV0=68;   // angle de vue horizontal d'un téléphone (objectif « 1x ») au départ d'un calage
 const DEG=Math.PI/180;
-let actif=null;   // {photo, mode:'caler'|'voir', avant, fov}
+let actif=null;   // {photo, mode:'caler'|'voir', avant, fov, preparer}
 export const calageActif=()=>!!actif;
 export const fovCalage=()=>actif?.fov||FOV0;
 export function zoomCalage(f){ if(actif) actif.fov=Math.min(110,Math.max(20,f)); }
@@ -33,11 +34,11 @@ function majBandeau(){
   const caler=actif.mode==='caler';
   $('bandeau-calage').hidden=false; $('calage-fins').hidden=!caler;
   $('calage-valider').hidden=!caler; $('calage-fermer').textContent=caler?'Annuler':'Fermer';
-  $('calage-recaler').hidden=caler||!app.edition; $('calage-rendu').hidden=caler||!app.edition||!actif.photo.calage;
+  $('calage-recaler').hidden=caler||!app.edition||!actif.preparer;
   $('calage-aide').hidden=!caler; majTexte();
 }
 
-async function demarrer(p,mode){
+async function demarrer(p,mode,preparer=mode==='caler'){
   if(!p) return;
   if(actif) arreter(false);
   const avant={mode:app.mode,level:app.level,walk:app.mode==='walk'?etatVisite():null,
@@ -45,7 +46,7 @@ async function demarrer(p,mode){
   select(null); openSheet(false);
   const piece=PIECES.find(q=>q.id===p.piece);
   if(app.mode!=='walk'){ app.level=piece?.niveau||(p.calage&&p.calage.sol>2?'etage':'rez'); setMode('walk'); }
-  actif={photo:p,mode,avant,fov:p.calage?.fov||FOV0};
+  actif={photo:p,mode,avant,fov:p.calage?.fov||FOV0,preparer};
   if(p.calage) poserCalage(p.calage);
   else if(piece) allerA(piece.arrivee[0],piece.arrivee[1],piece.niveau,piece.vers[0],piece.vers[1],0);
   const img=$('calage-img'); img.src=p.vignette||''; $('calage-cadre').hidden=false;
@@ -54,7 +55,7 @@ async function demarrer(p,mode){
   majBandeau();
 }
 export const caler=p=>demarrer(p,'caler');
-export const voirAvecMaquette=p=>demarrer(p,'voir');
+export const voirAvecMaquette=(p,{preparer=false}={})=>demarrer(p,'voir',preparer);
 
 // fin : caméra normale ; restaurer = revenir à la vue d'avant (sinon on reste où l'on est)
 function arreter(restaurer=true){
@@ -75,7 +76,7 @@ async function valider(){
   const r=await enregistrerPhoto(a.photo,{calage:cal}); $('calage-valider').disabled=false;
   if(actif!==a) return;
   if(!r.ok){ dire((r.horsLigne?'Pas de connexion : ':'')+(r.erreur||'Calage non enregistré')+' — réessayez.',8000); return; }
-  a.mode='voir'; majBandeau(); dire('Calage enregistré : il servira aux rendus réalistes.');
+  a.mode='voir'; majBandeau(); dire('Calage enregistré : la photo apparaît dans la visite 3D et place les meubles mis en 3D depuis un montage.');
 }
 
 // toucher pendant le calage : une porte s'ouvre ou se ferme, le sol fait un pas (rien n'est sélectionné)
@@ -135,7 +136,6 @@ export function initCalage(){
   $('calage-opacite').oninput=majOpacite;
   $('calage-valider').onclick=valider;
   $('calage-fermer').onclick=()=>arreter(true);
-  $('calage-rendu').onclick=()=>{ if(actif) preparerRendu(actif.photo); };
   $('calage-recaler').onclick=()=>{ if(actif){ actif.mode='caler'; $('calage-opacite').value='50'; majOpacite(); majBandeau(); } };
   addEventListener('keydown',e=>{ if(actif&&e.key==='Escape'&&!/INPUT|SELECT|TEXTAREA/.test(e.target.tagName)) arreter(true); });
   addEventListener('edition',()=>{ if(actif) majBandeau(); });

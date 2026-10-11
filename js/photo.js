@@ -4,6 +4,9 @@
 // (kie.ai par n8n, confirmation avant chaque appel : crédits) sont des boutons. Puis nom et dimensions (cm), « Ajouter ».
 // L'objet : la silhouette de la photo (contour de ses parties visibles) extrudée sur la profondeur, la photo sur la face
 // avant, la couleur dominante sur les côtés et le dos ; photo gardée dans Airtable (fichiers.js), contour dans la disposition.
+// Le 11 octobre 2026 (photo et 3D séparées) : un seul bouton principal, « Mettre en 3D (Tripo) » ; les retouches et
+// l'objet plat (« Ajouter en photo ») passent dans « Options avancées ». Venu d'un montage sur une photo calée, le meuble
+// est posé dans la maquette là où il est sur la photo (place).
 import * as THREE from 'three';
 import {$} from './app.js';
 import {envoyerFichier, lireFichier} from './fichiers.js';
@@ -16,6 +19,7 @@ import {lireProduit} from './boutiques.js';
 const el=(nom,attrs={},texte)=>{ const n=document.createElement(nom); for(const [k,v] of Object.entries(attrs)) n.setAttribute(k,v); if(texte!==undefined) n.textContent=texte; return n; };
 const MAXI=1024;
 let fen=null, src=null, origine=null, pile=[], outil=null, cadre=null, fondAvant=null, ratio=1;
+let place=null;   // {x, z, r, niv} : où poser le meuble (montage sur une photo calée), sinon la pièce regardée
 
 // ---------- l'objet 3D ----------
 const textures=new Map();
@@ -157,19 +161,25 @@ function construireFenetre(){
         <div class="ph-recents-liste" hidden><p class="ph-recents-msg mat-aide" role="status"></p><ul></ul></div></div>
     </div>
     <div class="ph-edition" hidden>
-      <div class="ph-outils" role="group" aria-label="Retouches (sur demande)">
-        <button type="button" class="btn" data-outil="recadrer" aria-pressed="false">Recadrer</button>
-        <button type="button" class="btn" data-outil="gomme" aria-pressed="false">Gomme</button>
-        <button type="button" class="btn" data-outil="fond" aria-pressed="false">Retirer le fond</button>
-        <button type="button" class="btn" data-outil="ia" aria-pressed="false">Nettoyer (IA)</button>
-      </div>
-      <div class="ph-recadrer" hidden><span>Tracez un cadre sur la photo.</span><button type="button" class="btn primary" id="ph-recadrer-ok" disabled>Recadrer</button></div>
-      <div class="ph-gomme" hidden><label>Taille de la gomme <input type="range" id="ph-gomme-taille" min="4" max="80" value="24"></label><span class="mat-aide">Passez sur ce qui est en trop.</span></div>
-      <div class="ph-fond" hidden><label>Tolérance <input type="range" id="ph-tol" min="8" max="140" value="42"></label><button type="button" class="btn primary" id="ph-fond-ok">Garder</button></div>
-      <div class="ph-ia" hidden><p>Envoyer la photo à l’IA (kie.ai) pour ne garder que le meuble, sur fond blanc ? Cela consomme quelques crédits.</p>
-        <div class="ph-boutons"><button type="button" class="btn primary" id="ph-ia-ok">Oui, nettoyer</button><button type="button" class="btn" id="ph-ia-non">Non</button></div></div>
       <div class="ph-zone"><canvas id="ph-vue" aria-label="Photo"></canvas><div class="ph-cadre" hidden></div></div>
-      <div class="ph-boutons petits"><button type="button" class="btn" id="ph-annuler">↶ Annuler</button><button type="button" class="btn" id="ph-recommencer">Photo d’origine</button><button type="button" class="btn" id="ph-autre">Autre photo</button></div>
+      <div class="ph-boutons petits"><button type="button" class="btn" id="ph-autre">Autre photo</button></div>
+      <details class="ph-avance" id="ph-avance"><summary>Options avancées : retouches, objet plat</summary>
+        <p class="mat-aide">Retouches de la photo avant « Mettre en 3D » (meilleur résultat : le meuble seul, entier, sur fond uni).</p>
+        <div class="ph-outils" role="group" aria-label="Retouches (sur demande)">
+          <button type="button" class="btn" data-outil="recadrer" aria-pressed="false">Recadrer</button>
+          <button type="button" class="btn" data-outil="gomme" aria-pressed="false">Gomme</button>
+          <button type="button" class="btn" data-outil="fond" aria-pressed="false">Retirer le fond</button>
+          <button type="button" class="btn" data-outil="ia" aria-pressed="false">Nettoyer (IA)</button>
+        </div>
+        <div class="ph-recadrer" hidden><span>Tracez un cadre sur la photo.</span><button type="button" class="btn primary" id="ph-recadrer-ok" disabled>Recadrer</button></div>
+        <div class="ph-gomme" hidden><label>Taille de la gomme <input type="range" id="ph-gomme-taille" min="4" max="80" value="24"></label><span class="mat-aide">Passez sur ce qui est en trop.</span></div>
+        <div class="ph-fond" hidden><label>Tolérance <input type="range" id="ph-tol" min="8" max="140" value="42"></label><button type="button" class="btn primary" id="ph-fond-ok">Garder</button></div>
+        <div class="ph-ia" hidden><p>Envoyer la photo à l’IA (kie.ai) pour ne garder que le meuble, sur fond blanc ? Cela consomme quelques crédits.</p>
+          <div class="ph-boutons"><button type="button" class="btn primary" id="ph-ia-ok">Oui, nettoyer</button><button type="button" class="btn" id="ph-ia-non">Non</button></div></div>
+        <div class="ph-boutons petits"><button type="button" class="btn" id="ph-annuler">↶ Annuler</button><button type="button" class="btn" id="ph-recommencer">Photo d’origine</button></div>
+        <p class="mat-aide">Ou, sans Tripo : un objet plat avec la photo sur sa face avant (juste de face, gratuit).</p>
+        <button type="button" class="btn wide" id="ph-ajouter">Ajouter en photo (juste de face)</button>
+      </details>
       <div class="ph-mesures">
         <label class="dimrow"><span>Nom</span><input type="text" id="ph-nom" maxlength="60" placeholder="Fauteuil, lampe…"></label>
         <label class="dimrow"><span>Largeur</span><input type="number" id="ph-l" min="1" max="2000" step="0.5" value="80"><span class="unite">cm</span></label>
@@ -179,11 +189,10 @@ function construireFenetre(){
       </div>
       <p class="ph-message" role="status"></p>
       <div class="ph-tripo" hidden><p>Tripo va créer un vrai modèle 3D d’après cette photo (1 à 3 minutes). Cela consomme des crédits Tripo<span class="ph-solde"></span>.</p>
-        <p class="mat-aide">Meilleur résultat : le meuble seul, entier, sur un fond uni (« Nettoyer (IA) » d’abord si besoin).</p>
+        <p class="mat-aide">Meilleur résultat : le meuble seul, entier, sur un fond uni (« Options avancées » : « Nettoyer (IA) » ou « Retirer le fond » d’abord si besoin).</p>
         <div class="ph-boutons"><button type="button" class="btn primary" id="ph-tripo-ok">Oui, créer en 3D</button><button type="button" class="btn" id="ph-tripo-non">Non</button></div></div>
       <div class="ph-final">
-        <button type="button" class="btn primary wide" id="ph-tripo">Créer en 3D (Tripo)</button>
-        <button type="button" class="btn wide" id="ph-ajouter">Ajouter en photo (juste de face)</button>
+        <button type="button" class="btn primary wide" id="ph-tripo">Mettre en 3D (Tripo)</button>
       </div>
     </div></div>`;
   document.body.append(fen);
@@ -239,6 +248,7 @@ function majCadre(){ const v=fen.querySelector('#ph-vue'), c=fen.querySelector('
 function gommer(a,b){ const x=ctx2(src), t=+fen.querySelector('#ph-gomme-taille').value*src.width/600;
   x.save(); x.globalCompositeOperation='destination-out'; x.lineCap='round'; x.lineWidth=t*2; x.beginPath(); x.moveTo(a[0],a[1]); x.lineTo(b[0]+0.01,b[1]); x.stroke(); x.restore(); dessiner(); }
 function choisirOutil(o){
+  if(o) fen.querySelector('#ph-avance').open=true;
   if(outil==='fond'&&fondAvant&&o!=='fond'){ src=fondAvant; fondAvant=null; pile.pop(); }   // aperçu du fond non gardé
   outil=o; cadre=null;
   if(o==='fond'){ memoriser(); fondAvant=copie(src); appliquerFond(); }
@@ -274,14 +284,14 @@ async function lancerTripo(){
   const boutons=['#ph-tripo','#ph-ajouter'].map(x=>fen.querySelector(x)); boutons.forEach(b=>b.disabled=true);
   dire('Envoi de la photo à Tripo…');
   const fin=rogner(src), blob=await new Promise(ok=>fin.toBlob(ok,'image/png'));
-  const nom=fen.querySelector('#ph-nom').value.trim().slice(0,60)||'Objet 3D', L=largeurSaisie?lireCm('#ph-l'):null;
+  const nom=fen.querySelector('#ph-nom').value.trim().slice(0,60)||'Objet 3D', L=largeurSaisie?lireCm('#ph-l'):null, pl=place;
   const r=await creer3D(blob,(p,st)=>dire(!p&&st!=='running'?'En file d’attente chez Tripo…':`Tripo crée le modèle 3D… ${p} %`),nom);
   tripoEnCours=false; boutons.forEach(b=>b.disabled=false);
   if(r.erreur){ fen.hidden=false; dire(r.erreur+' Le modèle se retrouve plus tard dans « Modèles Tripo récents » s’il a été créé.',true); return; }   // fenêtre refermée pendant l'attente : l'erreur se voit quand même
   ouvrirPhoto(false); ouvrirImport(true);
   // Tripo exporte l'avant du modèle vers +x (export_orientation par défaut) : un quart de tour pour le mettre vers +z
-  await importerModele(new File([r.blob],'tripo.glb',{type:'model/gltf-binary'}),{nom,largeur:L,tourner:-Math.PI/2,
-    message:'Modèle 3D créé par Tripo'+(r.credits?` (${r.credits} crédits)`:'')+'. Vérifiez les dimensions (cm), puis « Ajouter ».'});
+  await importerModele(new File([r.blob],'tripo.glb',{type:'model/gltf-binary'}),{nom,largeur:L,tourner:-Math.PI/2,place:pl,
+    message:'Modèle 3D créé par Tripo'+(r.credits?` (${r.credits} crédits)`:'')+'. Vérifiez les dimensions (cm), puis « Ajouter »'+(pl?' : il sera posé là où il est sur la photo.':'.')});
 }
 async function ajouter(){
   if(!src) return;
@@ -291,7 +301,7 @@ async function ajouter(){
   const r=await envoyerFichier(blob,{nom,type:'photo'});
   b.disabled=false;
   if(r.erreur){ dire(r.erreur,true); return; }
-  const it=ajouterObjet({t:'photo',f:'photo',p:{L:+(L/100).toFixed(4),P:+(P/100).toFixed(4),H:+(H/100).toFixed(4)},img:{id:r.id,n:r.n,type:blob.type,w:fin.width,h:fin.height},k,c,n:nom});
+  const it=ajouterObjet({t:'photo',f:'photo',p:{L:+(L/100).toFixed(4),P:+(P/100).toFixed(4),H:+(H/100).toFixed(4)},img:{id:r.id,n:r.n,type:blob.type,w:fin.width,h:fin.height},k,c,n:nom},place);
   if(!it){ dire('L’objet n’a pas pu être ajouté.',true); return; }
   ouvrirPhoto(false);
 }
@@ -323,19 +333,21 @@ async function rouvrir(t,m){
   await importerModele(new File([r.blob],'tripo.glb',{type:'model/gltf-binary'}),{nom:t.nom||'Objet 3D',tourner:-Math.PI/2,
     message:'Modèle 3D repris chez Tripo (déjà payé). Vérifiez les dimensions (cm), puis « Ajouter ».'});
 }
-// ouvre le panneau avec une image déjà choisie (mode Image « Créer en 3D », lien d'un produit, partage Android) ;
-// dimensions en cm si on les connaît (la hauteur n'est plus déduite des proportions de la photo)
-export async function ouvrirPhotoAvec(blob,{nom,L,P,H}={},garder=false){
+// ouvre le panneau avec une image déjà choisie (montage « Mettre en 3D », lien d'un produit, partage Android) ;
+// dimensions en cm si on les connaît (la hauteur n'est plus déduite des proportions de la photo) ; pl : où le poser
+export async function ouvrirPhotoAvec(blob,{nom,L,P,H}={},garder=false,pl){
   if(!garder) ouvrirPhoto(true); else if(!fen||fen.hidden) ouvrirPhoto(true);
+  if(pl!==undefined) place=pl;
   await prendre(blob); if(!src) return;
   if(nom) fen.querySelector('#ph-nom').value=String(nom).slice(0,60);
   if(L){ fen.querySelector('#ph-l').value=String(L); largeurSaisie=true; } if(P) fen.querySelector('#ph-p').value=String(P);
   if(H){ fen.querySelector('#ph-ratio').checked=false; fen.querySelector('#ph-h').value=String(H); } else majHauteur();
-  dire(L&&P&&H?'Dimensions reprises de la page du produit : vérifiez-les, puis « Créer en 3D (Tripo) » ou « Ajouter en photo ».':'Complétez les dimensions (cm), puis « Créer en 3D (Tripo) » ou « Ajouter en photo ».');
+  dire((L&&P&&H?'Dimensions reprises : vérifiez-les, puis « Mettre en 3D (Tripo) ».':'Complétez les dimensions (cm), puis « Mettre en 3D (Tripo) ».')+(place?' Le meuble sera posé dans la maquette là où il est sur la photo.':''));
 }
 export function ouvrirPhoto(oui=true){
   if(oui&&!fen) construireFenetre();
   if(!fen) return; fen.hidden=!oui;
-  if(oui){ src=null; origine=null; pile=[]; outil=null; cadre=null; fondAvant=null; largeurSaisie=false; dire(''); fen.querySelector('#ph-nom').value=''; fen.querySelector('.ph-tripo').hidden=true;
+  if(oui){ src=null; origine=null; pile=[]; outil=null; cadre=null; fondAvant=null; largeurSaisie=false; place=null; dire(''); fen.querySelector('#ph-nom').value=''; fen.querySelector('.ph-tripo').hidden=true;
+    fen.querySelector('#ph-avance').open=false;
     fen.querySelector('#ph-recents').setAttribute('aria-expanded','false'); fen.querySelector('.ph-recents-liste').hidden=true; majBoutons(); setTimeout(()=>fen.querySelector('#ph-coller').focus()); }
 }

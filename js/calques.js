@@ -14,10 +14,10 @@ import {decalage} from './eclate.js';
 import {poserIcone, nommer} from './icones.js';
 
 const OPTIONS=[['noms','Noms des pièces'],['surfaces','Surfaces (au sol et libre)'],['hauteurs','Hauteurs sous plafond'],
-  ['cPieces','Dimensions des pièces'],['cMurs','Longueur des murs'],['cMeuble','Meuble sélectionné et distances aux murs'],['cOuv','Portes et fenêtres'],['mesures','Mesures de la règle'],['murs','Murs transparents (maquette)']];
+  ['cPieces','Dimensions des pièces'],['cMurs','Longueur des murs'],['cMeuble','Meuble sélectionné et distances aux murs'],['cOuv','Portes et fenêtres'],['mesures','Mesures de la règle'],['murs','Murs transparents (maquette)'],['photos','Points de vue des photos (appareil photo)']];
 const CLE='maison3d-calques', NS='http://www.w3.org/2000/svg';
-export const etat={noms:true,surfaces:true,hauteurs:false,cPieces:false,cMurs:false,cMeuble:false,cOuv:false,mesures:true,murs:false,lumiere:'normale',eclat:0};
-const AFFICHAGE=['mesures','murs','lumiere','eclat'];   // réglages d'affichage du menu, pas des calques dessinés ici
+export const etat={noms:true,surfaces:true,hauteurs:false,cPieces:false,cMurs:false,cMeuble:false,cOuv:false,mesures:true,murs:false,photos:true,lumiere:'normale',eclat:0};
+const AFFICHAGE=['mesures','murs','photos','lumiere','eclat'];   // réglages d'affichage du menu, pas des calques dessinés ici
 const masquees=new Set();
 const m=v=>v.toFixed(2).replace('.',',')+' m', m2=v=>v.toFixed(1).replace('.',',')+' m²';
 const sol=niv=>niv==='etage'?ETAGE_FLOOR:0, niveauDe=it=>it.lvl==='Étage'?'etage':'rez';

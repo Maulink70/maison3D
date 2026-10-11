@@ -1,18 +1,19 @@
-// Photos des pièces (étape 5, livraison 1, 10 octobre 2026) : galerie des vraies photos de chaque pièce, gardées dans
-// Airtable (table « Photos » : nom, pièce, petite vignette, calage ; l'image elle-même, réduite à 2048 px, dans la table
-// Fichiers, comme les objets ajoutés : relue par n8n puis gardée dans le cache du navigateur). Bouton « Photos » de la
-// barre : filtre par pièce, vignettes, visionneuse en grand (flèches, glisser, clavier, diaporama, plein écran).
-// En Éditer : ajouter (fichiers, ou appareil photo de la tablette), renommer, changer de pièce, supprimer, « Caler la
-// maquette » (calage.js). « Voir avec la maquette » (Visite et Éditer) : la photo posée sur la 1re personne calée.
-// Livraison 2 : onglet « Rendus » (historique des rendus réalistes par pièce, rien n'est écrasé), avant / après (barre à
-// glisser ou alternance), télécharger ; « Rendu réaliste… » (photo calée) et « Mode Image » (photo ou rendu) en Éditer.
+// « Photo réaliste » (étape 5 ; réorganisé le 11 octobre 2026 à la demande de Mauro : la photo et la 3D séparées) :
+// vraies photos de chaque pièce, gardées dans Airtable (table « Photos » : nom, pièce, petite vignette, calage ; l'image
+// elle-même, réduite à 2048 px, dans la table Fichiers : relue par n8n puis gardée dans le cache du navigateur).
+// Trois onglets : « Photos » (on regarde ; en Éditer, « Faire un montage », image.js), « Rendus »
+// (historique des rendus kie.ai par pièce, rien n'est écrasé, avant / après, télécharger) et, en Éditer seulement,
+// « Préparer » (ajouter des photos, renommer, changer de pièce, supprimer, caler la maquette dessus : calage.js).
+// Une photo calée apparaît dans la 3D (pointsvue.js) et place les meubles mis en 3D depuis un montage.
+// Le rendu depuis la maquette (rendu.js, preparerRendu) n'est plus proposé à l'écran (décision de Mauro : les montages
+// seulement), son code est gardé.
 import {app, $} from './app.js';
 import {appel, moi} from './api.js';
 import {envoyerFichier, lireFichier} from './fichiers.js';
 import {PIECES, pieceEn} from './pieces.js';
 import {ETAGE_FLOOR} from './config.js';
 import {caler, voirAvecMaquette} from './calage.js';
-import {chargerRendus, lesRendus, imageRendu, imageAvant, supprimerRendu, preparerRendu} from './rendu.js';
+import {chargerRendus, lesRendus, imageRendu, imageAvant, supprimerRendu} from './rendu.js';
 import {ouvrirModeImage} from './image.js';
 
 const MAXI=2048, VIGN=320, DIAPO=4000;
@@ -23,20 +24,25 @@ const nomPiece=id=>PIECES.find(p=>p.id===id)?.nom||'Sans pièce';
 // ---------- données ----------
 let photos=null, chargeLe=0;
 export const lesPhotos=()=>photos||[];
+export const photosChargees=()=>!!photos;
+// la liste a changé (lue, photo ajoutée, calée, renommée, supprimée) : les points de vue de la 3D suivent
+const annoncer=()=>dispatchEvent(new CustomEvent('photos'));
 export async function chargerPhotos(force=false){
   if(photos&&!force&&Date.now()-chargeLe<60000) return photos;
   const tout=[]; let offset=null;
   do{ const r=await appel('photo',{op:'liste',...(offset?{offset}:{})});
     if(!r.ok) throw new Error(r.horsLigne?'Pas de connexion au serveur : les photos ne peuvent pas être lues.':(r.erreur||'Lecture des photos impossible'));
     tout.push(...(r.photos||[])); offset=r.offset; }while(offset);
-  photos=tout.filter(p=>p.id&&p.image&&p.image.id); chargeLe=Date.now(); return photos;
+  photos=tout.filter(p=>p.id&&p.image&&p.image.id); chargeLe=Date.now(); annoncer(); return photos;
 }
 // écrit les champs donnés (seuls ceux-là partent : un calage ne renvoie pas la vignette)
 export async function enregistrerPhoto(p,champs){
   const r=await appel('photo',{op:'enregistrer',photo:{id:p.id,...champs}});
   if(!r.ok) return r;
   Object.assign(p,champs); delete p.nouvelle; p.modifieePar=r.modifieePar; p.modifieeLe=r.modifieeLe;
-  if(fen&&!fen.hidden) majGrille(); return r;
+  // la même photo peut venir de la liste légère des points de vue : la copie de la galerie suit
+  const g=photos?.find(x=>x.id===p.id); if(g&&g!==p) Object.assign(g,champs);
+  if(fen&&!fen.hidden){ majMode(); majPieces(); majGrille(); } annoncer(); return r;
 }
 // l'image en grand (adresse d'objet), lue une fois par appareil
 const adresses=new Map();
@@ -76,28 +82,30 @@ async function ajouter(fichiers){
         vignette,calage:null,ordre:0,creeePar:moi()||'',creeeLe:new Date().toISOString()};
       const r=await appel('photo',{op:'enregistrer',photo:{...p,nouvelle:true}});
       if(!r.ok) throw new Error(r.horsLigne?'Pas de connexion : réessayez quand le réseau revient.':(r.erreur||'Enregistrement impossible'));
-      (photos||(photos=[])).push(p); faites++; majGrille();
+      (photos||(photos=[])).push(p); faites++; majGrille(); annoncer();
     }catch(err){ erreurs.push(err.message||String(err)); }
   }
   fen.querySelectorAll('.gal-ajout button').forEach(b=>b.disabled=false);
-  filtre=piece; majPieces(); majGrille();
+  filtre=piece; majMode(); majPieces(); majGrille();
   dire((faites?`${faites} photo${faites>1?'s':''} ajoutée${faites>1?'s':''} dans « ${nomPiece(piece)} ».`:'')+(erreurs.length?' '+erreurs.join(' · '):''),!!erreurs.length);
 }
 
 // ---------- la galerie ----------
 let fen=null, filtre=null, onglet='photos', choix=null;
-// la galerie sert aussi à choisir une photo (produit reçu par « Partager » → mode Image sur cette photo)
+// la galerie sert aussi à choisir une photo (produit reçu par « Partager » → montage sur cette photo)
 export function choisirPhoto(rappel,texte){ onglet='photos'; ouvrirGalerie(true).then(()=>{}); choix={rappel,texte}; majMode(); }
 const estRendu=x=>!!x&&'etat' in x;
 const date=t=>{ const d=new Date(t); return isNaN(d)?'':d.toLocaleDateString('fr-CH',{day:'2-digit',month:'2-digit'})+' '+d.toLocaleTimeString('fr-CH',{hour:'2-digit',minute:'2-digit'}); };
 const ETATS={attente:'en cours…',echec:'échec'};
+const ONGLETS={photos:'Photos',rendus:'Rendus',preparer:'Préparer'};
 function dire(t,erreur=false){ const m=fen.querySelector('.ph-message'); m.textContent=t||''; m.classList.toggle('cx-erreur',erreur); }
 const visibles=()=>{ const l=lesPhotos().filter(p=>!filtre||p.piece===filtre); const o=id=>PIECES.findIndex(q=>q.id===id); return l.sort((a,b)=>o(a.piece)-o(b.piece)); };
 const rendusVisibles=()=>lesRendus().filter(r=>!filtre||r.piece===filtre);   // les plus récents d'abord
 function majPieces(){
   const z=fen.querySelector('.gal-pieces'); z.replaceChildren();
   const l=onglet==='rendus'?lesRendus():lesPhotos();
-  for(const b of fen.querySelectorAll('[data-onglet]')){ const n=b.dataset.onglet==='rendus'?lesRendus().length:lesPhotos().length; b.textContent=(b.dataset.onglet==='rendus'?'Rendus':'Photos')+(n?' · '+n:''); b.setAttribute('aria-pressed',String(b.dataset.onglet===onglet)); }
+  for(const b of fen.querySelectorAll('[data-onglet]')){ const k=b.dataset.onglet, n=k==='rendus'?lesRendus().length:k==='photos'?lesPhotos().length:0;
+    b.textContent=ONGLETS[k]+(n?' · '+n:''); b.setAttribute('aria-pressed',String(k===onglet)); }
   const bouton=(id,texte)=>{ const n=l.filter(p=>!id||p.piece===id).length, b=el('button',{type:'button',class:'cat-idee','aria-pressed':String(filtre===id),'data-piece':id||''},texte+(n?' · '+n:''));
     b.onclick=()=>{ filtre=id; if(id) fen.querySelector('#gal-piece').value=id; majPieces(); majGrille(); }; return b; };
   z.append(bouton(null,'Toutes'));
@@ -107,36 +115,46 @@ function carte(p,i){
   const b=el('button',{type:'button',class:'gal-photo','data-photo':p.id,'aria-label':p.nom+' ('+nomPiece(p.piece)+')'});
   const img=el('img',{src:p.vignette||'',alt:'',loading:'lazy'}), cadre=el('span',{class:'gal-image'}); cadre.append(img);
   b.append(cadre,el('span',{class:'cat-titre'},p.nom));
-  if(p.calage) b.append(el('span',{class:'cat-info calee'},'✓ maquette calée'));
-  b.onclick=()=>{ if(choix){ const c=choix; choix=null; ouvrirGalerie(false); c.rappel(p); return; } ouvrirVisionneuse(visibles(),i); }; return b;
+  // onglet « Préparer » : où en est le calage de chaque photo
+  if(onglet==='preparer') b.append(el('span',{class:'cat-info'+(p.calage?' calee':' a-caler')},p.calage?'✓ maquette calée':'à caler'));
+  const ctx=onglet;
+  b.onclick=()=>{ if(choix){ const c=choix; choix=null; ouvrirGalerie(false); c.rappel(p); return; } ouvrirVisionneuse(visibles(),i,ctx); }; return b;
 }
 function carteRendu(r,i,l){
   const b=el('button',{type:'button',class:'gal-photo','data-rendu':r.id,'aria-label':r.titre}), cadre=el('span',{class:'gal-image'});
   if(r.vignette) cadre.append(el('img',{src:r.vignette,alt:'',loading:'lazy'})); else cadre.append(el('span',{class:'gal-attente'},ETATS[r.etat]||'…'));
-  b.append(cadre,el('span',{class:'cat-titre'},r.titre),el('span',{class:'cat-info'+(r.etat==='echec'?' echec':'')},[date(r.creeLe),ETATS[r.etat]||'',r.mode==='image'?'mode Image':''].filter(Boolean).join(' · ')));
-  b.onclick=()=>ouvrirVisionneuse(l,i); return b;
+  b.append(cadre,el('span',{class:'cat-titre'},r.titre),el('span',{class:'cat-info'+(r.etat==='echec'?' echec':'')},[date(r.creeLe),ETATS[r.etat]||'',r.mode==='image'?'montage':'depuis la maquette'].filter(Boolean).join(' · ')));
+  b.onclick=()=>ouvrirVisionneuse(l,i,'rendus'); return b;
 }
 function majGrille(){
   if(!fen) return; const g=fen.querySelector('.gal-grille'); g.replaceChildren();
   if(onglet==='rendus'){ const l=rendusVisibles();
-    if(!l.length){ g.append(el('p',{class:'vide'},'Aucun rendu'+(filtre?' pour cette pièce':'')+'. Ouvrez une photo calée et touchez « Rendu réaliste… », ou « Mode Image » (en Éditer).')); return; }
+    if(!l.length){ g.append(el('p',{class:'vide'},'Aucun rendu'+(filtre?' pour cette pièce':'')+'. Onglet « Photos » : touchez une photo, puis « Faire un montage » (en Éditer).')); return; }
     l.forEach((r,i)=>g.append(carteRendu(r,i,l))); return; }
   const l=visibles();
-  if(!l.length){ g.append(el('p',{class:'vide'},filtre?'Aucune photo de cette pièce.'+(app.edition?' Ajoutez-en ci-dessus.':''):'Aucune photo.')); return; }
+  if(!l.length){ g.append(el('p',{class:'vide'},filtre?'Aucune photo de cette pièce.'+(onglet==='preparer'?' Ajoutez-en ci-dessus.':app.edition?' Ajoutez-en dans l’onglet « Préparer ».':''):'Aucune photo.')); return; }
   let piece=null;
-  l.forEach((p,i)=>{ if(!filtre&&p.piece!==piece){ piece=p.piece; const n=l.filter(q=>q.piece===piece).length; g.append(el('h3',{class:'gal-titre'},nomPiece(piece)+' · '+n+' photo'+(n>1?'s':''))); } g.append(carte(p,i)); });
+  l.forEach((p,i)=>{ if(!filtre&&p.piece!==piece){ piece=p.piece; const q=l.filter(x=>x.piece===piece), n=q.length, c=q.filter(x=>x.calage).length;
+    g.append(el('h3',{class:'gal-titre'},nomPiece(piece)+' · '+n+' photo'+(n>1?'s':'')+(onglet==='preparer'?' · '+c+' calée'+(c>1?'s':''):''))); } g.append(carte(p,i)); });
 }
 function majMode(){
-  if(!fen) return; fen.querySelector('.gal-ajout').hidden=!app.edition||onglet==='rendus';
-  if(choix){ fen.querySelector('.gal-aide').textContent=choix.texte; return; }
-  if(onglet==='rendus'){ fen.querySelector('.gal-aide').textContent='Les rendus réalistes de chaque pièce, les plus récents d’abord : touchez-en un pour le voir en grand, en avant / après.'; return; }
-  fen.querySelector('.gal-aide').textContent=app.edition?'Touchez une photo pour la voir en grand, la renommer ou caler la maquette dessus.':'Touchez une photo pour la voir en grand. Pour ajouter des photos ou caler la maquette dessus, passez en « Éditer ».';
+  if(!fen) return;
+  if(onglet==='preparer'&&!app.edition) onglet='photos';   // préparer les photos : en Éditer seulement
+  fen.querySelector('[data-onglet="preparer"]').hidden=!app.edition||!!choix;
+  fen.querySelector('.gal-ajout').hidden=!app.edition||onglet!=='preparer';
+  const aide=fen.querySelector('.gal-aide');
+  if(choix){ aide.textContent=choix.texte; return; }
+  if(onglet==='rendus'){ aide.textContent='Les rendus réalistes de chaque pièce, les plus récents d’abord : touchez-en un pour le voir en grand, en avant / après.'; return; }
+  if(onglet==='preparer'){ const n=lesPhotos().length, c=lesPhotos().filter(p=>p.calage).length;
+    aide.textContent=`À faire une fois pour toutes : ajouter les photos de chaque pièce et caler la maquette dessus (${c} calée${c>1?'s':''} sur ${n}). Une photo calée apparaît dans la visite 3D (icône d’appareil photo) et place à l’endroit voulu les meubles mis en 3D depuis un montage.`; return; }
+  aide.textContent=app.edition?'Touchez une photo, puis « Faire un montage » : posez-y des meubles (images de produits), effacez ce que vous ne voulez plus, et lancez un rendu réaliste.'
+    :'Touchez une photo pour la voir en grand. Pour faire un montage (rendu réaliste), passez en « Éditer ».';
 }
 function construireFenetre(){
-  fen=el('div',{id:'galerie-fenetre',class:'fenetre',role:'dialog','aria-modal':'true','aria-label':'Photos des pièces'});
+  fen=el('div',{id:'galerie-fenetre',class:'fenetre',role:'dialog','aria-modal':'true','aria-label':'Photo réaliste'});
   fen.innerHTML=`<div class="fenetre-carte gal-carte">
-    <div class="fenetre-tete"><h2>Photos des pièces</h2><button type="button" class="fermer" aria-label="Fermer">×</button></div>
-    <div class="seg gal-onglets" role="group" aria-label="Photos ou rendus"><button type="button" data-onglet="photos" aria-pressed="true">Photos</button><button type="button" data-onglet="rendus" aria-pressed="false">Rendus</button></div>
+    <div class="fenetre-tete"><h2>Photo réaliste</h2><button type="button" class="fermer" aria-label="Fermer">×</button></div>
+    <div class="seg gal-onglets" role="group" aria-label="Photos, rendus ou préparation"><button type="button" data-onglet="photos" aria-pressed="true">Photos</button><button type="button" data-onglet="rendus" aria-pressed="false">Rendus</button><button type="button" data-onglet="preparer" aria-pressed="false" hidden>Préparer</button></div>
     <div class="gal-pieces cat-idees" role="group" aria-label="Pièce"></div>
     <div class="gal-ajout" hidden>
       <label>Ajouter dans <select id="gal-piece" aria-label="Pièce des nouvelles photos"></select></label>
@@ -157,13 +175,14 @@ function construireFenetre(){
   q('#gal-choisir').onclick=()=>q('#gal-fichiers').click(); q('#gal-appareil').onclick=()=>q('#gal-camera').click();
   q('#gal-appareil').hidden=!matchMedia('(pointer:coarse)').matches;   // tablette, téléphone : l'appareil photo directement
   for(const i of ['#gal-fichiers','#gal-camera']) q(i).onchange=e=>{ const f=[...e.target.files]; e.target.value=''; ajouter(f); };
-  // glisser des fichiers sur la fenêtre (PC)
-  fen.addEventListener('dragover',e=>{ if(app.edition){ e.preventDefault(); } });
-  fen.addEventListener('drop',e=>{ if(!app.edition) return; e.preventDefault(); ajouter(e.dataTransfer.files); });
-  addEventListener('edition',majMode);
+  // glisser des fichiers sur la fenêtre (PC), onglet « Préparer »
+  fen.addEventListener('dragover',e=>{ if(app.edition&&onglet==='preparer'){ e.preventDefault(); } });
+  fen.addEventListener('drop',e=>{ if(!app.edition||onglet!=='preparer') return; e.preventDefault(); ajouter(e.dataTransfer.files); });
+  addEventListener('edition',()=>{ if(!fen.hidden){ majMode(); majPieces(); majGrille(); } });
   for(const b of fen.querySelectorAll('[data-onglet]')) b.onclick=()=>{ onglet=b.dataset.onglet; majMode(); majPieces(); majGrille(); };
   addEventListener('rendus',()=>{ if(!fen.hidden){ majPieces(); majGrille(); } });
 }
+// quoi : 'photos', 'rendus' ou 'preparer' (Éditer)
 export async function ouvrirGalerie(oui=true,piece,quoi){
   if(oui&&!fen) construireFenetre(); if(!fen) return; fen.hidden=!oui; $('photos').setAttribute('aria-expanded',String(oui));
   if(!oui){ choix=null; return; }
@@ -171,11 +190,12 @@ export async function ouvrirGalerie(oui=true,piece,quoi){
   fen.querySelector('#gal-piece').value=filtre||pieceIci()||'salon';
   majMode(); majPieces(); majGrille();
   if(!photos) dire('Chargement des photos…');
-  try{ await chargerPhotos(); await chargerRendus(); dire(''); majPieces(); majGrille(); }catch(e){ dire(e.message,true); }
+  try{ await chargerPhotos(); await chargerRendus(); dire(''); majMode(); majPieces(); majGrille(); }catch(e){ dire(e.message,true); }
 }
 
 // ---------- la visionneuse : en grand, flèches, glisser, diaporama, plein écran ----------
-let vis=null, liste=[], idx=0, diapo=0, aSupprimer=false, avap='non', alterne=0, coupe=0.5;
+// ctx : onglet d'où l'on vient ('photos' : regarder, faire un montage ; 'preparer' : caler, renommer, supprimer ; 'rendus')
+let vis=null, liste=[], idx=0, diapo=0, aSupprimer=false, avap='non', alterne=0, coupe=0.5, ctx='photos';
 const courante=()=>liste[idx];
 function construireVisionneuse(){
   vis=el('div',{id:'visionneuse',class:'visionneuse',role:'dialog','aria-modal':'true','aria-label':'Photo'});
@@ -189,12 +209,11 @@ function construireVisionneuse(){
       <button type="button" class="vis-fleche" id="vis-prec" aria-label="Photo précédente">‹</button>
       <button type="button" class="vis-fleche" id="vis-suiv" aria-label="Photo suivante">›</button></div>
     <div class="vis-bas">
-      <button type="button" class="btn primary" id="vis-voir">Voir avec la maquette</button>
-      <button type="button" class="btn" id="vis-caler">Caler la maquette</button>
-      <button type="button" class="btn primary" id="vis-rendu">Rendu réaliste…</button>
+      <button type="button" class="btn primary" id="vis-image">Faire un montage</button>
+      <button type="button" class="btn primary" id="vis-caler">Caler la maquette</button>
+      <button type="button" class="btn" id="vis-voir">Voir dans la maquette</button>
       <span class="seg vis-avap" role="group" aria-label="Avant / après"><button type="button" data-av="non" aria-pressed="true">Rendu</button><button type="button" data-av="barre" aria-pressed="false">Avant / après</button><button type="button" data-av="alterne" aria-pressed="false">Alternance</button></span>
       <a class="btn" id="vis-telecharger" download>Télécharger</a>
-      <button type="button" class="btn" id="vis-image">Mode Image</button>
       <span class="vis-edition">
         <input type="text" id="vis-nom" maxlength="60" aria-label="Nom de la photo">
         <select id="vis-piece" aria-label="Pièce de la photo"></select>
@@ -207,11 +226,9 @@ function construireVisionneuse(){
   q('#vis-prec').onclick=()=>aller(-1); q('#vis-suiv').onclick=()=>aller(1);
   q('#vis-diapo').onclick=()=>diaporama(!diapo);
   q('#vis-plein').onclick=()=>{ if(document.fullscreenElement) document.exitFullscreen?.(); else vis.requestFullscreen?.().catch(()=>{}); };
-  q('#vis-voir').onclick=()=>{ const p=courante(); fermerVisionneuse(); ouvrirGalerie(false); voirAvecMaquette(p); };
+  q('#vis-voir').onclick=()=>{ const p=courante(), prep=ctx==='preparer'; fermerVisionneuse(); ouvrirGalerie(false); voirAvecMaquette(p,{preparer:prep}); };
   q('#vis-caler').onclick=()=>{ const p=courante(); fermerVisionneuse(); ouvrirGalerie(false); caler(p); };
-  q('#vis-rendu').onclick=async()=>{ const p=courante(); fermerVisionneuse(); ouvrirGalerie(false); await voirAvecMaquette(p); preparerRendu(p); };
-  q('#vis-image').onclick=()=>{ const p=courante(), r=estRendu(p); fermerVisionneuse(); ouvrirGalerie(false);
-    ouvrirModeImage({nom:r?p.titre:p.nom,piece:p.piece,photo:r?p.photo:p.id,image:p.image}); };
+  q('#vis-image').onclick=()=>{ const p=courante(); fermerVisionneuse(); ouvrirGalerie(false); faireMontage(p); };
   for(const b of vis.querySelectorAll('[data-av]')) b.onclick=()=>{ avap=b.dataset.av; majAvap(); };
   // barre de l'avant / après : glisser sur l'image
   const zone=q('.vis-zone'); let tire=false;
@@ -228,7 +245,7 @@ function construireVisionneuse(){
     aSupprimer=false; b.textContent='Suppression…'; b.disabled=true;
     const r=estRendu(p)?await supprimerRendu(p):await appel('photo',{op:'supprimer',id:p.id}); b.disabled=false; b.textContent='Supprimer';
     if(!r.ok){ q('.vis-titre span').textContent=r.erreur||'Suppression impossible'; return; }
-    if(!estRendu(p)) photos=lesPhotos().filter(x=>x!==p); liste=liste.filter(x=>x!==p); if(fen) { majPieces(); majGrille(); }
+    if(!estRendu(p)){ photos=lesPhotos().filter(x=>x.id!==p.id); annoncer(); } liste=liste.filter(x=>x!==p); if(fen) { majPieces(); majGrille(); }
     if(!liste.length){ fermerVisionneuse(); return; } idx=Math.min(idx,liste.length-1); montrer();
   };
   vis.addEventListener('keydown',e=>{ if(e.target.tagName==='INPUT'||e.target.tagName==='SELECT') return; e.stopPropagation();
@@ -239,7 +256,7 @@ function construireVisionneuse(){
   z.addEventListener('pointerdown',e=>{ if(e.target.closest('button')||avap==='barre') return; x0=e.clientX; });
   z.addEventListener('pointerup',e=>{ if(x0===null) return; const dx=e.clientX-x0; x0=null; if(Math.abs(dx)>50) aller(dx<0?1:-1); });
   z.addEventListener('pointercancel',()=>{ x0=null; });
-  addEventListener('edition',()=>{ if(vis&&!vis.hidden) montrer(); });
+  addEventListener('edition',()=>{ if(vis&&!vis.hidden){ if(!app.edition&&ctx==='preparer') ctx='photos'; montrer(); } });
   addEventListener('rendus',()=>{ if(vis&&!vis.hidden&&estRendu(courante())) montrer(); });
 }
 // avant / après d'un rendu : la photo de départ par-dessus, coupée à la barre, ou en alternance
@@ -266,30 +283,40 @@ function montrerRendu(p){
   q('.vis-attente').hidden=fini; q('.vis-attente').textContent=p.etat==='attente'?'Rendu en cours chez kie.ai…':p.etat==='echec'?'Ce rendu a échoué.':'';
   const t=q('#vis-telecharger'); t.hidden=!fini; t.removeAttribute('href');
   if(fini) imageRendu(p).then(u=>{ if(courante()===p&&u){ img.src=u; img.classList.remove('flou'); t.href=u; t.download='Maison3D '+p.titre.replace(/[\\/:*?"<>|]+/g,' ')+'.jpg'; } });
-  q('#vis-voir').hidden=q('#vis-caler').hidden=q('#vis-rendu').hidden=true; q('.vis-edition').hidden=true;
-  q('.vis-avap').hidden=!(fini&&p.avant); q('#vis-image').hidden=!(app.edition&&fini); q('#vis-image').textContent='Retoucher en mode Image';
+  q('#vis-voir').hidden=q('#vis-caler').hidden=true; q('.vis-edition').hidden=true;
+  q('.vis-avap').hidden=!(fini&&p.avant); q('#vis-image').hidden=!(app.edition&&fini); q('#vis-image').textContent='Nouveau montage sur ce rendu';
   q('#vis-suppr').hidden=!app.edition; majAvap();
 }
 function montrer(){
   const p=courante(); if(!p) return; const q=s=>vis.querySelector(s), img=q('.vis-img');
   q('#vis-prec').hidden=q('#vis-suiv').hidden=liste.length<2; q('#vis-diapo').hidden=liste.length<2;
   if(estRendu(p)){ montrerRendu(p); return; }
+  const prep=ctx==='preparer'&&app.edition;
   q('.vis-attente').hidden=true; q('#vis-telecharger').hidden=true; q('.vis-avap').hidden=true; avap='non'; majAvap();
-  q('#vis-rendu').hidden=!(app.edition&&p.calage); q('#vis-image').hidden=!app.edition; q('#vis-image').textContent='Mode Image'; q('#vis-suppr').hidden=!app.edition;
+  q('#vis-image').hidden=!app.edition||prep; q('#vis-image').textContent='Faire un montage'; q('#vis-suppr').hidden=!prep;
   q('.vis-titre strong').textContent=p.nom;
-  q('.vis-titre span').textContent=nomPiece(p.piece)+' · '+(idx+1)+' / '+liste.length+(p.calage?' · maquette calée':'');
+  q('.vis-titre span').textContent=nomPiece(p.piece)+' · '+(idx+1)+' / '+liste.length+(prep?(p.calage?' · maquette calée':' · maquette pas encore calée'):'');
   img.classList.add('flou'); img.src=p.vignette||''; img.alt=p.nom;
   imagePhoto(p).then(u=>{ if(courante()===p&&u){ img.src=u; img.classList.remove('flou'); } });
   const suivante=liste[(idx+1)%liste.length]; if(suivante&&suivante!==p) imagePhoto(suivante);   // la suivante est préparée
   q('#vis-prec').hidden=q('#vis-suiv').hidden=liste.length<2; q('#vis-diapo').hidden=liste.length<2;
-  q('#vis-voir').hidden=!p.calage; q('#vis-caler').hidden=!app.edition; q('#vis-caler').textContent=p.calage?'Recaler la maquette':'Caler la maquette';
-  q('.vis-edition').hidden=!app.edition; q('#vis-nom').value=p.nom; q('#vis-piece').value=p.piece;
+  q('#vis-voir').hidden=!p.calage; q('#vis-caler').hidden=!prep; q('#vis-caler').textContent=p.calage?'Recaler la maquette':'Caler la maquette';
+  q('.vis-edition').hidden=!prep; q('#vis-nom').value=p.nom; q('#vis-piece').value=p.piece;
 }
-export function ouvrirVisionneuse(l,i=0){
-  if(!vis) construireVisionneuse(); liste=[...l]; idx=Math.max(0,Math.min(i,liste.length-1)); aSupprimer=false;
+export function ouvrirVisionneuse(l,i=0,c='photos'){
+  if(!vis) construireVisionneuse(); liste=[...l]; idx=Math.max(0,Math.min(i,liste.length-1)); aSupprimer=false; ctx=c;
   vis.hidden=false; diaporama(false); montrer(); setTimeout(()=>vis.querySelector('#vis-fermer').focus());
 }
 function fermerVisionneuse(){ if(!vis) return; diaporama(false); avap='non'; majAvap(); if(document.fullscreenElement) document.exitFullscreen?.(); vis.hidden=true; }
+
+// montage sur une photo, ou sur un rendu (même cadrage que sa photo de départ) : le calage de la photo sert à poser dans
+// la maquette, à l'endroit choisi sur la photo, les meubles mis en 3D depuis le montage
+export function faireMontage(p,produit){
+  const r=estRendu(p), ph=r?lesPhotos().find(x=>x.id===p.photo):p;
+  return ouvrirModeImage({nom:r?p.titre:p.nom,piece:p.piece,photo:r?p.photo:p.id,image:p.image,cal:ph?.calage?{calage:ph.calage,image:ph.image}:null},produit);
+}
+// « Voir en vrai ici » (point de vue photo de la 3D, pointsvue.js) : la photo en grand, avec celles de la même pièce
+export function voirPhoto(p,l=[p]){ ouvrirVisionneuse(l,Math.max(0,l.indexOf(p)),'photos'); }
 
 export function initGalerie(){
   $('photos').onclick=e=>{ e.stopPropagation(); ouvrirGalerie(!fen||fen.hidden); };

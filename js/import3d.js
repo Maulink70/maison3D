@@ -101,6 +101,7 @@ async function compresser(buf){
 // ---------- la fenêtre ----------
 const el=(nom,attrs={},texte)=>{ const n=document.createElement(nom); for(const [k,v] of Object.entries(attrs)) n.setAttribute(k,v); if(texte!==undefined) n.textContent=texte; return n; };
 let fen=null, charge=null;   // {scene, d:[w,h,p] dans l'unité du fichier, nom, taille, origine}
+let placeImport=null;       // où poser le modèle (montage sur une photo calée), sinon la pièce regardée
 const UNITES={m:1,cm:0.01,mm:0.001};
 function dire(t,erreur=false){ const m=fen.querySelector('.ph-message'); m.textContent=t||''; m.classList.toggle('cx-erreur',erreur); }
 const cm=v=>String(Math.round(v*1000)/10).replace('.',',');
@@ -144,8 +145,10 @@ function montrer(scene,{nom='',octets=0,tourner=0,origine=null}={}){
 export const texteOrigine=o=>`« ${o.titre} »${o.auteur?' de '+o.auteur:''} · licence ${o.licence||'?'} (${o.site})`;
 // modèle reçu d'ailleurs (Tripo, depuis le panneau photo) : lu comme un fichier choisi, tourné si son avant n'est pas vers
 // +z comme les meubles du site, nom et largeur repris (proportions du modèle gardées)
-export async function importerModele(f,{nom,largeur,message,tourner=0,origine=null}={}){
+// place : où le poser (montage sur une photo calée), sinon la pièce regardée
+export async function importerModele(f,{nom,largeur,message,tourner=0,origine=null,place=null}={}){
   ouvrirImport(true); await prendre(f,tourner,origine); if(!charge) return false;
+  placeImport=place;
   return reglages({nom,largeur,message});
 }
 // modèle déjà lu (catalogue : Poly Haven en glTF à plusieurs fichiers, Sketchfab en .glb)
@@ -169,7 +172,7 @@ async function ajouter(){
     const nom=fen.querySelector('#g3-nom').value.trim().slice(0,60)||'Objet 3D';
     const r=await envoyerFichier(blob,{nom,type:'glb'}); if(r.erreur){ dire(r.erreur,true); return; }
     const it=ajouterObjet({t:'glb',f:'glb',p:{L:+(L/100).toFixed(4),P:+(P/100).toFixed(4),H:+(H/100).toFixed(4)},fic:{id:r.id,n:r.n},d:[+s.x.toFixed(5),+s.y.toFixed(5),+s.z.toFixed(5)],n:nom,
-      ...(charge.origine?{o:charge.origine}:{})});
+      ...(charge.origine?{o:charge.origine}:{})},placeImport);
     if(!it){ dire('L’objet n’a pas pu être ajouté.',true); return; }
     ouvrirImport(false);
   }catch(e){ dire('Préparation impossible : '+(e?.message||e),true); }
@@ -210,7 +213,7 @@ function construireFenetre(){
 }
 export function ouvrirImport(oui=true){
   if(oui&&!fen) construireFenetre(); if(!fen) return; fen.hidden=!oui;
-  if(oui){ charge=null; fen.querySelector('.g3-info').hidden=true; dire(''); }
+  if(oui){ charge=null; placeImport=null; fen.querySelector('.g3-info').hidden=true; dire(''); }
 }
 // pour les tests : préparer un fichier sans passer par la fenêtre
 export const _preparer=preparer, _lire=lire;

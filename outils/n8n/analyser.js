@@ -53,7 +53,9 @@ switch(ctx.action){
     return refus('Opération inconnue');
   case 'photo':   // étape 5 : vraies photos des pièces (galerie) ; le fichier est dans la table Fichiers
     if(corps.op==='liste') return sortie([{method:'GET',url:url('photos','?'+tri('Ordre')+'&sort%5B1%5D%5Bfield%5D='+enc('Créée le')+'&sort%5B1%5D%5Bdirection%5D=asc'+
-      (typeof corps.offset==='string'&&/^[\w/.-]{1,200}$/.test(corps.offset)?'&offset='+enc(corps.offset):''))}]);
+      (typeof corps.offset==='string'&&/^[\w/.-]{1,200}$/.test(corps.offset)?'&offset='+enc(corps.offset):'')+
+      // leger : sans les vignettes (points de vue photo de la 3D : nom, pièce, calage seulement)
+      (corps.leger?['Nom','Id','Pièce','Calage','Image','Ordre'].map(n=>'&fields%5B%5D='+enc(n)).join(''):''))}]);
     if(corps.op==='enregistrer') return corps.photo&&typeof corps.photo.id==='string'&&corps.photo.id.length<=60?sortie([]):refus('Photo sans identifiant');
     if(corps.op==='supprimer') return sortie([parId('photos',corps.id)]);
     return refus('Opération inconnue');

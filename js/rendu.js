@@ -279,7 +279,7 @@ async function lancer(){
     dire('Rendu en cours chez kie.ai… (environ 1 minute ; vous pouvez fermer, il arrivera dans l’historique des rendus)');
     await suivre(r,s=>{ if(!fen.hidden) dire(`Rendu en cours chez kie.ai… ${s} s`); });
     if(r.etat==='fini'){ const u=await imageRendu(r); if(u){ q('.rendu-resultat img').src=u; q('.rendu-resultat').hidden=false; q('.rendu-apercu').hidden=true; }
-      dire('Rendu prêt : il est dans l’historique des rendus de la pièce (bouton « Photos », « Rendus »).'); q('#rendu-non').textContent='Fermer'; }
+      dire('Rendu prêt : il est dans l’historique des rendus de la pièce (« Photo réaliste », onglet « Rendus »).'); q('#rendu-non').textContent='Fermer'; }
     else dire('Le rendu a échoué : '+(r.erreur||'raison inconnue'),true);
   }catch(e){ dire('Rendu impossible : '+(e.message||e),true); ok.disabled=false; }
   finally{ q('.rendu-apercu').hidden=false; }

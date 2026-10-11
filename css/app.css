@@ -209,12 +209,12 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
 .mesures-svg .en-cours .trait{stroke-dasharray:6 4}
 #app.mesure #mesures .mesure:not(.en-cours) .valeur{pointer-events:auto;cursor:pointer}
 #app.mesure #c,#app.mesure #plan{cursor:crosshair}
-#bandeau-mesure,#bandeau-isole,#bandeau-comparer,#bandeau-remplacer{display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--mesure);border-radius:var(--r);padding:6px 6px 6px 12px;font-size:13px}
-#bandeau-isole,#bandeau-comparer,#bandeau-remplacer{border-left-color:var(--accent)}
+#bandeau-mesure,#bandeau-isole,#bandeau-comparer,#bandeau-remplacer,#bandeau-photo{display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--mesure);border-radius:var(--r);padding:6px 6px 6px 12px;font-size:13px}
+#bandeau-isole,#bandeau-comparer,#bandeau-remplacer,#bandeau-photo{border-left-color:var(--accent)}
 #bandeau-isole .seg button,#bandeau-comparer .seg button{padding:5px 10px}
-#bandeau-mesure[hidden],#bandeau-isole[hidden],#bandeau-comparer[hidden],#bandeau-remplacer[hidden]{display:none}
+#bandeau-mesure[hidden],#bandeau-isole[hidden],#bandeau-comparer[hidden],#bandeau-remplacer[hidden],#bandeau-photo[hidden]{display:none}
 #bandeau-mesure #mesure-texte,#isole-texte,#remplacer-texte{flex:1 1 220px}
-#bandeau-mesure .actions,#bandeau-isole .actions,#bandeau-comparer .actions{display:flex;gap:8px;margin-left:auto;align-items:center}
+#bandeau-mesure .actions,#bandeau-isole .actions,#bandeau-comparer .actions,#bandeau-photo .actions{display:flex;gap:8px;margin-left:auto;align-items:center}
 /* Impression (livraison 8) : panneau « Imprimer » et dessin hors écran pour le PDF, toujours aux couleurs du thème clair */
 #impr-menu{min-width:340px}
 .impr-ligne{display:grid;grid-template-columns:86px 1fr;align-items:center;gap:8px;padding:4px 10px}
@@ -552,3 +552,20 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
 .ph-recents-liste ul{list-style:none;margin:0;padding:0;display:grid;gap:4px}
 .ph-recents-liste li{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:4px 0;border-bottom:1px solid var(--line);font-size:13px}
 .ph-recents-liste li span{min-width:0;overflow-wrap:anywhere}
+
+/* « Photo réaliste » (11 octobre 2026) : points de vue des photos calées dans la 3D (pointsvue.js), photos à caler,
+   options avancées du panneau photo */
+#points-photo{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+#points-photo[hidden]{display:none}
+.ib.pv-photo{position:absolute;left:-17px;top:-17px;width:34px;height:34px;border-radius:50%;background:var(--accent);color:#fff;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.35);pointer-events:auto;cursor:pointer;will-change:transform}
+.ib.pv-photo:hover:not(:disabled){background:var(--accent);color:#fff;box-shadow:0 0 0 3px var(--accent-soft),0 2px 6px rgba(0,0,0,.35)}
+.ib.pv-photo[hidden]{display:none}
+.pv-photo .ico{width:18px;height:18px}
+.pv-pointe{position:absolute;left:50%;top:50%;width:0;height:0;transform-origin:0 0;pointer-events:none}
+.pv-pointe[hidden]{display:none}
+.pv-pointe::after{content:"";position:absolute;left:17px;top:-6px;border-left:9px solid var(--accent);border-top:6px solid transparent;border-bottom:6px solid transparent}
+#photo-ici-texte{flex:1 1 220px}
+.cat-info.a-caler{color:var(--muted)}
+.ph-avance{border:1px solid var(--line);border-radius:10px;padding:6px 10px;display:grid;gap:8px}
+.ph-avance>summary{cursor:pointer;font-size:13px;color:var(--muted)}
+.ph-avance[open]>summary{margin-bottom:2px}

@@ -66,12 +66,13 @@ function lieu(L,P){
   return {x,z,y,niv};
 }
 // ajoute un objet (définition a sans niveau ni position : forme, photo, fichier 3D, catalogue), posé dans la pièce regardée,
-// ou à la place de l'élément à remplacer
-export function ajouterObjet(a){
+// à la place de l'élément à remplacer, ou là où il est sur une photo calée (place = {x, z, r, niv}, montage)
+export function ajouterObjet(a,place){
   const ancien=remplacement&&app.items[remplacement];
   let o, r=0;
   if(ancien){ const niv=ancien.lvl==='Étage'?'etage':'rez', base=niv==='etage'?ETAGE_FLOOR:0, x=ancien.g.position.x, z=ancien.g.position.z;
     o={x,z,niv,y:solSous(new THREE.Vector3(x,base,z))??base}; r=ancien.g.rotation.y; }
+  else if(place){ const base=place.niv==='etage'?ETAGE_FLOOR:0; o={x:place.x,z:place.z,niv:place.niv,y:solSous(new THREE.Vector3(place.x,base,place.z))??base}; r=place.r||0; }
   else o=lieu(a.p.L,a.p.P);
   const nom=nouveauNom();
   const e=normaliser(nom,{x:o.x,z:o.z,r,h:false,c:null,a:{...a,v:o.niv,y:+o.y.toFixed(4),e:0}});
@@ -102,7 +103,7 @@ function ouvrirMenu(oui){
   const m=$('ajouter-menu'); m.hidden=!oui; $('ajouter').setAttribute('aria-expanded',String(oui)); if(!oui) return;
   const ancien=remplacement&&app.items[remplacement];
   m.replaceChildren(el('div',{class:'menu-titre'},ancien?`Remplacer « ${ancien.meta.l} » par`:'N’importe quel objet'));
-  for(const [k,t,d,f] of [['catalogue','Catalogue 3D…','Poly Haven, Sketchfab',ouvrirCatalogue],['photo','D’après une photo…','image, Tripo',ouvrirPhoto],['glb','Fichier 3D…','glb, fbx, obj, dae, stl',ouvrirImport]]){
+  for(const [k,t,d,f] of [['catalogue','Catalogue 3D…','Poly Haven, Sketchfab',ouvrirCatalogue],['photo','D’après une photo…','Tripo crée le meuble en 3D',ouvrirPhoto],['glb','Fichier 3D…','glb, fbx, obj, dae, stl',ouvrirImport]]){
     const b=el('button',{type:'button','data-ajout':k}); b.append(el('span',{},t),el('span',{class:'m2'},d)); b.onclick=()=>{ ouvrirMenu(false); f(true); }; m.append(b); }
   const g=el('div',{class:'menu-groupe'}); g.append(el('div',{class:'menu-titre'},'Formes simples')); m.append(g);
   for(const [f,d] of Object.entries(FORMES)){

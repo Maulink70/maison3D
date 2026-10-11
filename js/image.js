@@ -5,12 +5,17 @@
 // rendu » (confirmation, crédits) envoie à kie.ai la photo, la photo avec les objets posés et les zones rouges, et les
 // images des objets ; le rendu rejoint l'historique de la pièce (avant / après). « Créer en 3D » ouvre le panneau photo
 // avec l'image de l'objet, d'où Tripo le crée et le pose dans la maquette.
+// Le 11 octobre 2026 (« Photo réaliste », photo et 3D séparées) : le mode Image devient le « montage » ; « Mettre en 3D »
+// remplace « Créer en 3D » et, si la photo est calée, le meuble est posé dans la maquette là où il est sur la photo
+// (rayon de la caméra calée par le pied de l'image posée, jusqu'au sol de la pièce).
+import * as THREE from 'three';
 import {app, $} from './app.js';
 import {lireFichier} from './fichiers.js';
 import {BOUTIQUES, lienRecherche, lireProduit} from './boutiques.js';
-import {soldeKie, COUT, ratioDe, demarrerRendu, suivre} from './rendu.js';
+import {soldeKie, COUT, ratioDe, demarrerRendu, suivre, camPhoto} from './rendu.js';
 import {ouvrirPhotoAvec} from './photo.js';
-import {PIECES} from './pieces.js';
+import {PIECES, pieceEn} from './pieces.js';
+import {ETAGE_FLOOR} from './config.js';
 
 const el=(nom,attrs={},texte)=>{ const n=document.createElement(nom); for(const [k,v] of Object.entries(attrs)) n.setAttribute(k,v); if(texte!==undefined) n.textContent=texte; return n; };
 const nomPiece=id=>PIECES.find(p=>p.id===id)?.nom||'pièce';
@@ -24,13 +29,13 @@ async function reduire(src,max=1024,type='image/jpeg'){
 
 // ---------- état : la base (photo ou rendu), les objets posés, les zones à effacer ----------
 let fen=null, mi=null, sel=null, prep=null;
-// base = {nom, piece, photo (id de la photo d'origine), image:{id,n,type,w,h}}
+// base = {nom, piece, photo (id de la photo d'origine), image:{id,n,type,w,h}, cal:{calage, image} si la photo est calée}
 export async function ouvrirModeImage(base,produit){
   if(!fen) construire();
-  if(!mi||mi.base.image.id!==base.image.id) mi={base,objets:[],zones:[]};
+  if(!mi||mi.base.image.id!==base.image.id) mi={base,objets:[],zones:[]}; else mi.base=base;
   fen.hidden=false; sel=null; prep=null; fen.querySelector('.mi-confirmer').hidden=true;
-  fen.querySelector('.vis-titre strong').textContent='Mode Image : « '+base.nom+' »';
-  fen.querySelector('.vis-titre span').textContent=nomPiece(base.piece)+' · on modifie la photo, pas la maquette';
+  fen.querySelector('.vis-titre strong').textContent='Montage : « '+base.nom+' »';
+  fen.querySelector('.vis-titre span').textContent=nomPiece(base.piece)+' · on modifie la photo, pas la maquette'+(base.cal?' · photo calée':'');
   const img=fen.querySelector('.mi-photo'); img.removeAttribute('src');
   const b=await lireFichier(base.image.id,base.image.n||1,base.image.type||'image/jpeg');
   if(!b){ dire('La photo n’a pas pu être lue.',true); return; }
@@ -85,7 +90,7 @@ function glisser(d,o,poignee){
     d.addEventListener('pointermove',bouge); d.addEventListener('pointerup',fin); d.addEventListener('pointercancel',fin);
   });
 }
-// ---------- la liste des objets : nom, dimensions, « Créer en 3D » ----------
+// ---------- la liste des objets : nom, dimensions, « Mettre en 3D » ----------
 function majListe(){
   const l=fen.querySelector('.mi-objets'); l.replaceChildren(); if(!mi) return;
   mi.objets.forEach((o,k)=>{
@@ -93,13 +98,32 @@ function majListe(){
     n.onchange=()=>{ o.nom=n.value.trim()||o.nom; };
     const cote=(c,t)=>{ const f=el('input',{type:'number',min:'1',max:'2000',step:'1',value:o[c]??'',placeholder:t,'aria-label':t+' (cm)'}); f.onchange=()=>{ const v=+f.value; o[c]=v>0?v:null; }; return f; };
     const d=el('span',{class:'mi-dims'}); d.append(cote('L','L'),el('span',{},'×'),cote('P','P'),el('span',{},'×'),cote('H','H'),el('span',{},'cm'));
-    const t=el('button',{type:'button',class:'btn petit-b'},'Créer en 3D'); t.title='Ouvre le panneau photo avec cette image : « Créer en 3D (Tripo) » la pose dans la maquette';
+    const t=el('button',{type:'button',class:'btn petit-b'},'Mettre en 3D');
+    t.title=mi.base.cal?'Tripo crée ce meuble en 3D et le pose dans la maquette, là où il est sur la photo':'Tripo crée ce meuble en 3D et le pose dans la maquette (pièce de la photo)';
     t.onclick=async()=>{ if(!app.edition){ dire('Passez en « Éditer » pour ajouter un objet à la maquette.',true); return; }
-      const b=await (await fetch(o.img)).blob(); fermer(); ouvrirPhotoAvec(b,{nom:o.nom,L:o.L,P:o.P,H:o.H}); };
+      const b=await (await fetch(o.img)).blob(), place=placeDansMaquette(o); fermer(); ouvrirPhotoAvec(b,{nom:o.nom,L:o.L,P:o.P,H:o.H},false,place); };
     const x=el('button',{type:'button',class:'btn petit-b danger','aria-label':'Retirer '+o.nom},'×'); x.onclick=()=>{ mi.objets=mi.objets.filter(q=>q!==o); dessiner(); majListe(); };
     li.append(el('span',{class:'mi-num'},String(k+1)),i,n,d,t,x); l.append(li);
   });
 }
+// ---------- où poser dans la maquette un meuble du montage (photo calée) ----------
+// le pied de l'image posée (bas de l'image, contenue dans son rectangle) est le devant du meuble, au sol de la pièce :
+// rayon de la caméra calée par ce point jusqu'au sol, puis une demi-profondeur plus loin ; tourné vers l'appareil, au
+// quart de tour le plus proche (murs droits). null : photo non calée, ou point hors des pièces (posé alors comme d'habitude)
+const rc=new THREE.Raycaster();
+export function placeDansMaquette(o,base=mi?.base){
+  const cal=base?.cal; if(!cal?.calage||!cal.image?.w) return null;
+  const W=base.image.w||cal.image.w, H=base.image.h||cal.image.h, k=Math.min(o.lw*W/o.w,o.lh*H/o.h);
+  const u=o.x+o.lw/2, v=o.y+o.lh/2+o.h*k/H/2;
+  const cam=camPhoto({calage:cal.calage,image:cal.image}); rc.setFromCamera(new THREE.Vector2(u*2-1,1-v*2),cam);
+  const {origin:a,direction:d}=rc.ray, sol=+cal.calage.sol||0; if(d.y>-0.02) return null;
+  const t=(sol-a.y)/d.y; if(!(t>0&&t<15)) return null;
+  const h=Math.hypot(d.x,d.z)||1, P=(o.P||50)/100, x=a.x+d.x*t+d.x/h*P/2, z=a.z+d.z*t+d.z/h*P/2;
+  const niv=sol>ETAGE_FLOOR-0.3?'etage':'rez'; if(!pieceEn(x,z,niv)) return null;
+  const r=Math.round(Math.atan2(a.x-x,a.z-z)/(Math.PI/2))*(Math.PI/2);
+  return {x:+x.toFixed(3),z:+z.toFixed(3),r:+(Math.abs(r)<1e-9?0:r).toFixed(4),niv};
+}
+
 // ---------- sources : fichier, presse-papiers, lien, boutiques ----------
 async function depuisFichier(f){ if(!f) return; if(!/^image\//.test(f.type)){ dire('Ce n’est pas une image.',true); return; } await ajouterProduit({image:await versDataURL(f),nom:f.name.replace(/\.[^.]+$/,'')}); }
 async function coller(){
@@ -158,20 +182,20 @@ async function lancer(){
   try{
     const photo=await reduire(mi.url,2048), images=[prep.composee,photo.url,...mi.objets.slice(0,6).map(o=>o.img)];
     const detail=[...mi.objets.map(o=>`Ajouté (photo) : ${o.nom}${o.L&&o.P&&o.H?` (${o.L} × ${o.P} × ${o.H} cm)`:''}`),...mi.zones.map((_,k)=>`Zone effacée ${k+1}`)];
-    const r=await demarrerRendu({images,consigne:consigne(precisions),ratio:ratioDe(b.image.w,b.image.h),titre:`${b.nom} · mode Image`,
+    const r=await demarrerRendu({images,consigne:consigne(precisions),ratio:ratioDe(b.image.w,b.image.h),titre:`${b.nom} · montage`,
       champs:{piece:b.piece,photo:b.photo||'',avant:b.image,variante:'',mode:'image',detail}});
     if(!r.id){ dire(r.erreur,true); ok.disabled=false; return; }
     z.hidden=true; prep=null;
     dire('Rendu en cours chez kie.ai… (environ 1 minute ; vous pouvez fermer : il arrivera dans les rendus de la pièce)');
     await suivre(r,s=>{ if(!fen.hidden) dire(`Rendu en cours chez kie.ai… ${s} s`); });
-    if(r.etat==='fini') dire('Rendu prêt : bouton « Photos », onglet « Rendus », pour le voir en avant / après.');
+    if(r.etat==='fini') dire('Rendu prêt : « Photo réaliste », onglet « Rendus », pour le voir en avant / après.');
     else dire('Le rendu a échoué : '+(r.erreur||'raison inconnue'),true);
   }catch(e){ dire('Rendu impossible : '+(e.message||e),true); ok.disabled=false; }
 }
 
 // ---------- la fenêtre ----------
 function construire(){
-  fen=el('div',{id:'mode-image',class:'visionneuse mode-image',role:'dialog','aria-modal':'true','aria-label':'Mode Image'});
+  fen=el('div',{id:'mode-image',class:'visionneuse mode-image',role:'dialog','aria-modal':'true','aria-label':'Montage photo'});
   fen.innerHTML=`<div class="vis-haut"><div class="vis-titre"><strong></strong><span></span></div>
       <button type="button" class="vis-b" id="mi-fermer" aria-label="Fermer" title="Fermer">×</button></div>
     <div class="vis-zone mi-zone"><div class="mi-cadre"><img class="mi-photo" alt="Photo de la pièce"><div class="mi-calques"></div></div></div>
@@ -208,7 +232,7 @@ function construire(){
     q('.mi-boutiques').append(x); }
   for(const i of ['#mi-lien','#mi-q','#mi-precisions']) q(i).addEventListener('keydown',e=>{ e.stopPropagation(); if(e.key==='Enter'){ if(i==='#mi-lien') lien(); e.target.blur(); } });
   fen.addEventListener('keydown',e=>{ if(e.key==='Escape'&&!/INPUT/.test(e.target.tagName)){ e.stopPropagation(); fermer(); } });
-  // Ctrl+V : une image ou un lien collés pendant que le mode Image est ouvert
+  // Ctrl+V : une image ou un lien collés pendant que le montage est ouvert
   addEventListener('paste',async e=>{ if(!fen||fen.hidden||/INPUT|TEXTAREA/.test(e.target.tagName)) return;
     const f=[...(e.clipboardData?.files||[])].find(x=>/^image\//.test(x.type)); if(f){ e.preventDefault(); await depuisFichier(f); return; }
     const t=e.clipboardData?.getData('text'); if(/^https?:\/\//i.test(t||'')){ e.preventDefault(); q('#mi-lien').value=t.trim(); lien(); } });
