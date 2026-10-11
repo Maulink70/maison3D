@@ -14,7 +14,7 @@ import {caler} from './calques.js';
 import {demanderConnexion, etatActuel} from './compte.js';
 import {comparer} from './comparer.js';
 
-let enEdition=null, aSupprimer=null, message='';
+let enEdition=null, aSupprimer=null, message='', choixComparer=null;
 const el=(nom,attrs={},texte)=>{ const n=document.createElement(nom); for(const [k,v] of Object.entries(attrs)) n.setAttribute(k,v); if(texte!==undefined) n.textContent=texte; return n; };
 const quand=t=>{ if(!t) return ''; const d=new Date(t); if(isNaN(d)) return '';
   const j=d.toDateString()===new Date().toDateString()?'aujourd’hui':'le '+d.toLocaleDateString('fr-FR',{day:'numeric',month:'long'});
@@ -59,13 +59,17 @@ function majMenu(){
     }
     m.append(li);
   }
-  // comparer la variante affichée avec une autre (barre ou fondu, comparer.js)
+  // comparer la variante affichée avec une autre (barre ou fondu, comparer.js) : liste déroulante (Mauro, 11 octobre 2026 :
+  // avec beaucoup de variantes, une ligne par variante faisait trop défiler le menu)
   const autres=liste.filter(v=>!cour||v.id!==cour.id);
   if(autres.length){
     const g=el('div',{class:'menu-groupe'}); g.append(el('div',{class:'menu-titre'},'Comparer « '+(cour?cour.nom:'Actuel')+' » avec'));
-    for(const v of autres){ const b=el('button',{type:'button','data-comparer':v.id}); b.append(el('span',{},v.nom),el('span',{class:'m2'},'barre ou fondu'));
-      b.onclick=()=>{ ouvrir(false); comparer(v.id); }; g.append(b); }
-    m.append(g);
+    const f=el('div',{class:'vue-form var-comparer'}), s=el('select',{id:'variante-comparer','aria-label':'Variante à comparer'}), b=el('button',{type:'button',class:'btn primary',id:'variante-comparer-ok'},'Comparer');
+    for(const v of autres) s.append(el('option',{value:v.id},v.nom));
+    if(autres.some(v=>v.id===choixComparer)) s.value=choixComparer;
+    s.onchange=()=>{ choixComparer=s.value; }; s.onkeydown=e=>e.stopPropagation();
+    b.onclick=()=>{ choixComparer=s.value; ouvrir(false); comparer(s.value); };
+    f.append(s,b); g.append(f,el('p',{class:'var-note'},'Barre à glisser ou fondu entre les deux.')); m.append(g);
   }
   // tableau des meubles de la variante affichée (tableau.js)
   const t=el('button',{type:'button',id:'variante-tableau'}); t.append(el('span',{},'Tableau des meubles de « '+(cour?cour.nom:'Actuel')+' »'),el('span',{class:'m2'},'dimensions, matières, liens · Excel'));
