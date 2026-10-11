@@ -20,6 +20,7 @@ import {initHistorique, demarrerHistorique} from './historique.js';
 import {initAlertes, majAlertes} from './alertes.js';
 import {majLumiere} from './lumiere.js';
 import {majLampes} from './lampes.js';
+import {majReflets} from './reflets.js';
 import {eclatActif, rendreEclate, suivreEclat} from './eclate.js';
 import {initIcones} from './icones.js';
 import {initCompte, initPorte} from './compte.js';
@@ -108,7 +109,7 @@ function rendre(){
 app.renderer.setAnimationLoop(()=>{
   const dt=Math.min(clock.getDelta(),0.1);
   if(app.mode==='walk') walk(dt); else if(app.mode==='plan') majPlan(dt); else { majCadrage(dt); suivreEclat(); app.orbit.update(); }
-  majPortes(dt); majCouvercles(); majTransparence(); majRevetements(); majAlertes(); majLumiere(); majLampes();
+  majPortes(dt); majCouvercles(); majTransparence(); majRevetements(); majAlertes(); majLumiere(); majLampes(); majReflets();
   if(app.selected&&eclatActif()) select(null);   // vue éclatée : pas de sélection (la poignée suivrait mal le meuble soulevé)
   if(app.selBox&&app.tc.object) app.selBox.update();
   majCalques(); majMesures(); majPointsVue();

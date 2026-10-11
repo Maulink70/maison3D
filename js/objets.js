@@ -19,7 +19,7 @@ import {solSous} from './visite.js';
 import {caler} from './calques.js';
 import {css} from './app.js';
 import {ouvrirPhoto} from './photo.js';
-import {ouvrirImport, texteOrigine} from './import3d.js';
+import {ouvrirImport, texteOrigine, texteFichier} from './import3d.js';
 import {ouvrirCatalogue} from './catalogue.js';
 
 const el=(nom,attrs={},texte)=>{ const n=document.createElement(nom); for(const [k,v] of Object.entries(attrs)) n.setAttribute(k,v); if(texte!==undefined) n.textContent=texte; return n; };
@@ -188,17 +188,21 @@ function majPanneau(){
   $('t-nom-ligne').hidden=!a; if(a) $('t-nom').value=a.n||'';
   // modèle du catalogue : titre, auteur, licence et lien vers la page d'origine
   const og=$('t-origine'); og.hidden=!a?.o; og.replaceChildren(); if(a?.o){ og.append(texteOrigine(a.o)+' '); if(/^https:\/\//.test(a.o.lien||'')){ const l=el('a',{href:a.o.lien,target:'_blank',rel:'noopener'},'voir la page'); og.append(l); } }
+  majFichier();
   $('t-remplacer').hidden=it.meta.c==='ouverture';
   $('t-dims').hidden=it.meta.c==='ouverture';   // portes et fenêtres : leurs ouvrants sont réglés sur le modèle
   $('t-suppr').hidden=!a; $('t-reset').hidden=!!a; $('t-suppr').textContent='Supprimer cet objet'; $('t-suppr').classList.remove('arme');
   partie=null; majDimensions(); majMatieres();
 }
+// poids du fichier d'un objet 3D importé (connu une fois le fichier lu : objet-pret)
+function majFichier(){ const t=texteFichier(app.selected?.ajout), f=$('t-fichier'); f.hidden=!t; f.textContent=t; }
 export function initObjets(){
   const b=$('ajouter'), m=$('ajouter-menu');
   b.onclick=e=>{ e.stopPropagation(); ouvrirMenu(m.hidden); };
   addEventListener('pointerdown',e=>{ if(!m.hidden&&!m.contains(e.target)&&!b.contains(e.target)) ouvrirMenu(false); });
   m.addEventListener('keydown',e=>{ if(e.key==='Escape'){ e.stopPropagation(); ouvrirMenu(false); b.focus(); } });
   addEventListener('selection',majPanneau);
+  addEventListener('objet-pret',e=>{ if(app.selected===e.detail.it) majFichier(); });
   $('t-mats').addEventListener('toggle',()=>majMatieres());
   $('t-nom').onkeydown=e=>{ e.stopPropagation(); if(e.key==='Enter') e.target.blur(); };
   $('t-nom').onchange=e=>{ const it=app.selected; if(!it?.ajout) return; const n=e.target.value.trim().slice(0,60)||FORMES[it.ajout.f]?.nom||'Objet'; changerAjout(it,{...it.ajout,n}); };

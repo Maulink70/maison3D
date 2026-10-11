@@ -120,12 +120,35 @@ function deplacer(root){
     const p=n.getWorldPosition(new THREE.Vector3()); p.x+=dx; p.z+=dz; n.parent.worldToLocal(p); n.position.copy(p); n.updateMatrixWorld(true); }
 }
 
+// Machine à café du bar (11 octobre 2026, Mauro : « ça me sélectionne le bar entier ») : fondue dans le nœud du bar dans le
+// modèle (ses maillages, plus 627 triangles de la peinture blanche du bar) ; ce qui est au-dessus du plateau, au bout est du
+// bar, devient un élément à part, « Machine à café » (après deplacer : coordonnées de l'îlot déplacé). Un maillage coupé
+// donne deux géométries non indexées, chacune avec ses seuls sommets (boîte englobante juste : taille, sélection, plan)
+const MACHINE=new THREE.Box3(new THREE.Vector3(18.05,0.935,-22.66),new THREE.Vector3(18.35,1.4,-22.26));
+function separerMachine(root){
+  const bar=root.getObjectByName('rez__Bar_cuisine'); if(!bar) return;
+  const g=new THREE.Group(); g.name='rez__machine_cafe'; root.add(g); bar.updateMatrixWorld(true);
+  const v=new THREE.Vector3(), maillages=[]; bar.traverse(o=>{ if(o.isMesh) maillages.push(o); });
+  for(const o of maillages){
+    const geo=o.geometry, pos=geo.attributes.position, n=geo.index?geo.index.count:pos.count, at=k=>geo.index?geo.index.getX(k):k;
+    const dans=[], reste=[];
+    for(let k=0;k+2<n;k+=3){ const t=[at(k),at(k+1),at(k+2)]; (t.every(i=>MACHINE.containsPoint(v.fromBufferAttribute(pos,i).applyMatrix4(o.matrixWorld)))?dans:reste).push(...t); }
+    if(!dans.length) continue;
+    if(!reste.length){ g.attach(o); continue; }
+    const morceau=idx=>{ const x=new THREE.BufferGeometry(); for(const [k,a] of Object.entries(geo.attributes)) x.setAttribute(k,a);
+      x.setIndex(idx); const y=x.toNonIndexed(); y.computeBoundingBox(); y.computeBoundingSphere(); return y; };
+    const part=morceau(dans); o.geometry=morceau(reste); geo.dispose();
+    const m=new THREE.Mesh(part,o.material); m.name=o.name+'_machine'; m.userData={...o.userData};
+    m.position.copy(o.position); m.quaternion.copy(o.quaternion); m.scale.copy(o.scale); o.parent.add(m); g.attach(m);
+  }
+}
+
 function installerMobilier(root){
   corrigerVitres(root); retirerPanneauxSurVitres(root); teinter(root); seuilBaie(root);
   app.model.add(root); root.updateMatrixWorld(true); app.mobilier=root;   // racine du mobilier : les objets ajoutés y sont rangés
   const etagere=root.getObjectByName('rez__armoire'); if(etagere) remplacerEtagere(etagere,root);
   const buffet=root.getObjectByName('rez__meuble_salon'); if(buffet) remplacerBuffet(buffet,root);
-  deplacer(root);
+  deplacer(root); separerMachine(root);
   for(const n of [...construireBuanderie(root),...construireCuisine(),...construireSalon(),...construirePieces(root),...construireEtage(root)]) root.add(fusionner(n));
   installerPortes(root); installerFenetres(root);
   const tapis=root.getObjectByName('rez__tapis_salon'); if(tapis) tapis.scale.y=1.75;   // poils longs : 3,5 cm d'épaisseur au lieu de 2

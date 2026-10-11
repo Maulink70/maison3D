@@ -2,7 +2,7 @@
 // le 10 octobre 2026, .gltf, .fbx, .obj, .dae, .stl, avec leurs textures à part ou en .zip (formats3d.js). Le site
 // affiche la taille trouvée dans le fichier (et son unité supposée), on saisit les vraies dimensions (proportions gardées
 // par défaut) ; avant l'envoi, le modèle est allégé dans le navigateur pour rester fluide sur la tablette : textures
-// réduites à 1024 px, maillages trop détaillés simplifiés (120 000 triangles au plus, meshoptimizer), recentré (origine au
+// réduites à 2048 px (1024 jusqu'au 11 octobre 2026), maillages trop détaillés simplifiés (120 000 triangles au plus, meshoptimizer), recentré (origine au
 // centre du dessous), matériaux renommés « Partie n » (matières choisies partie par partie). Gardé dans Airtable
 // (fichiers.js) ; à l'affichage, une boîte d'attente le temps de le relire, puis le modèle aux dimensions voulues.
 import * as THREE from 'three';
@@ -15,7 +15,7 @@ import {envoyerFichier, lireFichier} from './fichiers.js';
 import {ajouterObjet} from './objets.js';
 import {lireModele, separer, standardiser, ACCEPTE} from './formats3d.js';
 
-const TRIANGLES=120000, TEXTURE=1024;
+const TRIANGLES=120000, TEXTURE=2048;
 let lecteur=null;
 function chargeur(){
   if(lecteur) return lecteur;
@@ -26,10 +26,11 @@ const lire=buf=>new Promise((ok,ko)=>chargeur().parse(buf,'',g=>ok(g.scene||g.sc
 const boite=o=>{ o.updateMatrixWorld(true); return new THREE.Box3().setFromObject(o); };
 
 // ---------- l'objet 3D ----------
-const modeles=new Map();
+const modeles=new Map(), poids=new Map();   // poids : octets et triangles de chaque fichier lu (panneau de l'objet)
+const nbTriangles=s=>{ let t=0; s.traverse(o=>{ if(o.isMesh){ const g=o.geometry; t+=(g.index?g.index.count:g.attributes.position.count)/3; } }); return t; };
 function modele(f){
   if(!modeles.has(f.id)) modeles.set(f.id,(async()=>{ const b=await lireFichier(f.id,f.n||1,'model/gltf-binary'); if(!b){ modeles.delete(f.id); return null; }
-    try{ return await lire(await b.arrayBuffer()); }catch{ modeles.delete(f.id); return null; } })());
+    try{ const s=await lire(await b.arrayBuffer()); poids.set(f.id,{octets:b.size,triangles:nbTriangles(s)}); return s; }catch{ modeles.delete(f.id); return null; } })());
   return modeles.get(f.id);
 }
 export function construireGLB(a){
@@ -133,13 +134,22 @@ function redresser(){
 function montrer(scene,{nom='',octets=0,tourner=0,origine=null}={}){
   scene.rotation.y+=tourner; const b=boite(scene), s=b.getSize(new THREE.Vector3());
   if(b.isEmpty()||!(s.x>0)){ charge=null; dire('Ce modèle 3D est vide.',true); return; }
-  let tri=0, tex=new Set(); scene.traverse(o=>{ if(o.isMesh){ const g=o.geometry; tri+=(g.index?g.index.count:g.attributes.position.count)/3; for(const m of [].concat(o.material)) if(m.map) tex.add(m.map); } });
+  // textures par sorte : couleur seule, ou aussi métal / brillance et relief (modèle « PBR » : l'inox y est reconnu, reflets.js)
+  let tri=0; const tex=new Set(), sortes=new Set(), SORTES={map:'couleur',metalnessMap:'métal / brillance',roughnessMap:'métal / brillance',normalMap:'relief',bumpMap:'relief'};
+  scene.traverse(o=>{ if(o.isMesh){ const g=o.geometry; tri+=(g.index?g.index.count:g.attributes.position.count)/3;
+    for(const m of [].concat(o.material)) for(const k in SORTES) if(m[k]){ tex.add(m[k]); sortes.add(SORTES[k]); } } });
   charge={scene,d:[s.x,s.y,s.z],nom:String(nom).slice(0,60),taille:octets,origine};
   const max=Math.max(s.x,s.y,s.z); fen.querySelector('#g3-unite').value=max>300?'mm':max>8?'cm':'m';
   fen.querySelector('#g3-nom').value=charge.nom;
-  fen.querySelector('.g3-detail').textContent=(octets?`${(octets/1048576).toFixed(1).replace('.',',')} Mo · `:'')+`${Math.round(tri).toLocaleString('fr-FR')} triangles · ${tex.size} texture${tex.size>1?'s':''} · taille dans le fichier : ${[s.x,s.z,s.y].map(v=>v.toFixed(2).replace('.',',')).join(' × ')} (L × P × H)`;
+  fen.querySelector('.g3-detail').textContent=(octets?`${(octets/1048576).toFixed(1).replace('.',',')} Mo · `:'')+`${Math.round(tri).toLocaleString('fr-FR')} triangles · ${tex.size} texture${tex.size>1?'s':''}${sortes.size?' ('+[...sortes].join(', ')+')':''} · taille dans le fichier : ${[s.x,s.z,s.y].map(v=>v.toFixed(2).replace('.',',')).join(' × ')} (L × P × H)`;
   const o=fen.querySelector('.g3-origine'); o.hidden=!origine; if(origine) o.textContent=texteOrigine(origine);
   majDims(); fen.querySelector('.g3-info').hidden=false; dire('Vérifiez les dimensions (en cm), puis « Ajouter ».');
+}
+// « Fichier 3D : 2,4 Mo · 120 000 triangles » (Mauro, 11 octobre 2026 : le poids après allègement ne se voyait qu'à l'envoi)
+export function texteFichier(a){
+  const p=a?.t==='glb'&&poids.get(a.fic?.id); if(!p) return '';
+  const o=p.octets>=1048576?(p.octets/1048576).toFixed(1).replace('.',',')+' Mo':Math.max(1,Math.round(p.octets/1024))+' Ko';
+  return `Fichier 3D : ${o} · ${Math.round(p.triangles).toLocaleString('fr-FR')} triangles`;
 }
 // « Sofa 01 » de Jamie Smith · CC0 (Poly Haven)
 export const texteOrigine=o=>`« ${o.titre} »${o.auteur?' de '+o.auteur:''} · licence ${o.licence||'?'} (${o.site})`;
@@ -213,7 +223,7 @@ function construireFenetre(){
 }
 export function ouvrirImport(oui=true){
   if(oui&&!fen) construireFenetre(); if(!fen) return; fen.hidden=!oui;
-  if(oui){ charge=null; placeImport=null; fen.querySelector('.g3-info').hidden=true; dire(''); }
+  if(oui){ charge=null; placeImport=null; fen.querySelector('.g3-info').hidden=true; fen.querySelector('#g3-prop').checked=true; dire(''); }   // proportions gardées à chaque fois
 }
 // pour les tests : préparer un fichier sans passer par la fenêtre
 export const _preparer=preparer, _lire=lire;
