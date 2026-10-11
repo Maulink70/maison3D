@@ -63,7 +63,7 @@ function construire(raison){
   };
   // sauvegarde des données Airtable sur l'appareil (exporter.js, Mauro, 11 octobre 2026) : pas la maquette (GitHub)
   const bs=el('button',{type:'button',id:'cx-sauver'},'Sauvegarder les données Airtable sur cet appareil');
-  const ns=el('p',{class:'cx-note cx-sauver-note'},'Un fichier .zip : variantes, objets ajoutés, photos, rendus, vues, mesures, historique. Seulement les données d’Airtable : la maquette (le site et le modèle 3D) se sauvegarde depuis GitHub.');
+  const ns=el('p',{class:'cx-note cx-sauver-note'},'Un fichier .zip : variantes, objets ajoutés, photos, rendus, produits, vues, mesures, historique. Seulement les données d’Airtable : la maquette (le site et le modèle 3D) se sauvegarde depuis GitHub.');
   const es=el('p',{class:'cx-etat',id:'cx-sauver-etat',role:'status'},sauve.texte);
   bs.disabled=sauve.enCours;
   bs.onclick=async()=>{ if(sauve.enCours) return;

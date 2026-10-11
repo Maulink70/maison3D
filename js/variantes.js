@@ -2,6 +2,7 @@
 // liste les variantes (qui l'a modifiée en dernier, et quand) ; toucher une variante l'affiche. Connecté : créer une
 // variante (copie de celle affichée), renommer (✎), supprimer (×, deux touchers ; elle reste récupérable dans Airtable,
 // case « Supprimée »). Sans compte : « Actuel » seulement. Liste commune à tous les comptes.
+import {ouvrirTableau} from './tableau.js';
 import {$} from './app.js';
 import {appel, connecte} from './api.js';
 import {lesVariantes, varianteCourante, afficherVariante, nouvelleListe} from './synchro.js';
@@ -59,6 +60,9 @@ function majMenu(){
       b.onclick=()=>{ ouvrir(false); comparer(v.id); }; g.append(b); }
     m.append(g);
   }
+  // tableau des meubles de la variante affichée (tableau.js)
+  const t=el('button',{type:'button',id:'variante-tableau'}); t.append(el('span',{},'Tableau des meubles de « '+(cour?cour.nom:'Actuel')+' »'),el('span',{class:'m2'},'dimensions, matières, liens · Excel'));
+  t.onclick=()=>{ ouvrir(false); ouvrirTableau(true); }; const gt=el('div',{class:'menu-groupe'}); gt.append(t); m.append(gt);
   if(connecte()){
     const f=el('div',{class:'vue-form'}), i=el('input',{type:'text',id:'variante-nom','aria-label':'Nom de la nouvelle variante',maxlength:'60',placeholder:'Projet '+liste.filter(x=>!x.fixe).length});
     const b=el('button',{type:'button',class:'btn primary',id:'variante-creer'},'Créer');

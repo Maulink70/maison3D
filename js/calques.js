@@ -16,8 +16,8 @@ import {poserIcone, nommer} from './icones.js';
 const OPTIONS=[['noms','Noms des pièces'],['surfaces','Surfaces (au sol et libre)'],['hauteurs','Hauteurs sous plafond'],
   ['cPieces','Dimensions des pièces'],['cMurs','Longueur des murs'],['cMeuble','Meuble sélectionné et distances aux murs'],['cOuv','Portes et fenêtres'],['mesures','Mesures de la règle'],['murs','Murs transparents (maquette)'],['photos','Points de vue des photos (appareil photo)']];
 const CLE='maison3d-calques', NS='http://www.w3.org/2000/svg';
-export const etat={noms:true,surfaces:true,hauteurs:false,cPieces:false,cMurs:false,cMeuble:false,cOuv:false,mesures:true,murs:false,photos:true,lumiere:'normale',eclat:0};
-const AFFICHAGE=['mesures','murs','photos','lumiere','eclat'];   // réglages d'affichage du menu, pas des calques dessinés ici
+export const etat={noms:true,surfaces:true,hauteurs:false,cPieces:false,cMurs:false,cMeuble:false,cOuv:false,mesures:true,murs:false,photos:true,lumiere:'normale',eclat:0,ecartMurs:0};
+const AFFICHAGE=['mesures','murs','photos','lumiere','eclat','ecartMurs'];   // réglages d'affichage du menu, pas des calques dessinés ici
 const masquees=new Set();
 const m=v=>v.toFixed(2).replace('.',',')+' m', m2=v=>v.toFixed(1).replace('.',',')+' m²';
 const sol=niv=>niv==='etage'?ETAGE_FLOOR:0, niveauDe=it=>it.lvl==='Étage'?'etage':'rez';
@@ -220,7 +220,11 @@ export function initCalques(){
       const e=document.createElement('label'); e.className='case eclat';
       e.innerHTML='<span>Vue éclatée</span><input type="range" id="cq-eclat" min="0" max="3" step="0.1" value="0"><output id="cq-eclat-val">0 m</output>';
       e.querySelector('input').oninput=ev=>{ etat.eclat=+ev.target.value; garder(); majMenu(); };
-      g.append(l,e);
+      // murs soulevés au-dessus de leur dalle (11 octobre 2026) : sols, escalier et meubles restent, murs, portes et fenêtres montent
+      const m=document.createElement('label'); m.className='case eclat';
+      m.innerHTML='<span>Murs soulevés</span><input type="range" id="cq-ecart" min="0" max="2" step="0.1" value="0"><output id="cq-ecart-val">0 m</output>';
+      m.querySelector('input').oninput=ev=>{ etat.ecartMurs=+ev.target.value; garder(); majMenu(); };
+      g.append(l,e,m);
     }
   }
   const pied=document.createElement('div'); pied.className='menu-pied';
@@ -230,14 +234,15 @@ export function initCalques(){
   // lumière normale, vue éclatée à 0
   const raz=document.createElement('button'); raz.type='button'; raz.id='cq-raz'; raz.className='ib';
   poserIcone(raz,'rotate-cw'); nommer(raz,'Tout décocher');
-  raz.onclick=()=>{ for(const [k] of OPTIONS) etat[k]=false; etat.lumiere='normale'; etat.eclat=0; garder(); majMenu(); };
+  raz.onclick=()=>{ for(const [k] of OPTIONS) etat[k]=false; etat.lumiere='normale'; etat.eclat=0; etat.ecartMurs=0; garder(); majMenu(); };
   menu.prepend(raz);
   const aide=document.createElement('p'); aide.textContent='Touchez une cote pour la masquer.';
   pied.append(re,aide); menu.append(pied);
   function majMenu(){ re.hidden=!masquees.size; re.textContent=`Réafficher les cotes masquées (${masquees.size})`; for(const [k] of OPTIONS) $('cq-'+k).checked=!!etat[k];
     for(const b of menu.querySelectorAll('[data-lumiere]')) b.setAttribute('aria-pressed',String((etat.lumiere||'normale')===b.dataset.lumiere));
     const ok=app.mode==='orbit'&&app.level==='all', r=$('cq-eclat'); r.disabled=!ok; r.value=String(+etat.eclat||0);
-    $('cq-eclat-val').textContent=ok?(+etat.eclat||0).toFixed(1).replace('.',',')+' m':'maquette, Tout'; }
+    $('cq-eclat-val').textContent=ok?(+etat.eclat||0).toFixed(1).replace('.',',')+' m':'maquette, Tout';
+    const rm=$('cq-ecart'); rm.disabled=!ok; rm.value=String(+etat.ecartMurs||0); $('cq-ecart-val').textContent=ok?(+etat.ecartMurs||0).toFixed(1).replace('.',',')+' m':'maquette, Tout'; }
   bt.onclick=e=>{ e.stopPropagation(); ouvrir(menu.hidden); };
   addEventListener('pointerdown',e=>{ if(!menu.hidden&&!menu.contains(e.target)&&!bt.contains(e.target)) ouvrir(false); });
   menu.addEventListener('keydown',e=>{ if(e.key==='Escape'){ e.stopPropagation(); ouvrir(false); bt.focus(); } });

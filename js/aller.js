@@ -3,7 +3,7 @@
 // 1re personne : arrivée à la porte de la pièce, regard vers l'intérieur (points dans pieces.js)
 import * as THREE from 'three';
 import {app, $} from './app.js';
-import {ETAGE_FLOOR} from './config.js';
+import {ETAGE_FLOOR, EYE} from './config.js';
 import {PIECES, surface, bornes, pieceEn} from './pieces.js';
 import {allerA} from './visite.js';
 import {setLevel} from './vues.js';
@@ -40,6 +40,41 @@ export function allerVers(id){
   if(app.mode==='walk') allerA(p.arrivee[0],p.arrivee[1],p.niveau,p.vers[0],p.vers[1],p.incl);
   else if(app.mode==='plan'){ setLevel(p.niveau,false); cadrerPlan(bornes(p)); }
   else { setLevel(p.niveau,false); cadrer(p); }
+}
+
+// Objet choisi dans la liste des meubles (Mauro, 11 octobre 2026 : « ça me met en face, me rapproche de l'objet »), dans
+// toutes les vues. Maquette : niveau de l'objet, cadrage animé de face (sa face avant, +z de son repère), en plongée, d'un
+// côté où aucun mur ne le cache (rayons contre les murs, coupes respectées) ; 1re personne : debout devant lui, dans une
+// pièce, à une distance selon sa taille, sans mur entre les deux, regard sur lui ; plan : son niveau, centré et rapproché.
+const rcO=new THREE.Raycaster();
+function libre(a,b,coupes){ const d=b.clone().sub(a), L=d.length(); rcO.set(a,d.normalize()); rcO.far=L;
+  return !rcO.intersectObjects(app.colliders,false).some(h=>h.distance>0.05&&coupes.every(pl=>pl.distanceToPoint(h.point)>=0)); }
+export function cadrerObjet(it){
+  if(!it?.g) return;
+  const b=new THREE.Box3().setFromObject(it.g); if(b.isEmpty()) return;
+  const c=b.getCenter(new THREE.Vector3()), s=b.getSize(new THREE.Vector3()), niv=it.lvl==='Étage'?'etage':'rez', sol=niv==='etage'?ETAGE_FLOOR:0;
+  const ry=it.g.rotation.y, face=Math.atan2(Math.sin(ry),Math.cos(ry));   // azimut de la face avant (+z du meuble)
+  const azimuts=[0,1,-1,2,-2,3,-3,4,-4,5,-5,6].map(k=>face+k*Math.PI/6);
+  if(app.mode==='plan'){ if(app.level!==niv) setLevel(niv,false); const m=Math.max(0.5,Math.max(s.x,s.z)*0.3);
+    cadrerPlan({x0:b.min.x-m,x1:b.max.x+m,z0:b.min.z-m,z1:b.max.z+m}); return; }
+  if(app.mode==='walk'){
+    const D0=THREE.MathUtils.clamp(Math.max(s.x,s.z)*0.6+1.0,1.3,3.2);
+    for(const D of [D0,D0*0.75,Math.max(0.9,D0*0.55)]) for(const a of azimuts){
+      const x=c.x+Math.sin(a)*D, z=c.z+Math.cos(a)*D, h=sol+1.2;
+      if(!pieceEn(x,z,niv)||!libre(new THREE.Vector3(c.x,h,c.z),new THREE.Vector3(x,h,z),[])) continue;
+      const incl=THREE.MathUtils.clamp(Math.atan2(c.y-(sol+EYE),D),-0.75,0.35);
+      allerA(x,z,niv,c.x,c.z,incl); return; }
+    const p=pieceEn(c.x,c.z,niv); if(p) allerA(p.arrivee[0],p.arrivee[1],niv,c.x,c.z,-0.2);   // rien de dégagé : entrée de sa pièce
+    return;
+  }
+  if(app.level!==niv) setLevel(niv,false);
+  const {camera,orbit}=app, r=Math.max(0.35,s.length()/2), vfov=THREE.MathUtils.degToRad(camera.fov), hfov=2*Math.atan(Math.tan(vfov/2)*camera.aspect);
+  const dist=THREE.MathUtils.clamp(r*1.2/Math.sin(Math.min(vfov,hfov)/2),Math.max(orbit.minDistance,2.2),12);
+  const coupes=app.renderer.clippingPlanes, pos=(az,el)=>c.clone().add(new THREE.Vector3(Math.sin(az)*Math.cos(el),Math.sin(el),Math.cos(az)*Math.cos(el)).multiplyScalar(dist));
+  let p1=null;
+  for(const el of [38,52,66].map(THREE.MathUtils.degToRad)){ for(const a of azimuts){ const p=pos(a,el); if(libre(c,p,coupes)){ p1=p; break; } } if(p1) break; }
+  if(!p1){ const az=camera.position.clone().sub(orbit.target); p1=pos(Math.atan2(az.x,az.z),THREE.MathUtils.degToRad(80)); }   // vu de dessus
+  anim={t:0,dur:doux.matches?0.001:0.9,p0:camera.position.clone(),c0:orbit.target.clone(),p1,c1:c};
 }
 
 // ---------- menu ----------

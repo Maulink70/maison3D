@@ -1,8 +1,11 @@
 // Maison3D Boutique : dans la page du produit, la photo principale (og:image, JSON-LD Product, twitter:image), le nom et
 // les dimensions (JSON-LD, ou texte « Largeur : 200 cm », « L 200 x P 90 x H 75 cm », « 200 x 90 x 75 cm », allemand compris)
-const {url,debug}=$('Analyser').first().json, r=$input.first().json;
+const {url,debug,indice}=$('Analyser').first().json, r=$input.first().json;
 const html=typeof r.body==='string'?r.body:(r.data||'');
 const code=r.statusCode||0;
+const site0=((url.match(/^https?:\/\/[^\/?#]+/i)||[''])[0]).replace(/^https?:\/\//i,'').replace(/^www\./,'');
+// page refusée ou illisible : la photo vue par le favori dans la page (indice), sans nom ni dimensions
+if((!html||code>=400)&&indice) return [{json:{image:indice,info:{nom:'',dims:{},site:site0,url,page:false}}}];
 if(!html||code>=400) return [{json:{reponse:{ok:false,erreur:code===403||code===429?'La boutique refuse la lecture de ses pages par un serveur ('+code+') : copiez plutôt l’image du produit.':'Page illisible ('+(code||'vide')+')',code:502},image:null}}];
 const dec=t=>String(t||'').replace(/&amp;/g,'&').replace(/&quot;/g,'"').replace(/&#0?39;|&apos;/g,"'").replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&nbsp;/g,' ').replace(/&#(\d+);/g,(m,n)=>String.fromCharCode(+n)).trim();
 const meta=n=>{ const m=html.match(new RegExp('<meta[^>]+(?:property|name)=["\']'+n+'["\'][^>]*>','i')); if(!m) return ''; const v=m[0].match(/content=["']([^"']*)["']/i); return v?dec(v[1]):''; };
@@ -19,6 +22,7 @@ for(const m of html.matchAll(/<script[^>]+application\/ld\+json[^>]*>([\s\S]*?)<
 }
 const img0=x=>Array.isArray(x)?img0(x[0]):x&&typeof x==='object'?(x.url||x.contentUrl||''):x||'';
 let image=abs(meta('og:image')||meta('og:image:secure_url')||img0(prod&&prod.image)||meta('twitter:image')||'');
+if(!image&&indice) image=indice;
 const nom=dec((prod&&prod.name)||meta('og:title')||(html.match(/<title[^>]*>([^<]*)/i)||[])[1]||'').replace(/\s*[|–-]\s*[^|–-]{2,40}$/,'').slice(0,80);
 // dimensions en cm
 const enCm=(v,u)=>{ v=parseFloat(String(v).replace(',','.')); if(!isFinite(v)) return null; u=(u||'cm').toLowerCase(); return Math.round(u==='mm'?v/10:u==='m'?v*100:v); };

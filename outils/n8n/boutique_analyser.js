@@ -16,4 +16,8 @@ const s=$getWorkflowStaticData('global'), jour=new Date().toISOString().slice(0,
 if(s.jour!==jour){ s.jour=jour; s.n=0; }
 if((s.n||0)>=200) return refus('Limite de 200 lectures par jour atteinte : réessayez demain.',429);
 s.n=(s.n||0)+1;
-return [{json:{url:href,debug:c.debug==='tous'?'tous':!!c.debug,req:{url:href}}}];
+// indice : la photo du produit vue par le favori « Envoyer à Maison3D » dans la page elle-même (og:image) : servira si la
+// boutique refuse la lecture de ses pages par un serveur (Galaxus, Maisons du Monde) ou si la page n'en donne pas
+const ind=String(c.image||'').trim(), mi=ind.match(/^https?:\/\/([^\/?#:@]+)/i);
+const indice=mi&&ind.length<=2000&&mi[1].includes('.')&&!/^(localhost|127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|0\.|169\.254\.)/.test(mi[1].toLowerCase())&&!/^\d+\.\d+\.\d+\.\d+$/.test(mi[1])?ind:'';
+return [{json:{url:href,indice,debug:c.debug==='tous'?'tous':!!c.debug,req:{url:href}}}];

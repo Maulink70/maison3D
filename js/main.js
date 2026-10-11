@@ -34,10 +34,15 @@ import {initObjets} from './objets.js';
 import {initRevetements, majRevetements} from './revetements.js';
 import {initGalerie} from './galerie.js';
 import {initRecu, traiterRecu} from './recu.js';
+import {initProduits} from './produits.js';
+import {initTableau, ouvrirTableau} from './tableau.js';
+import {cadrerObjet} from './aller.js';
 import {initCalage, majCalage, calageActif, fovCalage, zoomCalage, toucherCalage} from './calage.js';
 import {initPointsVue, majPointsVue} from './pointsvue.js';
 
-initIcones(); initCompte(); initSynchro(); initVariantes(); initComparer(); initVues(); initVisite(); initEdition(); initSauvegarde(); initAller(); initPlan(); initCalques(); initMesure(); initImpression(); initIsoler(); initCameras(); initHistorique(); initPartage(); initAlertes(); initObjets(); initRevetements(); initGalerie(); initCalage(); initRecu(); initPointsVue();
+initIcones(); initCompte(); initSynchro(); initVariantes(); initComparer(); initVues(); initVisite(); initEdition(); initSauvegarde(); initAller(); initPlan(); initCalques(); initMesure(); initImpression(); initIsoler(); initCameras(); initHistorique(); initPartage(); initAlertes(); initObjets(); initRevetements(); initGalerie(); initCalage(); initRecu(); initPointsVue(); initProduits();
+// tableau des meubles : toucher un nom le montre (sélectionné en Éditer) ; bouton du panneau
+initTableau(it=>{ if(app.edition&&!it.hidden) select(it.name); cadrerObjet(it); }); $('f-tableau').onclick=()=>ouvrirTableau(true);
 
 // Cercle posé au sol pendant un appui long (point de téléportation)
 const marque=new THREE.Mesh(new THREE.RingGeometry(0.16,0.25,40),new THREE.MeshBasicMaterial({color:new THREE.Color(css('--accent')||'#2c5a86'),transparent:true,opacity:0.9,depthTest:false,side:THREE.DoubleSide}));

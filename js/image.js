@@ -53,11 +53,11 @@ function caler(){
   Object.assign(fen.querySelector('.mi-cadre').style,{width:w+'px',height:h+'px',left:(z.width-w)/2+'px',top:(z.height-h)/2+'px'});
 }
 // un objet : {id, nom, L, P, H (cm, null si inconnu), img (data URL), w, h (pixels), x, y, lw, lh (rectangle, 0..1 de la photo)}
-async function ajouterProduit({image,nom,dims}){
+async function ajouterProduit({image,nom,dims,lien,site}){
   if(!mi) return;
   let r; try{ r=await reduire(image); }catch{ dire('Cette image n’a pas pu être lue.',true); return; }
   const ap=mi.base.image.w/mi.base.image.h, lw=0.3, lh=Math.min(0.7,lw*ap*r.h/r.w);
-  const o={id:'o'+Date.now().toString(36),nom:(nom||'Objet '+(mi.objets.length+1)).slice(0,60),L:dims?.L||null,P:dims?.P||null,H:dims?.H||null,img:r.url,w:r.w,h:r.h,
+  const o={id:'o'+Date.now().toString(36),nom:(nom||'Objet '+(mi.objets.length+1)).slice(0,60),L:dims?.L||null,P:dims?.P||null,H:dims?.H||null,img:r.url,w:r.w,h:r.h,lien:lien||null,site:site||null,
     x:0.5-lw/2+0.04*mi.objets.length,y:0.55-lh/2,lw,lh};
   mi.objets.push(o); sel=o.id; dessiner(); majListe();
   dire('Objet ajouté : faites-le glisser à sa place sur la photo (coin en bas à droite pour sa taille), et vérifiez ses dimensions.');
@@ -101,7 +101,7 @@ function majListe(){
     const t=el('button',{type:'button',class:'btn petit-b'},'Mettre en 3D');
     t.title=mi.base.cal?'Tripo crée ce meuble en 3D et le pose dans la maquette, là où il est sur la photo':'Tripo crée ce meuble en 3D et le pose dans la maquette (pièce de la photo)';
     t.onclick=async()=>{ if(!app.edition){ dire('Passez en « Éditer » pour ajouter un objet à la maquette.',true); return; }
-      const b=await (await fetch(o.img)).blob(), place=placeDansMaquette(o); fermer(); ouvrirPhotoAvec(b,{nom:o.nom,L:o.L,P:o.P,H:o.H},false,place); };
+      const b=await (await fetch(o.img)).blob(), place=placeDansMaquette(o); fermer(); ouvrirPhotoAvec(b,{nom:o.nom,L:o.L,P:o.P,H:o.H,origine:o.lien?{produit:true,site:o.site||'boutique',titre:o.nom,lien:o.lien}:null},false,place); };
     const x=el('button',{type:'button',class:'btn petit-b danger','aria-label':'Retirer '+o.nom},'×'); x.onclick=()=>{ mi.objets=mi.objets.filter(q=>q!==o); dessiner(); majListe(); };
     li.append(el('span',{class:'mi-num'},String(k+1)),i,n,d,t,x); l.append(li);
   });
@@ -138,7 +138,7 @@ async function lien(){
   const r=await lireProduit(u); fen.querySelector('#mi-lien-lire').disabled=false;
   if(!r.ok||!r.image){ dire((r.erreur||'Page illisible')+(r.nom?` (« ${r.nom} »)`:''),true); return; }
   fen.querySelector('#mi-lien').value='';
-  await ajouterProduit({image:r.image,nom:r.nom,dims:r.dims});
+  await ajouterProduit({image:r.image,nom:r.nom,dims:r.dims,lien:u,site:r.site});
   const d=r.dims||{}; if(!(d.L&&d.P&&d.H)) dire(`« ${r.nom||'Produit'} » ajouté (${r.site}) : dimensions ${d.L||d.P||d.H?'en partie trouvées':'non trouvées'} sur la page, complétez-les (cm).`);
 }
 

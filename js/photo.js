@@ -19,6 +19,7 @@ import {lireProduit} from './boutiques.js';
 const el=(nom,attrs={},texte)=>{ const n=document.createElement(nom); for(const [k,v] of Object.entries(attrs)) n.setAttribute(k,v); if(texte!==undefined) n.textContent=texte; return n; };
 const MAXI=1024;
 let fen=null, src=null, origine=null, pile=[], outil=null, cadre=null, fondAvant=null, ratio=1;
+let produit=null;   // {produit:true, site, titre, lien} : le produit d'une boutique (liste Produits, montage) ; suit dans l'objet (a.o)
 let place=null;   // {x, z, r, niv} : où poser le meuble (montage sur une photo calée), sinon la pièce regardée
 
 // ---------- l'objet 3D ----------
@@ -284,13 +285,13 @@ async function lancerTripo(){
   const boutons=['#ph-tripo','#ph-ajouter'].map(x=>fen.querySelector(x)); boutons.forEach(b=>b.disabled=true);
   dire('Envoi de la photo à Tripo…');
   const fin=rogner(src), blob=await new Promise(ok=>fin.toBlob(ok,'image/png'));
-  const nom=fen.querySelector('#ph-nom').value.trim().slice(0,60)||'Objet 3D', L=largeurSaisie?lireCm('#ph-l'):null, pl=place;
+  const nom=fen.querySelector('#ph-nom').value.trim().slice(0,60)||'Objet 3D', L=largeurSaisie?lireCm('#ph-l'):null, pl=place, og=produit;
   const r=await creer3D(blob,(p,st)=>dire(!p&&st!=='running'?'En file d’attente chez Tripo…':`Tripo crée le modèle 3D… ${p} %`),nom);
   tripoEnCours=false; boutons.forEach(b=>b.disabled=false);
   if(r.erreur){ fen.hidden=false; dire(r.erreur+' Le modèle se retrouve plus tard dans « Modèles Tripo récents » s’il a été créé.',true); return; }   // fenêtre refermée pendant l'attente : l'erreur se voit quand même
   ouvrirPhoto(false); ouvrirImport(true);
   // Tripo exporte l'avant du modèle vers +x (export_orientation par défaut) : un quart de tour pour le mettre vers +z
-  await importerModele(new File([r.blob],'tripo.glb',{type:'model/gltf-binary'}),{nom,largeur:L,tourner:-Math.PI/2,place:pl,
+  await importerModele(new File([r.blob],'tripo.glb',{type:'model/gltf-binary'}),{nom,largeur:L,tourner:-Math.PI/2,place:pl,origine:og,
     message:'Modèle 3D créé par Tripo'+(r.credits?` (${r.credits} crédits)`:'')+'. Vérifiez les dimensions (cm), puis « Ajouter »'+(pl?' : il sera posé là où il est sur la photo.':'.')});
 }
 async function ajouter(){
@@ -301,7 +302,7 @@ async function ajouter(){
   const r=await envoyerFichier(blob,{nom,type:'photo'});
   b.disabled=false;
   if(r.erreur){ dire(r.erreur,true); return; }
-  const it=ajouterObjet({t:'photo',f:'photo',p:{L:+(L/100).toFixed(4),P:+(P/100).toFixed(4),H:+(H/100).toFixed(4)},img:{id:r.id,n:r.n,type:blob.type,w:fin.width,h:fin.height},k,c,n:nom},place);
+  const it=ajouterObjet({t:'photo',f:'photo',p:{L:+(L/100).toFixed(4),P:+(P/100).toFixed(4),H:+(H/100).toFixed(4)},img:{id:r.id,n:r.n,type:blob.type,w:fin.width,h:fin.height},k,c,n:nom,...(produit?{o:produit}:{})},place);
   if(!it){ dire('L’objet n’a pas pu être ajouté.',true); return; }
   ouvrirPhoto(false);
 }
@@ -335,8 +336,9 @@ async function rouvrir(t,m){
 }
 // ouvre le panneau avec une image déjà choisie (montage « Mettre en 3D », lien d'un produit, partage Android) ;
 // dimensions en cm si on les connaît (la hauteur n'est plus déduite des proportions de la photo) ; pl : où le poser
-export async function ouvrirPhotoAvec(blob,{nom,L,P,H}={},garder=false,pl){
+export async function ouvrirPhotoAvec(blob,{nom,L,P,H,origine:og}={},garder=false,pl){
   if(!garder) ouvrirPhoto(true); else if(!fen||fen.hidden) ouvrirPhoto(true);
+  produit=og&&og.lien?og:null;
   if(pl!==undefined) place=pl;
   await prendre(blob); if(!src) return;
   if(nom) fen.querySelector('#ph-nom').value=String(nom).slice(0,60);
@@ -347,7 +349,7 @@ export async function ouvrirPhotoAvec(blob,{nom,L,P,H}={},garder=false,pl){
 export function ouvrirPhoto(oui=true){
   if(oui&&!fen) construireFenetre();
   if(!fen) return; fen.hidden=!oui;
-  if(oui){ src=null; origine=null; pile=[]; outil=null; cadre=null; fondAvant=null; largeurSaisie=false; place=null; dire(''); fen.querySelector('#ph-nom').value=''; fen.querySelector('.ph-tripo').hidden=true;
+  if(oui){ src=null; origine=null; pile=[]; outil=null; cadre=null; fondAvant=null; largeurSaisie=false; place=null; produit=null; dire(''); fen.querySelector('#ph-nom').value=''; fen.querySelector('.ph-tripo').hidden=true;
     fen.querySelector('#ph-avance').open=false;
     fen.querySelector('#ph-recents').setAttribute('aria-expanded','false'); fen.querySelector('.ph-recents-liste').hidden=true; majBoutons(); setTimeout(()=>fen.querySelector('#ph-coller').focus()); }
 }

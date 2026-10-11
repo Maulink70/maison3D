@@ -11,6 +11,7 @@ import {majApparence, appliquerEtat, origineDe} from './etats.js';
 import {surfaceChoisie, surfaceEn, choisirSurface} from './revetements.js';
 import {matieresOuvertes, choisirPartie} from './objets.js';
 import {aimanter, reglerAimant} from './aimant.js';
+import {cadrerObjet} from './aller.js';
 
 const rc=new THREE.Raycaster();
 
@@ -119,7 +120,7 @@ export function buildList(){
       for(const it of its){
         total++;
         const row=document.createElement('div'); row.className='row'+(it.hidden?' off':'')+(app.selected===it?' sel':'')+(it.ajout?' ajout':''); row.dataset.n=it.name;
-        const b=document.createElement('button'); b.className='name'; b.textContent=it.meta.l; b.onclick=()=>{ if(it.hidden) setHidden(it,false); select(it.name); save(); };
+        const b=document.createElement('button'); b.className='name'; b.textContent=it.meta.l; b.onclick=()=>{ if(it.hidden) setHidden(it,false); select(it.name); cadrerObjet(it); save(); };   // la vue se cadre sur lui (Mauro, 11 octobre 2026)
         const eye=document.createElement('button'); eye.className='eye'; eye.textContent=it.hidden?'Afficher':'Masquer';
         eye.setAttribute('aria-label',(it.hidden?'Afficher ':'Masquer ')+it.meta.l);
         eye.onclick=()=>{ setHidden(it,!it.hidden); if(app.selected===it&&it.hidden) select(null); save(); };

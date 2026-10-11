@@ -167,7 +167,7 @@ export function texteFichier(a){
   return `Fichier 3D : ${o} · ${Math.round(p.triangles).toLocaleString('fr-FR')} triangles`;
 }
 // « Sofa 01 » de Jamie Smith · CC0 (Poly Haven)
-export const texteOrigine=o=>`« ${o.titre} »${o.auteur?' de '+o.auteur:''} · licence ${o.licence||'?'} (${o.site})`;
+export const texteOrigine=o=>o.produit?`« ${o.titre} » · ${o.site}`:`« ${o.titre} »${o.auteur?' de '+o.auteur:''} · licence ${o.licence||'?'} (${o.site})`;   // produit d'une boutique : « Canapé X » · ikea.com
 // modèle reçu d'ailleurs (Tripo, depuis le panneau photo) : lu comme un fichier choisi, tourné si son avant n'est pas vers
 // +z comme les meubles du site, nom et largeur repris (proportions du modèle gardées)
 // place : où le poser (montage sur une photo calée), sinon la pièce regardée

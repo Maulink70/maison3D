@@ -30,7 +30,7 @@ export async function sauvegarderDonnees(dire=()=>{}){
   for(const [k,v] of variantes.entries()){ dire(`Historique : variante ${k+1} / ${variantes.length}…`);
     historique[v.id]=await toutLire('historique',{variante:v.id,tout:true},'lignes'); }
   dire('Lecture des photos et des rendus…');
-  const photos=await toutLire('photo',{op:'liste'},'photos'), rendus=await toutLire('rendu',{op:'liste'},'rendus');
+  const photos=await toutLire('photo',{op:'liste'},'photos'), rendus=await toutLire('rendu',{op:'liste'},'rendus'), produits=await toutLire('produit',{op:'liste'},'produits');
 
   // fichiers à joindre (une seule fois chacun) : photos, rendus, objets ajoutés des variantes
   const fichiers=new Map(), noms=new Set();
@@ -40,6 +40,7 @@ export async function sauvegarderDonnees(dire=()=>{}){
     noms.add(dossier+'/'+n+'.'+ext); fichiers.set(f.id,{id:f.id,n:f.n||1,type:f.type||(ext==='glb'?'model/gltf-binary':''),chemin:`fichiers/${dossier}/${n}.${ext}`}); };
   for(const p of photos) noter(p.image,'photos',p.nom);
   for(const r of rendus){ noter(r.image,'rendus',r.titre||'rendu'); noter(r.avant,'photos','photo de départ de '+(r.titre||'rendu')); }
+  for(const p of produits) noter(p.image,'produits',p.nom);
   for(const v of variantes) for(const [nom,e] of Object.entries(v.disposition||{})){ const a=e?.a; if(!a) continue;
     if(a.fic) noter({...a.fic,type:'model/gltf-binary'},'objets',a.n||nom);
     if(a.img) noter(a.img,'objets',(a.n||nom)+' (image)'); }
@@ -53,18 +54,19 @@ export async function sauvegarderDonnees(dire=()=>{}){
 
   const d=new Date(), quand=`${deux(d.getDate())}/${deux(d.getMonth()+1)}/${d.getFullYear()} à ${deux(d.getHours())}:${deux(d.getMinutes())}`;
   const donnees={application:'Maison3D',contenu:'Données de la base Airtable « Maison3D » (sans la maquette ni les mots de passe)',version:1,date:d.toISOString(),par:moi(),
-    variantes,vues:c.vues||[],mesures:c.mesures||[],historique,photos,rendus,
+    variantes,vues:c.vues||[],mesures:c.mesures||[],historique,photos,rendus,produits,
     fichiers:Object.fromEntries(liste.map(f=>[f.id,{chemin:f.chemin,type:f.type,morceaux:f.n,taille:f.taille||0,...(f.manque?{manque:true}:{})}]))};
   const lisez=['Sauvegarde des données Maison3D (base Airtable « Maison3D »)',`Faite le ${quand} par ${moi()}.`,'',
     'Ce fichier contient SEULEMENT les données enregistrées dans Airtable :',
     `- ${variantes.length} variante(s) : disposition des meubles, objets ajoutés, sols et murs ;`,
     `- ${(c.vues||[]).length} vue(s) enregistrée(s), ${(c.mesures||[]).length} mesure(s), l'historique de chaque variante ;`,
-    `- ${photos.length} photo(s) des pièces et leurs calages, ${rendus.length} rendu(s), les fichiers des objets ajoutés (modèles 3D, images).`,'',
+    `- ${photos.length} photo(s) des pièces et leurs calages, ${rendus.length} rendu(s), les fichiers des objets ajoutés (modèles 3D, images) ;`,
+    `- ${produits.length} produit(s) de la liste « Produits » (liens, dimensions, images).`,'',
     'Il ne contient PAS la maquette elle-même (le site et le modèle 3D de l\'appartement) : elle est sur GitHub,',
     'https://github.com/Maulink70/maison3D → bouton vert « Code » → « Download ZIP ».','',
     'Les mots de passe des comptes et les clés d\'accès (Airtable, kie.ai, Tripo, Sketchfab) ne sont pas dans la sauvegarde.','',
     'Contenu :','- donnees.json : toutes les données (Claude Code peut s\'en servir pour tout remettre en place) ;',
-    '- fichiers/photos, fichiers/rendus, fichiers/objets : les fichiers.',
+    '- fichiers/photos, fichiers/rendus, fichiers/objets, fichiers/produits : les fichiers.',
     ...(manquants.length?['',`Fichiers introuvables au moment de la sauvegarde (${manquants.length}) :`,...manquants.map(m=>'- '+m)]:[])].join('\r\n');
   dire('Création du fichier .zip…');
   const {zipSync,strToU8}=await import('three/addons/libs/fflate.module.js');
@@ -73,5 +75,5 @@ export async function sauvegarderDonnees(dire=()=>{}){
   const nom=`Maison3D-donnees-Airtable-${d.getFullYear()}-${deux(d.getMonth()+1)}-${deux(d.getDate())}.zip`;
   const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=nom; document.body.append(a); a.click(); a.remove();
   setTimeout(()=>URL.revokeObjectURL(a.href),60000);
-  return {nom,octets:blob.size,manquants,variantes:variantes.length,photos:photos.length,rendus:rendus.length,fichiers:liste.length};
+  return {nom,octets:blob.size,manquants,variantes:variantes.length,photos:photos.length,rendus:rendus.length,produits:produits.length,fichiers:liste.length};
 }

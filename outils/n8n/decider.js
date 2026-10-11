@@ -127,6 +127,32 @@ switch(ctx.action){
     const recs=lignes(0), ims=recs.map(r=>json(r.fields['Image'],null)).filter(i=>i&&estId(i.id)).map(i=>i.id);
     return sortie({ok:true,supprimes:recs.length},effacer('rendus',recs.map(r=>r.id)).concat(effacer('fichiers',ims)));
   }
+  case 'produit': {
+    const cm=v=>{ const n=+v; return isFinite(n)&&n>0?Math.min(5000,Math.round(n*10)/10):null; };
+    const produit=r=>({rid:r.id,id:r.fields['Id'],nom:r.fields['Nom']||'',lien:r.fields['Lien']||'',boutique:r.fields['Boutique']||'',
+      L:r.fields['Largeur (cm)']||null,P:r.fields['Profondeur (cm)']||null,H:r.fields['Hauteur (cm)']||null,piece:r.fields['Pièce']||'',note:r.fields['Note']||'',
+      image:json(r.fields['Image'],null),vignette:r.fields['Vignette']||'',ordre:r.fields['Ordre']||0,
+      creePar:r.fields['Créé par']||'',creeLe:r.fields['Créé le']||null,modifiePar:r.fields['Modifié par']||'',modifieLe:r.fields['Modifié le']||null});
+    if(c.op==='liste') return sortie({ok:true,produits:lignes(0).map(produit),offset:(lus[0]&&lus[0].body&&lus[0].body.offset)||null});
+    if(c.op==='enregistrer'){
+      // seuls les champs envoyés sont écrits
+      const p=c.produit, f={'Id':String(p.id).slice(0,60),'Modifié par':moi.n,'Modifié le':maintenant};
+      if('nom' in p) f['Nom']=String(p.nom||'Produit').slice(0,160);
+      if('lien' in p) f['Lien']=/^https?:\/\/\S+$/.test(String(p.lien||''))?String(p.lien).slice(0,1500):null;
+      if('boutique' in p) f['Boutique']=String(p.boutique||'').slice(0,80);
+      if('L' in p) f['Largeur (cm)']=cm(p.L); if('P' in p) f['Profondeur (cm)']=cm(p.P); if('H' in p) f['Hauteur (cm)']=cm(p.H);
+      if('piece' in p) f['Pièce']=String(p.piece||'').replace(/[^a-z_]/g,'').slice(0,40);
+      if('note' in p) f['Note']=String(p.note||'').slice(0,4000);
+      if('image' in p) f['Image']=p.image&&typeof p.image==='object'&&estId(p.image.id)?JSON.stringify({id:p.image.id,n:Math.max(1,Math.min(8,p.image.n|0)),type:String(p.image.type||'').slice(0,30),w:p.image.w|0,h:p.image.h|0}):'';
+      if(typeof p.vignette==='string'&&(p.vignette===''||/^data:image\/(jpeg|webp|png);base64,[A-Za-z0-9+/=]+$/.test(p.vignette)&&p.vignette.length<90000)) f['Vignette']=p.vignette;
+      if('ordre' in p) f['Ordre']=+p.ordre||0;
+      if(p.nouveau){ f['Créé par']=moi.n; f['Créé le']=maintenant; }
+      return sortie({ok:true,modifiePar:moi.n,modifieLe:maintenant},[{method:'PATCH',url:url('produits'),body:{performUpsert:{fieldsToMergeOn:['Id']},typecast:true,records:[{fields:f}]}}]);
+    }
+    // supprimer : la ligne et sa photo
+    const recs=lignes(0), fic=recs.map(r=>json(r.fields['Image'],null)).filter(i=>i&&estId(i.id)).map(i=>i.id);
+    return sortie({ok:true,supprimes:recs.length},effacer('produits',recs.map(r=>r.id)).concat(effacer('fichiers',fic)));
+  }
   case 'motdepasse': {
     const p=lus[0]&&lus[0].body; if(!p||!p.fields) return echec('Compte introuvable',404);
     if(!egal(hex(pbkdf2(utf8(c.ancien),utf8(p.fields['Sel']||''),TOURS)),p.fields['Empreinte']||'')) return echec('Mot de passe actuel incorrect',401);

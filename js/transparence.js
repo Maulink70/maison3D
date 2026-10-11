@@ -51,3 +51,5 @@ export function majTransparence(){
   if(voulu!==actif) appliquer(voulu);
 }
 export const mursTransparents=()=>actif;
+// vue éclatée, murs soulevés (eclate.js) : les mêmes maillages séparés en sols / murs
+export function partiesStructure(){ if(!prets&&app.model.children.length) preparer(); return prets||[]; }

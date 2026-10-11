@@ -93,7 +93,7 @@ async function ajouter(fichiers){
 // ---------- la galerie ----------
 let fen=null, filtre=null, onglet='photos', choix=null;
 // la galerie sert aussi à choisir une photo (produit reçu par « Partager » → montage sur cette photo)
-export function choisirPhoto(rappel,texte){ onglet='photos'; ouvrirGalerie(true).then(()=>{}); choix={rappel,texte}; majMode(); }
+export function choisirPhoto(rappel,texte,piece){ onglet='photos'; ouvrirGalerie(true,piece).then(()=>{}); choix={rappel,texte}; majMode(); }
 const estRendu=x=>!!x&&'etat' in x;
 const date=t=>{ const d=new Date(t); return isNaN(d)?'':d.toLocaleDateString('fr-CH',{day:'2-digit',month:'2-digit'})+' '+d.toLocaleTimeString('fr-CH',{hour:'2-digit',minute:'2-digit'}); };
 const ETATS={attente:'en cours…',echec:'échec'};

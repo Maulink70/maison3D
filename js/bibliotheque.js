@@ -85,6 +85,7 @@ function aire(o){ const g=o.geometry, p=g.attributes.position, idx=g.index, n=id
 function aspect(m){ if(m.userData?.matiere) return m.userData.matiere; const mo=m.userData?.motif;
   if(mo) return {cuir:'cuir',tissu:'tissu',tapis:'tapis',bois:'bois',pierre:'pierre',peinture:'peinture',inox:'inox'}[mo]||mo;
   if(m.transparent&&m.opacity<0.9) return 'verre'; if((m.metalness||0)>0.25) return 'métal'; if(m.map) return 'texture'; return 'lisse'; }
+export const aspectDe=aspect;   // « cuir », « bois », « métal »… (tableau des meubles)
 export const couleurPartie=e=>e.base?.color?hex(e.base.color):'#cccccc';
 
 // ---------- apparence d'un objet : couleur générale (it.color) et matières par partie (it.matieres) ----------

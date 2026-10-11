@@ -19,8 +19,9 @@ export const lienRecherche=(b,q)=>b.recherche&&q?b.recherche+encodeURIComponent(
 // premier lien http(s) d'un texte (partage depuis l'appli d'une boutique : le lien est souvent dans le texte)
 export function extraireLien(t){ const m=String(t||'').match(/https?:\/\/[^\s<>"']+/i); return m?m[0].replace(/[.,;)\]]+$/,''):null; }
 // lit la page d'un produit : {ok, nom, dims:{L,P,H} (cm), image (data URL), site} ou {ok:false, erreur}
-export async function lireProduit(url){
-  let r; try{ r=await fetch(BOUTIQUE,{method:'POST',headers:{'Content-Type':'text/plain;charset=UTF-8'},body:JSON.stringify({action:'lire',url,jeton:jeton()}),cache:'no-store'}); }
+// image : la photo vue dans la page par le favori « Envoyer à Maison3D » (servira si la boutique refuse la lecture par un serveur)
+export async function lireProduit(url,image){
+  let r; try{ r=await fetch(BOUTIQUE,{method:'POST',headers:{'Content-Type':'text/plain;charset=UTF-8'},body:JSON.stringify({action:'lire',url,...(image?{image}:{}),jeton:jeton()}),cache:'no-store'}); }
   catch{ return {ok:false,erreur:'Pas de connexion au serveur'}; }
   if(r.status===404) return {ok:false,erreur:'La lecture des boutiques n’est pas encore branchée.'};
   return r.json().catch(()=>({ok:false,erreur:'Réponse illisible'}));
