@@ -1,4 +1,4 @@
-// Calques (livraison 6) : noms des pièces, surfaces (au sol et libre), hauteurs sous plafond, et cotes en quatre familles
+// Calques (livraison 6) : noms des pièces, surfaces au sol (la surface libre a été retirée le 12 octobre 2026), hauteurs sous plafond, et cotes en quatre familles
 // (dimensions des pièces, longueur des murs, meuble sélectionné avec ses distances aux murs, portes et fenêtres).
 // Ils sont dessinés en pixels d'écran dans un calque SVG au-dessus de la vue (#calques), en maquette et sur le plan :
 // chaque point est placé au sol en mètres puis projeté (caméra de la maquette, ou échelle du plan). En 1re personne, un
@@ -7,13 +7,13 @@ import * as THREE from 'three';
 import {app, $} from './app.js';
 import {ETAGE_FLOOR, GARDE_CORPS} from './config.js';
 import {PIECES, surface, pieceEn} from './pieces.js';
-import {versEcran, niveauDuPlan, murs, empreinte, boucles} from './plan.js';
+import {versEcran, niveauDuPlan, murs, boucles} from './plan.js';
 import {yToitSud, ESC} from './rez_structure.js';
 import {isolement, isolementActif, dansIsolement} from './isoler.js';
 import {decaler} from './eclate.js';
 import {poserIcone, nommer} from './icones.js';
 
-const OPTIONS=[['noms','Noms des pièces'],['surfaces','Surfaces (au sol et libre)'],['hauteurs','Hauteurs sous plafond'],
+const OPTIONS=[['noms','Noms des pièces'],['surfaces','Surfaces des pièces'],['hauteurs','Hauteurs sous plafond'],
   ['cPieces','Dimensions des pièces'],['cMurs','Longueur des murs'],['cMeuble','Meuble sélectionné et distances aux murs'],['cOuv','Portes et fenêtres'],['mesures','Mesures de la règle'],['murs','Murs transparents (maquette)'],['photos','Points de vue des photos (appareil photo)']];
 const CLE='maison3d-calques', NS='http://www.w3.org/2000/svg';
 export const etat={noms:true,surfaces:true,hauteurs:false,cPieces:false,cMurs:false,cMeuble:false,cOuv:false,mesures:true,murs:false,photos:true,lumiere:'normale',eclat:0};
@@ -21,14 +21,14 @@ const AFFICHAGE=['mesures','murs','photos','lumiere','eclat'];   // réglages d'
 const masquees=new Set();
 const m=v=>v.toFixed(2).replace('.',',')+' m', m2=v=>v.toFixed(1).replace('.',',')+' m²';
 const sol=niv=>niv==='etage'?ETAGE_FLOOR:0, niveauDe=it=>it.lvl==='Étage'?'etage':'rez';
-// calculs lourds (surface libre, hauteurs) : une pièce par image au plus, pour ne pas figer l'affichage à l'ouverture
+// calcul lourd (hauteurs) : une pièce par image au plus, pour ne pas figer l'affichage à l'ouverture
 let budget=0;
 
 // ---------- mémoire ----------
 function garder(){ try{ localStorage.setItem(CLE,JSON.stringify({etat,masquees:[...masquees]})); }catch{} }
 function relire(){ try{ const d=JSON.parse(localStorage.getItem(CLE)||'{}'); Object.assign(etat,d.etat||{}); delete etat.ecartMurs; delete etat.toutEclat; for(const k of d.masquees||[]) masquees.add(k); }catch{} }   // (murs soulevés et « Tout éclaté », retirés)
 
-// ---------- données des pièces : point d'étiquette, contour, hauteurs, surface libre ----------
+// ---------- données des pièces : point d'étiquette, contour, hauteurs ----------
 const plusGrand=p=>p.rects.reduce((a,r)=>(r[2]-r[0])*(r[3]-r[1])>(a[2]-a[0])*(a[3]-a[1])?r:a);
 const centre=p=>{ const r=plusGrand(p); return [(r[0]+r[2])/2,(r[1]+r[3])/2]; };
 const contoursPieces=new Map();
@@ -57,25 +57,10 @@ function hauteur(p){
   const res=mn===Infinity?null:{mn,mx}; hauteurs.set(p.id,res); return res;
 }
 const texteHauteur=h=>h===undefined?'h. …':!h?'':Math.abs(h.mx-h.mn)<0.05?'h. '+m(h.mn):'h. '+h.mn.toFixed(2).replace('.',',')+' → '+m(h.mx);
-// Surface libre : surface au sol moins l'emprise des meubles posés (sous 1 m ; tapis compris comme libre), grille de 5 cm
-const libres=new Map();
-function meublesPoses(niv){ return Object.values(app.items).filter(it=>it.meta.c==='meuble'&&!it.hidden&&niveauDe(it)===niv&&it.home.y-sol(niv)<1.0&&it.size.y>=0.05); }
-function surfaceLibre(p){
-  const items=meublesPoses(p.niveau), sig=items.map(it=>`${it.name}${it.g.position.x.toFixed(3)}${it.g.position.z.toFixed(3)}${it.g.rotation.y.toFixed(3)}${it.size.x.toFixed(3)}${it.size.z.toFixed(3)}`).join('|');
-  const c=libres.get(p.id), t=performance.now(); if(c&&(c.sig===sig||t-c.t<300||budget<=0)) return c.v;
-  if(budget<=0) return null; budget--;
-  const P=0.05, emp=items.map(it=>({it,e:empreinte(it),c:Math.cos(it.g.rotation.y),s:Math.sin(it.g.rotation.y),x:it.g.position.x,z:it.g.position.z,r:Math.hypot(it.size.x,it.size.z)/2+0.05}));
-  let pris=0, tous=0;
-  for(const r of p.rects) for(let x=r[0]+P/2;x<r[2];x+=P) for(let z=r[1]+P/2;z<r[3];z+=P){ tous++;
-    for(const q of emp){ const dx=x-q.x, dz=z-q.z; if(Math.abs(dx)>q.r||Math.abs(dz)>q.r) continue;
-      const lx=dx*q.c-dz*q.s, lz=dx*q.s+dz*q.c, e=q.e, i=Math.floor((lx+e.hx)/e.pas), j=Math.floor((lz+e.hz)/e.pas);
-      if(i>=0&&j>=0&&i<e.nx&&j<e.nz&&e.plein[j*e.nx+i]){ pris++; break; } } }
-  const v=surface(p)*(1-pris/Math.max(1,tous)); libres.set(p.id,{sig,t,v}); return v;
-}
 function lignesPiece(p){
   const l=[];
   if(etat.noms) l.push(p.nom);
-  if(etat.surfaces){ const v=surfaceLibre(p); l.push(m2(surface(p))+' · libre '+(v===null?'…':m2(v))); }
+  if(etat.surfaces) l.push(m2(surface(p)));   // surface au sol seule (Mauro, 12 octobre 2026 : « sans l'espace libre »)
   if(etat.hauteurs){ const t=texteHauteur(hauteur(p)); if(t) l.push(t); }
   return l;
 }
@@ -164,7 +149,7 @@ function dessiner(liste,proj,svg=$('calques'),pool=pools.ecran,court=34){
   for(const [id,n] of pool) if(!vus.has(id)){ n.g.remove(); pool.delete(id); }
 }
 
-// Impression (livraison 8) : les calques cochés d'un niveau, tout calculé tout de suite (surfaces libres, hauteurs),
+// Impression (livraison 8) : les calques cochés d'un niveau, tout calculé tout de suite (hauteurs),
 // dessinés dans le groupe svg ; proj(x, y, z) donne le point sur le papier, dans les unités du dessin
 export function calquesImpression(niv,svg,proj){
   const b=budget; budget=Infinity; const liste=aDessiner([niv]); budget=b;

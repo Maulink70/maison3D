@@ -137,6 +137,7 @@ app.renderer.setAnimationLoop(()=>{
   majPortes(dt); majCouvercles(); majTransparence(); majRevetements(); majAlertes(); majLumiere(); majLampes(); majReflets();
   if(app.selected&&eclatActif()) select(null);   // vue éclatée : pas de sélection (la poignée suivrait mal le meuble soulevé)
   if(app.selBox&&app.tc.object) app.selBox.update();
+  app.camera.updateMatrixWorld();   // calques, mesures et points de vue à la place de la caméra de cette image (sinon ils traînaient d'une image en tournant)
   majCalques(); majMesures(); majPointsVue();
   const bas=barre.getBoundingClientRect().bottom-$('app').getBoundingClientRect().top;
   $('bandeaux').style.top=(bas+8)+'px';   // bandeaux sous la barre, même sur téléphone
