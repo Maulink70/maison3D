@@ -38,7 +38,7 @@ export function toucher(e){
   const name=h?.object.userData.item;
   if(name&&!app.items[name].hidden){ if(app.selected?.name===name&&matieresOuvertes()) choisirPartie(h.object); else select(name); return; }
   // sols et murs (étape 4) : liste « Sols et murs » ouverte ou une surface déjà choisie : toucher choisit le sol ou les murs
-  if(h&&(surfaceChoisie()||$('sm').open)){ const s=surfaceEn(h); if(s){ choisirSurface(s); return; } }
+  if(h&&(surfaceChoisie()||onglet==='pieces')){ const s=surfaceEn(h); if(s){ choisirSurface(s); return; } }
   if(app.selected){ select(null); return; }
   if(surfaceChoisie()){ choisirSurface(null); return; }
   if(h&&app.mode==='walk') glisserVers(h.point);
@@ -64,13 +64,13 @@ function majPorte(){ const l=app.selected?ouvrantsDe(app.selected.name):[]; $('t
   const quoi=l[0].def.fenetre?'la fenêtre':'la porte'; $('t-porte').textContent=(l.some(p=>!p.cible)?'Ouvrir ':'Fermer ')+quoi; }
 
 export function select(name){
-  const {scene,tc,items}=app;
+  const {scene,tc,items}=app, avant=app.selected;
   if(app.selBox){scene.remove(app.selBox);app.selBox=null;} tc.detach();
   app.selected=name?items[name]:null;
   if(app.selected&&surfaceChoisie()) choisirSurface(null);
-  $('sel').hidden=!app.selected;
+  $('po-objet').disabled=!app.selected; if(app.selected&&app.selected!==avant) sousOnglet('placer');   // un autre objet : on repart de « Placer »
   for(const r of document.querySelectorAll('.row')) r.classList.toggle('sel',r.dataset.n===name);
-  if(!app.selected){ dispatchEvent(new CustomEvent('selection')); return; }
+  if(!app.selected){ if(onglet==='objet') ongletPanneau('meubles'); dispatchEvent(new CustomEvent('selection')); return; }
   const it=app.selected;
   $('sel-cat').textContent=(it.ajout?'Objet ajouté':CAT_LABEL[it.meta.c])+' · '+it.lvl;
   $('sel-name').textContent=it.meta.l;
@@ -82,7 +82,8 @@ export function select(name){
   // la poignée de déplacement vient d'elle-même (Mauro, 12 octobre 2026), sauf pour les portes et fenêtres
   modeOutil(app.mode!=='plan'&&it.meta.c!=='ouverture'?'translate':null); $('t-move').disabled=$('t-poignee').disabled=app.mode==='plan';
   majAngle(); majPorte(); majPanneauLampe();
-  openSheet(true);
+  $('ps-taille').disabled=it.meta.c==='ouverture'; if(sous==='taille'&&it.meta.c==='ouverture') sousOnglet('placer');   // portes et fenêtres : pas de dimensions
+  ongletPanneau('objet'); openSheet(true);
   document.querySelector('.row.sel')?.scrollIntoView({block:'nearest'});
   dispatchEvent(new CustomEvent('selection'));   // nom, dimensions, matières (objets.js)
 }
@@ -135,6 +136,24 @@ export function buildList(){
 function filtrerVisibles(v){ filtre.vis=v; for(const k of ['tous','affiches','masques']) $('f-'+k).setAttribute('aria-pressed',String(k===v)); buildList(); }
 function filtrerNiveau(n){ filtre.niveau=n; for(const k of ['tout','rez','etage']) $('f-'+k).setAttribute('aria-pressed',String(k===n)); buildList(); }
 
+// Panneau en trois onglets (Mauro, 12 octobre 2026, option A : « je dois scroller, scroller, scroller ») : « Meubles » (la
+// liste), « Objet » (l'objet touché, en sous-onglets Placer / Taille / Aspect / Plus ; il s'ouvre seul quand on touche un
+// meuble) et « Pièces » (sols et murs). Un seul visible à la fois ; chaque nouvel objet touché repart de « Placer ».
+let onglet='meubles', sous='placer';
+export const ongletActif=()=>onglet, sousActif=()=>sous;
+export function ongletPanneau(n){
+  if(n==='objet'&&!app.selected) n='meubles'; onglet=n;
+  for(const t of document.querySelectorAll('.p-onglets [data-onglet]')) t.setAttribute('aria-selected',String(t.dataset.onglet===n));
+  $('p-meubles').hidden=n!=='meubles'; $('sel').hidden=n!=='objet'; $('p-pieces').hidden=n!=='pieces';
+  if(n==='meubles') document.querySelector('.row.sel')?.scrollIntoView({block:'nearest'});
+  dispatchEvent(new CustomEvent('onglet-panneau',{detail:n}));
+}
+export function sousOnglet(n){
+  sous=n; for(const b of document.querySelectorAll('.sous-onglets [data-sous]')) b.setAttribute('aria-pressed',String(b.dataset.sous===n));
+  for(const c of document.querySelectorAll('#sel [data-sous-corps]')) c.hidden=c.dataset.sousCorps!==n;
+  dispatchEvent(new CustomEvent('sous-onglet',{detail:n}));
+}
+
 // Panneau (feuille en bas sur téléphone)
 const mq=matchMedia('(max-width:760px)');
 export function openSheet(open){ $('panel').hidden=!open; $('toggle-panel').setAttribute('aria-expanded',String(open)); document.body.classList.toggle('sheet-open',open&&mq.matches); }
@@ -166,6 +185,9 @@ export function initEdition(){
   $('t-reset').onclick=()=>{ const it=app.selected; if(!it) return; it.g.position.copy(it.home); it.g.rotation.set(0,0,0); paint(it,null); setHidden(it,false);
     app.selBox&&app.selBox.update(); majAngle(); $('t-color').value='#ffffff'; save(); };
   $('t-close').onclick=()=>select(null);
+  $('t-liste').onclick=()=>ongletPanneau('meubles');
+  for(const t of document.querySelectorAll('.p-onglets [data-onglet]')) t.onclick=()=>{ if(!t.disabled) ongletPanneau(t.dataset.onglet); };
+  for(const b of document.querySelectorAll('.sous-onglets [data-sous]')) b.onclick=()=>{ if(!b.disabled) sousOnglet(b.dataset.sous); };
   $('toggle-panel').onclick=()=>openSheet($('panel').hidden);
   addEventListener('niveau',()=>{ if(app.mobilierPret) buildList(); });
   addEventListener('meubles',()=>{ if(app.mobilierPret) buildList(); });

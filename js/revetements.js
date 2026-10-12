@@ -13,7 +13,7 @@ import {ETAGE_FLOOR} from './config.js';
 import {materiau, geoMetres, selecteur, nomChoix} from './bibliotheque.js';
 import {mursTransparents} from './transparence.js';
 import {save} from './sauvegarde.js';
-import {select} from './edition.js';
+import {select, ongletPanneau} from './edition.js';
 import {css} from './app.js';
 
 const EXCLUS=['rez__escalier','rez__decor_entree','etage__garde_corps','toit_sud'];
@@ -139,6 +139,7 @@ export function choisirSurface(n){
   $('surf').hidden=!n; for(const b of document.querySelectorAll('[data-surface]')) b.setAttribute('aria-pressed',String(b.dataset.surface===n));
   if(!n) return;
   if(app.selected) select(null);
+  ongletPanneau('pieces');
   const p=pieceDe(n), y0=sol(p.niveau), h=n.startsWith('sol')?0.02:(p.id==='salon'?5.6:2.4);
   const b=new THREE.Box3(); for(const [x0,z0,x1,z1] of p.rects) b.union(new THREE.Box3(new THREE.Vector3(x0,y0,z0),new THREE.Vector3(x1,y0+h,z1)));
   boite=new THREE.Box3Helper(b,new THREE.Color(css('--accent')||'#2c5a86')); app.scene.add(boite);

@@ -207,9 +207,9 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
 #charge{position:absolute;top:72px;left:50%;transform:translateX(-50%);background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:6px 14px;font-size:12.5px;color:var(--muted);white-space:nowrap;pointer-events:none}
 #charge .num{font-family:var(--font-data);font-variant-numeric:tabular-nums;color:var(--ink)}
 .list .attente{padding:12px 8px;color:var(--muted)}
-.filtres{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:10px 12px 4px;border-top:1px solid var(--line)}
+.filtres{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:10px 12px 4px;flex:none}
 .filtres .seg{flex:none}
-.filtres input[type=search]{flex:1;min-width:140px;font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:var(--r);padding:7px 10px}
+.filtres input[type=search]{flex:1 1 100%;min-width:0;font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:var(--r);padding:7px 10px}
 .filtres input[type=search]:focus{outline:2px solid var(--accent);outline-offset:-1px}
 .list mark{background:var(--accent-soft);color:inherit;border-radius:3px}
 /* Règle de mesure (livraison 7) : traits violets, valeur au milieu ; en mode « Mesurer », toucher une valeur l'efface */
@@ -258,10 +258,34 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
 .menu .vue .petit.danger{color:var(--danger);font-weight:600}
 #vues-liste .vide{margin:2px 10px 8px;font-size:12.5px;color:var(--muted)}
 /* Annuler / rétablir et historique (étape 2), en tête du panneau */
-.histo{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:12px 14px 10px;border-bottom:1px solid var(--line)}
+.histo{display:flex;gap:8px;align-items:center;padding:10px 12px 8px}
 .histo .btn:disabled{opacity:.45;cursor:default}
-.histo details{grid-column:1 / -1;font-size:13px}
-.histo summary{cursor:pointer;color:var(--muted);padding:2px 0}
+.alerte-badge{margin-left:auto;font:inherit;font-size:12.5px;font-weight:600;color:var(--danger);background:color-mix(in srgb,var(--danger) 12%,var(--panel));border:1px solid color-mix(in srgb,var(--danger) 35%,var(--line));border-radius:999px;padding:4px 10px;cursor:pointer}
+/* trois onglets du panneau (Mauro, 12 octobre 2026, option A) : un seul visible à la fois, chacun défile seul */
+.p-onglets{display:flex;gap:2px;padding:0 10px;border-bottom:1px solid var(--line);flex:none}
+.p-onglets button{font:inherit;font-size:14px;font-weight:500;background:none;border:0;border-bottom:2px solid transparent;color:var(--muted);padding:8px 10px 7px;cursor:pointer}
+.p-onglets button[aria-selected="true"]{color:var(--accent);border-bottom-color:var(--accent)}
+.p-onglets button:disabled{opacity:.45;cursor:default}
+.p-corps{flex:1 1 auto;min-height:0;overflow:auto}
+#p-meubles{display:flex;flex-direction:column;overflow:hidden}
+#p-meubles>.list{flex:1 1 90px;min-height:90px}
+#p-meubles>#alertes{flex:none}
+.p-pied{display:grid;gap:6px;padding:8px 12px;border-top:1px solid var(--line);flex:none}
+.p-pied details{font-size:13px}
+.p-pied summary{cursor:pointer;color:var(--muted);padding:2px 0}
+.p-pied #h-liste{max-height:min(30vh,240px);overflow:auto}
+#sel.p-corps{display:grid;gap:10px;align-content:start;border-bottom:0}
+#sel h2,#sel .dims{margin:0}
+.sel-tete{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.sous-onglets{display:grid;grid-template-columns:repeat(4,1fr);width:100%}
+.sous-onglets button{padding:7px 2px}
+.sous-onglets button:disabled{opacity:.4;cursor:default}
+.sous{display:grid;gap:8px;align-content:start}
+.sous .volet-corps{padding:0}
+.reglages{margin-top:6px}
+#p-pieces{padding:10px 12px;display:grid;gap:10px;align-content:start}
+#p-pieces>.sec{padding:0 0 10px}
+#sm{padding:0}
 #h-liste{display:grid;gap:2px;max-height:180px;overflow:auto;margin-top:6px}
 #h-liste .vide{margin:2px 0;color:var(--muted);font-size:12.5px}
 .h-ligne{display:flex;gap:8px;align-items:baseline;text-align:left;border:0;background:none;padding:4px 6px;border-radius:6px;font-size:12.5px;color:var(--ink)}
@@ -344,8 +368,8 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
 #cmp-fondu-box{display:flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;color:var(--muted)}
 #cmp-fondu-box input{width:140px;accent-color:var(--accent)}
 /* Historique partagé (étape 3) : « Tous » (tout le monde, tous les appareils) ou « Cet appareil » */
-.histo details>.seg{margin:6px 0 2px;width:max-content}
-.histo details>.seg button{padding:4px 10px;font-size:12.5px}
+#h-details>.seg{margin:6px 0 2px;width:max-content}
+#h-details>.seg button{padding:4px 10px;font-size:12.5px}
 #h-partage{display:grid;gap:2px;max-height:180px;overflow:auto;margin-top:6px}
 #h-partage[hidden],#h-liste[hidden]{display:none}
 #h-partage .vide{margin:2px 0;color:var(--muted);font-size:12.5px}
@@ -367,11 +391,6 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
 #calques-menu #cq-raz{position:absolute;top:6px;right:6px;width:32px;height:32px;display:grid;padding:0;justify-content:center}
 #calques-menu #cq-raz .ico{width:20px;height:20px}
 /* Étape 4 : objets ajoutés, dimensions, bibliothèque de matières, sols et murs */
-#panel>.sec{flex:0 1 auto;overflow:auto;min-height:0}
-#panel>.list{flex:1 1 90px;min-height:90px}
-#panel>.sec:not([hidden]){flex:1 1 auto;min-height:min(50%,340px)}
-/* téléphone : un objet, un sol ou des murs choisis : leurs outils prennent la place de la liste (Désélectionner la rend) */
-@media (max-width:760px){ #panel:has(>.sec:not([hidden]))>.filtres, #panel:has(>.sec:not([hidden]))>.sm, #panel:has(>.sec:not([hidden]))>.list{display:none} }
 .row.ajout .name::after{content:"ajouté";font-size:10.5px;font-weight:500;color:var(--accent);background:var(--accent-soft);border-radius:5px;padding:1px 5px;margin-left:6px;vertical-align:1px}
 .btn.danger.arme{background:var(--danger);border-color:var(--danger);color:var(--panel)}
 .ajout-nom{display:flex;align-items:center;gap:8px;margin-top:10px;font-weight:500}
@@ -382,8 +401,6 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
 .volet>summary::before{content:"";width:7px;height:7px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(-45deg);transition:transform .15s}
 .volet[open]>summary::before{transform:rotate(45deg)}
 .volet-corps{padding:2px 12px 12px;display:grid;gap:8px}
-.volet.sm{margin:8px 8px 0;flex:none}
-.volet.sm[open] .volet-corps{max-height:min(34vh,280px);overflow:auto}
 .dimrow{display:flex;align-items:center;gap:8px}
 .dimrow>span:first-child{flex:1;font-weight:500}
 .dimrow input{width:76px;font:inherit;font-family:var(--font-data);font-variant-numeric:tabular-nums;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:5px 6px;text-align:right}

@@ -10,7 +10,7 @@ import {FORMES, parametres} from './formes_simples.js';
 import {creerAjout, supprimerAjout, nouveauNom} from './ajouts.js';
 import {etatDe, normaliser, appliquerEtat, majApparence, echelonner} from './etats.js';
 import {selecteur, partiesDe, couleurPartie, cleDe} from './bibliotheque.js';
-import {select, majAngle, setHidden} from './edition.js';
+import {select, majAngle, setHidden, sousOnglet, ongletActif, sousActif} from './edition.js';
 import {save} from './sauvegarde.js';
 import {PIECES, pieceEn, bornes} from './pieces.js';
 import {ETAGE_FLOOR} from './config.js';
@@ -79,7 +79,7 @@ export function ajouterObjet(a,place){
   const it=creerAjout(nom,e); if(!it) return null;
   if(ancien) setHidden(ancien,true); if(remplacement) finRemplacement();
   dispatchEvent(new CustomEvent('meubles'));
-  select(nom); $('t-dims').open=true; save();   // un seul enregistrement : une ligne d'historique « remplacé par »
+  select(nom); sousOnglet('taille'); save();   // un seul enregistrement : une ligne d'historique « remplacé par »
   return it;
 }
 export function ajouterForme(f){
@@ -123,7 +123,7 @@ function champ(id,lib,val,suffixe='cm'){
 }
 const lireCm=i=>{ const v=Number(String(i.value).replace(',','.')); return Number.isFinite(v)&&v>0?Math.min(2000,v)/100:null; };
 function majDimensions(){
-  const it=app.selected, box=$('t-dims-corps'); if(!it||!box) return; box.replaceChildren();
+  const it=app.selected, box=$('t-dims-corps'), pose=$('t-pose'); if(!it||!box) return; box.replaceChildren(); pose?.replaceChildren();
   const a=it.ajout, f=a?FORMES[a.f]:null, rond=!!f?.rond;
   const dims=a?{L:a.p.L,P:a.p.P,H:a.p.H}:{L:it.size.x,P:it.size.z,H:it.size.y};
   const [lL,iL]=champ('d-l',rond?'Diamètre':'Largeur',cm(dims.L)), [lP,iP]=champ('d-p','Profondeur',cm(dims.P)), [lH,iH]=champ('d-h','Hauteur',cm(dims.H));
@@ -145,12 +145,12 @@ function majDimensions(){
     }
     const [lE,iE]=champ('d-pose','Posé à',cm(+a.e||0),'cm du sol'); iE.min='0';
     iE.onchange=()=>{ const v=Number(String(iE.value).replace(',','.')); if(Number.isFinite(v)&&v>=0&&v<=500) changerAjout(it,{...a,e:+(v/100).toFixed(4)}); else majDimensions(); };
-    box.append(lE);
+    (pose||box).append(lE);
   } else {
     // hauteur de pose (demande de Mauro) : la lampe du buffet est « posée à 92,5 cm » ; on peut la monter ou la descendre
     const sol=it.lvl==='Étage'?ETAGE_FLOOR:0, [lE,iE]=champ('d-pose','Posé à',cm(Math.max(0,it.g.position.y-sol)),'cm du sol'); iE.min='0';
     iE.onchange=()=>{ const v=Number(String(iE.value).replace(',','.')); if(Number.isFinite(v)&&v>=0&&v<=500){ it.g.position.y=sol+v/100; app.selBox?.update(); save(); } majDimensions(); };
-    box.append(lE);
+    (pose||box).append(lE);
     const b=el('button',{type:'button',class:'btn',id:'d-origine'},'Taille d’origine'); b.disabled=it.g.scale.equals(new THREE.Vector3(1,1,1));
     b.onclick=()=>{ echelonner(it,[1,1,1]); app.selBox?.update(); save(); majDimensions(); majTitre(); }; box.append(b);
   }
@@ -160,9 +160,9 @@ const f1=v=>(Math.round(v*1000)/1000).toFixed(2).replace('.',',');
 function majTitre(){ const it=app.selected; if(!it) return; $('sel-name').textContent=it.meta.l; $('sel-dims').textContent='L '+f1(it.size.x)+' × P '+f1(it.size.z)+' × H '+f1(it.size.y)+' m'; }
 
 // ---------- matières ----------
-export const matieresOuvertes=()=>!!app.selected&&$('t-mats').open;
+export const matieresOuvertes=()=>!!app.selected&&ongletActif()==='objet'&&sousActif()==='aspect';
 function majMatieres(){
-  const it=app.selected, box=$('t-mats-corps'); if(!it||!box||!$('t-mats').open) return;
+  const it=app.selected, box=$('t-mats-corps'); if(!it||!box||sousActif()!=='aspect') return;
   const parts=partiesDe(it).map(e=>({cle:e.cle,nom:it.nomsParties?.[e.cle]||e.nom,couleur:couleurPartie(e)}));
   if(!parts.length){ box.replaceChildren(el('p',{class:'mat-aide'},'Cet élément n’a pas de partie à habiller.')); return; }
   if(partie!=='*'&&!parts.some(e=>e.cle===partie)) partie=parts[0].cle;
@@ -190,7 +190,7 @@ function majPanneau(){
   const og=$('t-origine'); og.hidden=!a?.o; og.replaceChildren(); if(a?.o){ og.append(texteOrigine(a.o)+' '); if(/^https:\/\//.test(a.o.lien||'')){ const l=el('a',{href:a.o.lien,target:'_blank',rel:'noopener'},'voir la page'); og.append(l); } }
   majFichier();
   $('t-remplacer').hidden=it.meta.c==='ouverture';
-  $('t-dims').hidden=it.meta.c==='ouverture';   // portes et fenêtres : leurs ouvrants sont réglés sur le modèle
+  $('t-pose').hidden=it.meta.c==='ouverture';   // portes et fenêtres : leurs ouvrants sont réglés sur le modèle (Taille grisé : edition.js)
   $('t-suppr').hidden=!a; $('t-reset').hidden=!!a; $('t-suppr').textContent='Supprimer cet objet'; $('t-suppr').classList.remove('arme');
   partie=null; majDimensions(); majMatieres();
 }
@@ -203,7 +203,7 @@ export function initObjets(){
   m.addEventListener('keydown',e=>{ if(e.key==='Escape'){ e.stopPropagation(); ouvrirMenu(false); b.focus(); } });
   addEventListener('selection',majPanneau);
   addEventListener('objet-pret',e=>{ if(app.selected===e.detail.it) majFichier(); });
-  $('t-mats').addEventListener('toggle',()=>majMatieres());
+  addEventListener('sous-onglet',()=>majMatieres());
   $('t-nom').onkeydown=e=>{ e.stopPropagation(); if(e.key==='Enter') e.target.blur(); };
   $('t-nom').onchange=e=>{ const it=app.selected; if(!it?.ajout) return; const n=e.target.value.trim().slice(0,60)||FORMES[it.ajout.f]?.nom||'Objet'; changerAjout(it,{...it.ajout,n}); };
   $('t-remplacer').onclick=()=>{ if(app.selected) remplacer(app.selected); };

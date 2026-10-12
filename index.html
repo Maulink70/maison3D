@@ -112,65 +112,92 @@
     <div class="histo">
       <button class="btn" id="h-annuler" disabled>↶ Annuler</button>
       <button class="btn" id="h-retablir" disabled>↷ Rétablir</button>
-      <details id="h-details"><summary id="h-titre">Historique (0)</summary><div id="h-liste"></div></details>
+      <button class="alerte-badge" id="alertes-badge" type="button" hidden>⚠ 0</button>
     </div>
-    <div id="alertes" role="status" hidden><div id="alertes-titre">⚠ Alertes</div><div id="alertes-liste"></div></div>
-    <section class="sec" id="sel" hidden>
+    <!-- trois onglets (Mauro, 12 octobre 2026, option A) : la liste, l'objet touché, les sols et murs des pièces -->
+    <div class="p-onglets" role="tablist" aria-label="Panneau des meubles">
+      <button type="button" role="tab" id="po-meubles" data-onglet="meubles" aria-selected="true" aria-controls="p-meubles">Meubles</button>
+      <button type="button" role="tab" id="po-objet" data-onglet="objet" aria-selected="false" aria-controls="sel" disabled>Objet</button>
+      <button type="button" role="tab" id="po-pieces" data-onglet="pieces" aria-selected="false" aria-controls="p-pieces">Pièces</button>
+    </div>
+    <div class="p-corps" id="p-meubles" role="tabpanel" aria-labelledby="po-meubles">
+      <div id="alertes" role="status" hidden><div id="alertes-titre">⚠ Alertes</div><div id="alertes-liste"></div></div>
+      <div class="filtres">
+        <input type="search" id="f-texte" placeholder="Rechercher un meuble…" aria-label="Rechercher un meuble" autocomplete="off">
+        <div class="seg" role="group" aria-label="Niveaux affichés dans la liste">
+          <button id="f-tout" aria-pressed="true">Tout</button>
+          <button id="f-rez" aria-pressed="false">Rez</button>
+          <button id="f-etage" aria-pressed="false">Étage</button>
+        </div>
+        <div class="seg" role="group" aria-label="Meubles affichés ou masqués">
+          <button id="f-tous" aria-pressed="true">Tous</button>
+          <button id="f-affiches" aria-pressed="false">Affichés</button>
+          <button id="f-masques" aria-pressed="false">Masqués</button>
+        </div>
+      </div>
+      <div class="list" id="list"><div class="attente">Chargement des meubles…</div></div>
+      <div class="p-pied">
+        <button class="btn" id="f-tableau" type="button">Tableau des meubles</button>
+        <details id="h-details"><summary id="h-titre">Historique (0)</summary><div id="h-liste"></div></details>
+      </div>
+      <div class="foot">
+        <small id="save-state">Les changements restent dans ce navigateur.</small>
+        <button class="btn danger" id="reset-all">Tout réinitialiser</button>
+      </div>
+    </div>
+    <section class="p-corps sec" id="sel" role="tabpanel" aria-labelledby="po-objet" hidden>
+      <div class="sel-tete"><button class="btn" id="t-liste" type="button">← Liste</button><button class="btn" id="t-close" type="button" aria-label="Désélectionner" title="Désélectionner">✕</button></div>
       <div class="eyebrow" id="sel-cat">Mobilier</div>
       <h2 id="sel-name">—</h2>
       <div class="dims" id="sel-dims"></div>
-      <div class="tools">
-        <button class="btn primary" id="t-move">Déplacer</button>
-        <button class="btn" id="t-poignee" aria-pressed="false">Tourner à la main</button>
-        <button class="btn" id="t-rotl">↺ Tourner 90°</button>
-        <button class="btn" id="t-rotr">↻ Tourner 90°</button>
+      <div class="seg sous-onglets" role="group" aria-label="Outils de l’objet">
+        <button type="button" id="ps-placer" data-sous="placer" aria-pressed="true">Placer</button>
+        <button type="button" id="ps-taille" data-sous="taille" aria-pressed="false">Taille</button>
+        <button type="button" id="ps-aspect" data-sous="aspect" aria-pressed="false">Aspect</button>
+        <button type="button" id="ps-plus" data-sous="plus" aria-pressed="false">Plus</button>
+      </div>
+      <div class="sous" data-sous-corps="placer">
+        <div class="tools">
+          <button class="btn primary" id="t-move">Déplacer</button>
+          <button class="btn" id="t-poignee" aria-pressed="false">Tourner à la main</button>
+          <button class="btn" id="t-rotl">↺ Tourner 90°</button>
+          <button class="btn" id="t-rotr">↻ Tourner 90°</button>
         <div class="anglerow"><label for="t-angle">Angle</label><input type="range" id="t-angle" min="-180" max="180" step="1" value="0"><input type="number" id="t-angle-num" min="-180" max="180" step="1" value="0" inputmode="decimal" aria-label="Angle en degrés"><span>°</span></div>
+          <button class="btn wide" id="t-porte" hidden>Ouvrir la porte</button>
+        </div>
+        <div id="t-pose"></div>
+      </div>
+      <div class="sous" data-sous-corps="taille" id="t-dims" hidden><div class="volet-corps" id="t-dims-corps"></div></div>
+      <div class="sous" data-sous-corps="aspect" id="t-mats" hidden>
+        <div class="colorrow"><label for="t-color">Couleur</label><input type="color" id="t-color" value="#ffffff"><button class="btn" id="t-color-clear">Origine</button></div>
+        <div class="volet-corps" id="t-mats-corps"></div>
+      </div>
+      <div class="sous" data-sous-corps="plus" hidden>
+        <div class="tools">
+          <button class="btn" id="t-hide">Masquer</button>
+          <button class="btn" id="t-remplacer">Remplacer…</button>
+          <button class="btn" id="t-reset">Remettre en place</button>
+          <button class="btn danger" id="t-suppr" hidden>Supprimer cet objet</button>
+          <label class="crans"><input type="checkbox" id="t-lampe"> C’est une lampe (s’allume le soir et la nuit)</label>
+          <button class="btn wide" id="t-allumer" hidden>Éteindre la lampe (le soir)</button>
+        </div>
+        <label class="ajout-nom" id="t-nom-ligne" hidden><span>Nom</span><input type="text" id="t-nom" maxlength="60" autocomplete="off"></label>
+        <p class="mat-aide" id="t-origine" hidden></p>
+        <p class="mat-aide" id="t-fichier" hidden></p>
+        <div class="eyebrow reglages">Réglages</div>
         <label class="crans"><input type="checkbox" id="t-crans" checked> Crans de 15° (poignée et curseur)</label>
         <label class="crans"><input type="checkbox" id="t-aimant" checked> Aimant : un petit objet lâché sur un meuble s’y pose</label>
-        <button class="btn wide" id="t-porte" hidden>Ouvrir la porte</button>
-        <label class="crans"><input type="checkbox" id="t-lampe"> C’est une lampe (s’allume le soir et la nuit)</label>
-        <button class="btn wide" id="t-allumer" hidden>Éteindre la lampe (le soir)</button>
-        <div class="colorrow"><label for="t-color">Couleur</label><input type="color" id="t-color" value="#ffffff"><button class="btn" id="t-color-clear">Origine</button></div>
-        <button class="btn" id="t-hide">Masquer</button>
-        <button class="btn" id="t-remplacer">Remplacer…</button>
-        <button class="btn" id="t-reset">Remettre en place</button>
-        <button class="btn danger" id="t-suppr" hidden>Supprimer cet objet</button>
-        <button class="btn wide" id="t-close">Désélectionner</button>
       </div>
-      <label class="ajout-nom" id="t-nom-ligne" hidden><span>Nom</span><input type="text" id="t-nom" maxlength="60" autocomplete="off"></label>
-      <p class="mat-aide" id="t-origine" hidden></p>
-      <p class="mat-aide" id="t-fichier" hidden></p>
-      <details class="volet" id="t-dims"><summary>Dimensions</summary><div class="volet-corps" id="t-dims-corps"></div></details>
-      <details class="volet" id="t-mats"><summary>Matières</summary><div class="volet-corps" id="t-mats-corps"></div></details>
     </section>
-    <section class="sec" id="surf" hidden>
-      <div class="eyebrow">Sols et murs</div>
-      <h2 id="surf-nom">—</h2>
-      <p class="mat-aide" id="surf-etat"></p>
-      <div id="surf-mat"></div>
-      <button class="btn wide" id="surf-fermer">Fermer</button>
-    </section>
-    <details class="volet sm" id="sm"><summary>Sols et murs des pièces</summary>
-      <div class="volet-corps"><p class="mat-aide">Choisissez une pièce, ou touchez un sol ou un mur dans la vue.</p><div id="sm-liste"></div></div>
-    </details>
-    <div class="filtres">
-      <div class="seg" role="group" aria-label="Niveaux affichés dans la liste">
-        <button id="f-tout" aria-pressed="true">Tout</button>
-        <button id="f-rez" aria-pressed="false">Rez</button>
-        <button id="f-etage" aria-pressed="false">Étage</button>
-      </div>
-      <div class="seg" role="group" aria-label="Meubles affichés ou masqués">
-        <button id="f-tous" aria-pressed="true">Tous</button>
-        <button id="f-affiches" aria-pressed="false">Affichés</button>
-        <button id="f-masques" aria-pressed="false">Masqués</button>
-      </div>
-      <input type="search" id="f-texte" placeholder="Rechercher un meuble…" aria-label="Rechercher un meuble" autocomplete="off">
-      <button class="btn" id="f-tableau" type="button">Tableau des meubles (dimensions, matières, liens)</button>
-    </div>
-    <div class="list" id="list"><div class="attente">Chargement des meubles…</div></div>
-    <div class="foot">
-      <small id="save-state">Les changements restent dans ce navigateur.</small>
-      <button class="btn danger" id="reset-all">Tout réinitialiser</button>
+    <div class="p-corps" id="p-pieces" role="tabpanel" aria-labelledby="po-pieces" hidden>
+      <section class="sec" id="surf" hidden>
+        <div class="eyebrow">Sols et murs</div>
+        <h2 id="surf-nom">—</h2>
+        <p class="mat-aide" id="surf-etat"></p>
+        <div id="surf-mat"></div>
+        <button class="btn wide" id="surf-fermer">Fermer</button>
+      </section>
+      <div class="volet-corps" id="sm"><p class="mat-aide">Choisissez une pièce, ou touchez un sol ou un mur dans la vue.</p><div id="sm-liste"></div></div>
     </div>
   </aside>
 

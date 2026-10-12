@@ -14,7 +14,7 @@ import * as THREE from 'three';
 import {app, $} from './app.js';
 import {ETAGE_FLOOR} from './config.js';
 import {empreinte, murs} from './plan.js';
-import {select} from './edition.js';
+import {select, ongletPanneau} from './edition.js';
 import {save} from './sauvegarde.js';
 
 const PAS=0.02, X0=10.9, Z0=-28.4, NX=Math.ceil((19.9-X0)/PAS), NZ=Math.ceil((-13.9-Z0)/PAS), MINI=4;   // MINI cellules : 16 cm²
@@ -160,6 +160,9 @@ function majAffichage(){
   const actives=alertes.filter(a=>!a.ignoree), grises=alertes.filter(a=>a.ignoree);
   const enRouge=new Set(actives.filter(a=>a.grave).map(a=>a.it));
   for(const it of Object.values(app.items)){ const r=enRouge.has(it); it.alerte=r; voiler(it,r&&app.edition); }
+  // pastille « ⚠ n » en tête du panneau (visible depuis chaque onglet) : la toucher montre la liste des alertes
+  const pb=$('alertes-badge'); if(pb){ pb.hidden=!actives.length; pb.textContent='⚠ '+actives.length; pb.title=`${actives.length} alerte${actives.length>1?'s':''} de passage : voir la liste`;
+    pb.onclick=()=>{ ongletPanneau('meubles'); $('alertes').scrollIntoView({block:'nearest'}); }; }
   const b=$('alertes'); b.hidden=!alertes.length; if(!alertes.length) return;
   $('alertes-titre').textContent=actives.length?`⚠ Alertes (${actives.length})`:'Aucune alerte active';
   b.classList.toggle('calme',!actives.length);
