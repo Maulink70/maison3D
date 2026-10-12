@@ -588,6 +588,16 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
 .mi-note-mode{margin:0;color:#a9b3bb;font-size:12.5px}
 .mi-exemples{display:flex;flex-wrap:wrap;gap:6px}
 .mi-exemples .cat-idee{background:#1b2024;color:#eef1f3;border-color:#3a4248}
+.mi-mesproduits{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px;max-height:260px;overflow:auto}
+.mi-mesproduits[hidden]{display:none}
+.mi-mesproduits .mat-aide{grid-column:1/-1}
+.mi-produit{display:flex;flex-direction:column;gap:3px;align-items:stretch;text-align:left;padding:6px;border-radius:10px;border:1px solid #3a4248;background:#1b2024;color:#eef1f3;font:inherit;cursor:pointer}
+.mi-produit:hover,.mi-produit:focus-visible{border-color:#82b2df}
+.mi-produit:disabled{opacity:.5;cursor:default}
+.mi-produit img,.mi-produit-vide{width:100%;aspect-ratio:4/3;object-fit:contain;background:#fff;border-radius:6px}
+.mi-produit-vide{display:grid;place-items:center;color:#6b747b;font-size:12px}
+.mi-produit strong{font-size:12.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mi-produit span{color:#a9b3bb;font-size:11.5px}
 .mode-image[data-mode="choix"] :is(.mi-tete,.mi-note-mode,.mi-exemples,.mi-ajout,.mi-objets,.mi-outils){display:none}
 .mode-image[data-mode="decrire"] :is(.mi-choix,.mi-ajout,.mi-objets){display:none}
 .mode-image[data-mode="produit"] :is(.mi-choix,.mi-exemples){display:none}

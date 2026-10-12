@@ -12,7 +12,8 @@
 // veux » (demande écrite seule, l'IA choisit les objets et le style, chaque rendu est différent ; exemples à toucher) ou
 // « Ajouter un produit précis » (image, lien, boutique, posé sur la photo à ses dimensions, plus des précisions
 // facultatives) ; « ← Changer » revient au choix, « Effacer une zone » dans les deux. Un produit reçu (liste « Produits »,
-// « Partager ») ouvre directement le second ; une image ou un lien collés y passent aussi.
+// « Partager ») ouvre directement le second ; une image ou un lien collés y passent aussi. « Mes produits » (même jour) :
+// la liste « Produits » en vignettes (ceux de la pièce de la photo d'abord), toucher un produit le pose sur la photo.
 import * as THREE from 'three';
 import {app, $} from './app.js';
 import {lireFichier} from './fichiers.js';
@@ -169,6 +170,27 @@ async function lien(){
   const d=r.dims||{}; if(!(d.L&&d.P&&d.H)) dire(`« ${r.nom||'Produit'} » ajouté (${r.site}) : dimensions ${d.L||d.P||d.H?'en partie trouvées':'non trouvées'} sur la page, complétez-les (cm).`);
 }
 
+// « Mes produits » : la liste « Produits » (idées d'achat) en vignettes ; ceux prévus pour la pièce de la photo d'abord
+async function mesProduits(){
+  const z=fen.querySelector('.mi-mesproduits'), b=fen.querySelector('#mi-mes-produits');
+  if(!z.hidden){ z.hidden=true; b.setAttribute('aria-expanded','false'); return; }
+  z.hidden=false; b.setAttribute('aria-expanded','true'); z.replaceChildren(el('p',{class:'mat-aide'},'Lecture de la liste « Produits »…'));
+  let l; try{ const {chargerProduits}=await import('./produits.js'); l=[...await chargerProduits()]; }
+  catch(e){ z.replaceChildren(el('p',{class:'mat-aide'},e.message||'La liste « Produits » n’a pas pu être lue.')); return; }
+  if(!l.length){ z.replaceChildren(el('p',{class:'mat-aide'},'Votre liste « Produits » est vide : ajoutez-y vos idées d’achat avec le bouton « Produits » (le sac) de la barre.')); return; }
+  const ici=mi?.base.piece; l.sort((a,c)=>(c.piece===ici)-(a.piece===ici));
+  z.replaceChildren(...l.map(p=>{
+    const t=el('button',{type:'button',class:'mi-produit','data-id':p.id,title:'Poser « '+p.nom+' » sur la photo'});
+    t.append(p.vignette?el('img',{src:p.vignette,alt:''}):el('span',{class:'mi-produit-vide'},'pas d’image'),el('strong',{},p.nom||'Produit'),
+      el('span',{},[p.L&&p.P&&p.H?`${p.L} × ${p.P} × ${p.H} cm`:'',p.piece===ici&&ici?nomPiece(ici):''].filter(Boolean).join(' · ')));
+    t.disabled=!p.image?.id;
+    t.onclick=async()=>{ dire('Lecture de l’image de « '+p.nom+' »…');
+      const bl=await lireFichier(p.image.id,p.image.n||1,p.image.type||'image/jpeg'); if(!bl){ dire('L’image du produit n’a pas pu être lue.',true); return; }
+      z.hidden=true; b.setAttribute('aria-expanded','false');
+      await ajouterProduit({image:await versDataURL(bl),nom:p.nom,dims:{L:p.L,P:p.P,H:p.H},lien:p.lien||null,site:p.boutique||null}); };
+    return t; }));
+}
+
 // ---------- l'image composée et la consigne ----------
 async function composer(){
   const b=mi.base.image, base=await charger(mi.url), c=el('canvas'); c.width=b.w||base.width; c.height=b.h||base.height;
@@ -272,9 +294,10 @@ function construire(){
       <p class="mi-note-mode"></p>
       <div class="mi-exemples"></div>
       <div class="mi-ajout">
-        <div class="mi-ligne"><button type="button" class="btn" id="mi-coller">Coller l’image</button><button type="button" class="btn" id="mi-choisir">Choisir une image</button>
+        <div class="mi-ligne"><button type="button" class="btn" id="mi-mes-produits" aria-expanded="false">🛍 Mes produits</button><button type="button" class="btn" id="mi-coller">Coller l’image</button><button type="button" class="btn" id="mi-choisir">Choisir une image</button>
           <input type="file" id="mi-fichier" accept="image/*" hidden>
           <span class="mi-lien"><input type="url" id="mi-lien" placeholder="ou collez le lien du produit (https://…)" aria-label="Lien du produit"><button type="button" class="btn" id="mi-lien-lire">Lire le lien</button></span></div>
+        <div class="mi-mesproduits" hidden></div>
         <div class="mi-ligne mi-boutiques"><input type="search" id="mi-q" placeholder="Chercher dans une boutique : canapé, lampe…" aria-label="Recherche dans une boutique"></div>
         <p class="mat-aide">Sur la page du produit : copiez son lien (ou l’image : appui long ou clic droit, « Copier l’image »), revenez ici et collez-le. Sur PC, Ctrl+V marche aussi.</p>
       </div>
@@ -299,7 +322,7 @@ function construire(){
   for(const t of ['Ajoute de la décoration','Ambiance du soir, lampes allumées','Ajoute des plantes','Style scandinave','Remplace le canapé par un canapé en velours vert']){
     const x=el('button',{type:'button',class:'cat-idee'},t); x.onclick=()=>{ const c=q('#mi-precisions'); c.value=c.value.trim()?c.value.trim()+', '+t.toLowerCase():t; c.focus(); }; q('.mi-exemples').append(x); }
   q('#mi-effacer').onclick=ajouterZone;
-  q('#mi-coller').onclick=coller; q('#mi-choisir').onclick=()=>q('#mi-fichier').click();
+  q('#mi-coller').onclick=coller; q('#mi-mes-produits').onclick=mesProduits; q('#mi-choisir').onclick=()=>q('#mi-fichier').click();
   q('#mi-fichier').onchange=e=>{ const f=e.target.files[0]; e.target.value=''; depuisFichier(f); };
   q('#mi-lien-lire').onclick=lien;
   q('#mi-rendu').onclick=preparer; q('#mi-modele').onchange=majCout;
