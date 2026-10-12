@@ -578,7 +578,19 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
 .mi-outils,.mi-ligne{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 #mi-precisions{flex:1 1 220px;background:#1b2024;color:#eef1f3;border-color:#3a4248}
 .mi-ajout{display:grid;gap:8px;background:#151a1e;border:1px solid #2c3338;border-radius:10px;padding:10px}
-.mi-ajout[hidden]{display:none}
+.mi-choix{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px}
+.mi-carte{display:flex;flex-direction:column;gap:4px;text-align:left;padding:14px 16px;border-radius:12px;border:1px solid #3a4248;background:#1b2024;color:#eef1f3;font:inherit;cursor:pointer}
+.mi-carte:hover,.mi-carte:focus-visible{border-color:#82b2df;background:#22303c}
+.mi-carte strong{font-size:15px}
+.mi-carte span{color:#a9b3bb;font-size:13px;line-height:1.35}
+.mi-tete{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.mi-mode-nom{flex:1;color:#eef1f3;font-size:14.5px}
+.mi-note-mode{margin:0;color:#a9b3bb;font-size:12.5px}
+.mi-exemples{display:flex;flex-wrap:wrap;gap:6px}
+.mi-exemples .cat-idee{background:#1b2024;color:#eef1f3;border-color:#3a4248}
+.mode-image[data-mode="choix"] :is(.mi-tete,.mi-note-mode,.mi-exemples,.mi-ajout,.mi-objets,.mi-outils){display:none}
+.mode-image[data-mode="decrire"] :is(.mi-choix,.mi-ajout,.mi-objets){display:none}
+.mode-image[data-mode="produit"] :is(.mi-choix,.mi-exemples){display:none}
 .mi-ajout .mat-aide{color:#a9b3bb;margin:0}
 .mi-lien{display:flex;gap:8px;flex:1 1 300px}
 .mi-lien input,#mi-q{flex:1;background:#1b2024;color:#eef1f3;border-color:#3a4248}

@@ -8,6 +8,11 @@
 // Le 11 octobre 2026 (« Photo réaliste », photo et 3D séparées) : le mode Image devient le « montage » ; « Mettre en 3D »
 // remplace « Créer en 3D » et, si la photo est calée, le meuble est posé dans la maquette là où il est sur la photo
 // (rayon de la caméra calée par le pied de l'image posée, jusqu'au sol de la pièce).
+// Le 12 octobre 2026 (Mauro : « il faudrait que ce soit plus clair ») : à chaque ouverture, deux choix : « Décrire ce que je
+// veux » (demande écrite seule, l'IA choisit les objets et le style, chaque rendu est différent ; exemples à toucher) ou
+// « Ajouter un produit précis » (image, lien, boutique, posé sur la photo à ses dimensions, plus des précisions
+// facultatives) ; « ← Changer » revient au choix, « Effacer une zone » dans les deux. Un produit reçu (liste « Produits »,
+// « Partager ») ouvre directement le second ; une image ou un lien collés y passent aussi.
 import * as THREE from 'three';
 import {app, $} from './app.js';
 import {lireFichier} from './fichiers.js';
@@ -32,7 +37,7 @@ let fen=null, mi=null, sel=null, prep=null;
 // base = {nom, piece, photo (id de la photo d'origine), image:{id,n,type,w,h}, cal:{calage, image} si la photo est calée}
 export async function ouvrirModeImage(base,produit){
   if(!fen) construire();
-  if(!mi||mi.base.image.id!==base.image.id) mi={base,objets:[],zones:[]}; else mi.base=base;
+  if(!mi||mi.base.image.id!==base.image.id) mi={base,objets:[],zones:[],texte:{decrire:'',produit:''}}; else mi.base=base;
   fen.hidden=false; sel=null; prep=null; fen.querySelector('.mi-confirmer').hidden=true;
   fen.querySelector('.vis-titre strong').textContent='Montage : « '+base.nom+' »';
   fen.querySelector('.vis-titre span').textContent=nomPiece(base.piece)+' · on modifie la photo, pas la maquette'+(base.cal?' · photo calée':'');
@@ -40,9 +45,31 @@ export async function ouvrirModeImage(base,produit){
   const b=await lireFichier(base.image.id,base.image.n||1,base.image.type||'image/jpeg');
   if(!b){ dire('La photo n’a pas pu être lue.',true); return; }
   if(mi.url) URL.revokeObjectURL(mi.url); mi.url=URL.createObjectURL(b); img.src=mi.url;
+  mi.mode=undefined; choisirMode(produit?'produit':null);
   await img.decode().catch(()=>{}); caler(); dessiner(); majListe();
-  dire(mi.objets.length?'':'Touchez « Ajouter un objet » (image d’un meuble : fichier, image copiée, lien d’un produit ou boutique), ou écrivez simplement votre demande (« ajoute de la décoration… »), puis « Lancer le rendu… ».');
   if(produit) await ajouterProduit(produit);
+}
+// les deux façons de faire un montage (12 octobre 2026) ; null : l'écran de choix. Chaque mode garde son texte ; les
+// produits posés sont mis de côté pendant « Décrire » (la photo part seule) et reviennent avec « Ajouter un produit précis »
+const MODES={
+  decrire:{nom:'Décrire ce que je veux',champ:'Votre demande : ajoute de la décoration, ambiance du soir…',libelle:'Votre demande pour le rendu',
+    note:'L’IA choisit elle-même les objets, le style et les couleurs : chaque rendu est différent (lancez-en 2 à 4 pour choisir). Pour un meuble précis, prenez plutôt « Ajouter un produit précis ».',
+    msg:'Écrivez votre demande (ou touchez un exemple), puis « Lancer le rendu… ».'},
+  produit:{nom:'Ajouter un produit précis',champ:'Précisions (facultatif) : contre le mur, lumière du soir…',libelle:'Précisions pour le rendu (facultatif)',
+    note:'L’IA reproduit votre produit là où vous le posez sur la photo, à ses dimensions.',
+    msg:'Collez l’image ou le lien du produit (Ctrl+V sur PC), ou choisissez une image ; posez-le sur la photo, vérifiez ses dimensions, puis « Lancer le rendu… ».'},
+};
+function choisirMode(m){
+  if(!mi||mi.mode===m) return;
+  const champ=fen.querySelector('#mi-precisions');
+  if(mi.mode) mi.texte[mi.mode]=champ.value;
+  if(m==='decrire'&&mi.objets.length){ mi.gardes=mi.objets; mi.objets=[]; }
+  if(m==='produit'&&mi.gardes?.length&&!mi.objets.length){ mi.objets=mi.gardes; mi.gardes=null; }
+  mi.mode=m; fen.dataset.mode=m||'choix'; sel=null; prep=null; fen.querySelector('.mi-confirmer').hidden=true;
+  const d=MODES[m]; champ.value=m?mi.texte[m]||'':''; champ.placeholder=d?.champ||''; champ.setAttribute('aria-label',d?.libelle||'');
+  fen.querySelector('.mi-mode-nom').textContent=d?.nom||''; fen.querySelector('.mi-note-mode').textContent=d?.note||'';
+  dessiner(); majListe(); dire(d?d.msg:'Choisissez : décrire ce que vous voulez (l’IA choisit), ou ajouter un produit précis.');
+  if(m==='decrire') champ.focus();
 }
 function fermer(){ if(fen) fen.hidden=true; }
 function dire(t,erreur=false){ const m=fen.querySelector('.ph-message'); m.textContent=t||''; m.classList.toggle('cx-erreur',erreur); }
@@ -54,7 +81,7 @@ function caler(){
 }
 // un objet : {id, nom, L, P, H (cm, null si inconnu), img (data URL), w, h (pixels), x, y, lw, lh (rectangle, 0..1 de la photo)}
 async function ajouterProduit({image,nom,dims,lien,site}){
-  if(!mi) return;
+  if(!mi) return; choisirMode('produit');
   let r; try{ r=await reduire(image); }catch{ dire('Cette image n’a pas pu être lue.',true); return; }
   const ap=mi.base.image.w/mi.base.image.h, lw=0.3, lh=Math.min(0.7,lw*ap*r.h/r.w);
   const o={id:'o'+Date.now().toString(36),nom:(nom||'Objet '+(mi.objets.length+1)).slice(0,60),L:dims?.L||null,P:dims?.P||null,H:dims?.H||null,img:r.url,w:r.w,h:r.h,lien:lien||null,site:site||null,
@@ -155,6 +182,12 @@ function consigne(precisions,nRef=6){   // nRef : images des objets envoyées (l
   // une demande écrite seule (Mauro, 11 octobre 2026 : « ajoute de la décoration dans cette chambre ») : la photo seule est envoyée
   if(!mi.objets.length&&!mi.zones.length) return [`Edit image 1, a photo of a room (${nomPiece(mi.base.piece)} of an apartment), following this request from the owner (in French): « ${precisions.slice(0,600)} ».`,
     'Keep everything the request does not ask to change exactly as in image 1: framing, perspective, lens, light, white balance, walls, windows, floor and the existing furniture. The result must be a photorealistic photograph of the same room, with realistic contact shadows and reflections, without any text or watermark.'].join('\n');
+  // « Décrire ce que je veux » avec des zones à effacer : la demande reste la consigne principale
+  if(!mi.objets.length) return [`Edit image 1 into a photorealistic photograph of this room (${nomPiece(mi.base.piece)} of an apartment).`,
+    'Image 1 is a photo of the room where RED areas mark what must be removed; image 2 is the original photo, only as a reference for the real materials and light.',
+    `- Remove completely what is inside the ${mi.zones.length>1?mi.zones.length+' red areas':'red area'} and rebuild what is behind it (wall, floor, skirting board), so that nothing of it remains.`,
+    ...(precisions?[`- Then follow this request from the owner (in French): « ${precisions.slice(0,600)} ».`]:[]),
+    'Keep everything else exactly as in image 2: framing, perspective, lens, light, white balance, walls, windows, floor and the existing furniture. Add realistic contact shadows and reflections. The result must not show any red tint, text or watermark.'].join('\n');
   const L=[`Edit image 1 into a photorealistic photograph of this room (${nomPiece(mi.base.piece)} of an apartment).`,
     'Image 1 is a photo of the room on which pictures of products are pasted where the new furniture should go (the position is approximate and the pasted size is only indicative), and RED areas mark what must be removed.',
     'Image 2 is the original photo of the room, only as a reference for the real materials and light.'];
@@ -170,7 +203,8 @@ function consigne(precisions,nRef=6){   // nRef : images des objets envoyées (l
 }
 async function preparer(){
   if(!mi) return;   // en Visite aussi (Mauro, 11 octobre 2026 : le montage ne touche pas la maquette) ; confirmation avant chaque rendu (crédits)
-  if(!mi.objets.length&&!mi.zones.length&&!fen.querySelector('#mi-precisions').value.trim()){ dire('Écrivez votre demande (par exemple « ajoute de la décoration dans cette chambre »), ajoutez un objet ou une zone à effacer.',true); fen.querySelector('#mi-precisions').focus(); return; }
+  if(mi.mode==='decrire'&&!mi.zones.length&&!fen.querySelector('#mi-precisions').value.trim()){ dire('Écrivez votre demande (par exemple « ajoute de la décoration dans cette chambre »), ou touchez un exemple.',true); fen.querySelector('#mi-precisions').focus(); return; }
+  if(mi.mode!=='decrire'&&!mi.objets.length&&!mi.zones.length){ dire('Ajoutez d’abord un produit : collez son image ou son lien, ou choisissez une image.',true); return; }
   const z=fen.querySelector('.mi-confirmer'), ok=z.querySelector('#mi-ok'); z.hidden=false; ok.disabled=true;
   z.querySelector('.mi-cout').textContent='Préparation…';
   try{ prep={composee:await composer()}; z.querySelector('img').src=prep.composee; }catch(e){ z.querySelector('.mi-cout').textContent='Préparation impossible : '+(e.message||e); return; }
@@ -207,7 +241,7 @@ async function lancer(){
   try{
     const m=modeleChoisi(), n=nbImages(m), photo=await reduire(mi.url,2048), images=seule()?[photo.url]:[prep.composee,photo.url,...mi.objets.slice(0,n-2).map(o=>o.img)];
     try{ localStorage.setItem(CLE_MODELE,m.id); }catch{}
-    const detail=[...mi.objets.map(o=>`Ajouté (photo) : ${o.nom}${o.L&&o.P&&o.H?` (${o.L} × ${o.P} × ${o.H} cm)`:''}`),...mi.zones.map((_,k)=>`Zone effacée ${k+1}`),...(precisions?[`Demande : ${precisions.slice(0,200)}`]:[]),`Modèle : ${m.nom}`];
+    const detail=[...mi.objets.map(o=>`Ajouté (photo) : ${o.nom}${o.L&&o.P&&o.H?` (${o.L} × ${o.P} × ${o.H} cm)`:''}`),...mi.zones.map((_,k)=>`Zone effacée ${k+1}`),...(precisions?[`${mi.mode==='decrire'?'Demande':'Précisions'} : ${precisions.slice(0,200)}`]:[]),`Modèle : ${m.nom}`];
     const k=nombreChoisi(), r=await demarrerRendu({images,modele:m.id,nombre:k,consigne:consigne(precisions,seule()?0:n-2),ratio:ratioDe(b.image.w,b.image.h),titre:`${b.nom} · montage`,
       champs:{piece:b.piece,photo:b.photo||'',avant:b.image,variante:'',mode:'image',detail}});
     if(!r.id){ dire(r.erreur,true); ok.disabled=false; return; }
@@ -230,13 +264,14 @@ function construire(){
       <button type="button" class="vis-b" id="mi-fermer" aria-label="Fermer" title="Fermer">×</button></div>
     <div class="vis-zone mi-zone"><div class="mi-cadre"><img class="mi-photo" alt="Photo de la pièce" draggable="false"><div class="mi-calques"></div></div></div>
     <div class="mi-bas">
-      <div class="mi-outils">
-        <button type="button" class="btn primary" id="mi-ajouter" aria-expanded="false">📎 Ajouter un objet</button>
-        <button type="button" class="btn" id="mi-effacer">Effacer une zone</button>
-        <input type="text" id="mi-precisions" maxlength="600" placeholder="Votre demande : ajoute de la décoration, lumière du soir…" aria-label="Votre demande pour le rendu (seule, ou avec des objets)">
-        <button type="button" class="btn primary" id="mi-rendu">Lancer le rendu…</button>
+      <div class="mi-choix">
+        <button type="button" class="mi-carte" id="mi-mode-decrire"><strong>✍️ Décrire ce que je veux</strong><span>Une demande écrite : l’IA choisit elle-même les objets et le style. Chaque rendu est différent.</span></button>
+        <button type="button" class="mi-carte" id="mi-ajouter"><strong>📎 Ajouter un produit précis</strong><span>Une image, un lien ou une boutique : l’IA reproduit ce produit là où vous le posez, à ses dimensions.</span></button>
       </div>
-      <div class="mi-ajout" hidden>
+      <div class="mi-tete"><button type="button" class="btn" id="mi-changer">← Changer</button><strong class="mi-mode-nom"></strong><button type="button" class="btn" id="mi-effacer">Effacer une zone</button></div>
+      <p class="mi-note-mode"></p>
+      <div class="mi-exemples"></div>
+      <div class="mi-ajout">
         <div class="mi-ligne"><button type="button" class="btn" id="mi-coller">Coller l’image</button><button type="button" class="btn" id="mi-choisir">Choisir une image</button>
           <input type="file" id="mi-fichier" accept="image/*" hidden>
           <span class="mi-lien"><input type="url" id="mi-lien" placeholder="ou collez le lien du produit (https://…)" aria-label="Lien du produit"><button type="button" class="btn" id="mi-lien-lire">Lire le lien</button></span></div>
@@ -244,6 +279,10 @@ function construire(){
         <p class="mat-aide">Sur la page du produit : copiez son lien (ou l’image : appui long ou clic droit, « Copier l’image »), revenez ici et collez-le. Sur PC, Ctrl+V marche aussi.</p>
       </div>
       <div class="mi-objets"></div>
+      <div class="mi-outils">
+        <input type="text" id="mi-precisions" maxlength="600" placeholder="" aria-label="Votre demande pour le rendu">
+        <button type="button" class="btn primary" id="mi-rendu">Lancer le rendu…</button>
+      </div>
       <div class="mi-confirmer" hidden><img alt="Photo avec les objets posés"><div class="mi-conf">
         <h3 class="mi-conf-titre">Lancer le rendu réaliste</h3>
         <div class="mi-conf-ligne"><span class="mi-conf-lib">Modèle</span><select id="mi-modele" aria-label="Modèle de kie.ai pour le rendu"></select></div>
@@ -256,7 +295,9 @@ function construire(){
   document.body.append(fen);
   const q=s=>fen.querySelector(s);
   q('#mi-fermer').onclick=fermer;
-  q('#mi-ajouter').onclick=()=>{ const a=q('.mi-ajout'); a.hidden=!a.hidden; q('#mi-ajouter').setAttribute('aria-expanded',String(!a.hidden)); };
+  q('#mi-ajouter').onclick=()=>choisirMode('produit'); q('#mi-mode-decrire').onclick=()=>choisirMode('decrire'); q('#mi-changer').onclick=()=>choisirMode(null);
+  for(const t of ['Ajoute de la décoration','Ambiance du soir, lampes allumées','Ajoute des plantes','Style scandinave','Remplace le canapé par un canapé en velours vert']){
+    const x=el('button',{type:'button',class:'cat-idee'},t); x.onclick=()=>{ const c=q('#mi-precisions'); c.value=c.value.trim()?c.value.trim()+', '+t.toLowerCase():t; c.focus(); }; q('.mi-exemples').append(x); }
   q('#mi-effacer').onclick=ajouterZone;
   q('#mi-coller').onclick=coller; q('#mi-choisir').onclick=()=>q('#mi-fichier').click();
   q('#mi-fichier').onchange=e=>{ const f=e.target.files[0]; e.target.value=''; depuisFichier(f); };
