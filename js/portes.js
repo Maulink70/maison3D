@@ -15,7 +15,7 @@ import {ENTREE} from './corrections.js';
 // auto:false : pas d'ouverture à l'approche (le réduit, ouvert, barrerait l'entrée ; portes donnant dehors), seulement
 // en la touchant. ext : porte donnant dehors, une barrière invisible empêche de sortir. vitree : ouvrant vitré
 export const PORTES=[
-  {nom:'rez__porte_entree',              axe:'z', plan:-21.08,  a0:11.66,   a1:12.56,   charniere:11.66,   sens:-1, y0:0, h:2.10, mat:'sombre', cadre:'aucun', auto:false, ext:true},   // porte d'entrée : vers l'intérieur
+  {nom:'rez__porte_entree',              axe:'z', plan:-21.08,  a0:11.6375, a1:12.5825, charniere:11.6375, sens:-1, y0:0, h:2.11, mat:'sombre', cadre:'aucun', auto:false, ext:true},   // porte d'entrée : vers l'intérieur
   {nom:'rez__element_mural',             axe:'x', plan:19.47,   a0:-23.86,  a1:-22.826, charniere:-23.86,  sens:-1, y0:0.02, h:2.08, cadre:'vitree', vitree:true, auto:false, ext:true},   // porte-fenêtre cuisine : vers le four
   {nom:'rez__porte_interieure_88x218',   axe:'x', plan:13.038,  a0:-25.975, a1:-25.105, charniere:-25.105, sens:-1, y0:0, h:2.177, bois:true, cadre:'modele'},  // salle de bain
   {nom:'rez__porte_interieure_88x218_2', axe:'x', plan:13.038,  a0:-23.540, a1:-22.666, charniere:-22.666, sens:-1, y0:0, h:2.177, bois:true, cadre:'modele'},  // WC / buanderie

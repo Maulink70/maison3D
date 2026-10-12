@@ -137,8 +137,9 @@ function fenetreSalleDeBain(rez,mur,carrelage){
   rez.attach(maillage(tris,mur));
 }
 
-// Ouverture de la porte d'entrée dans le mur z = -21,11 (le modèle n'a qu'un mur plein) : x 11,62 → 12,60, 2,14 m
-export const ENTREE={x0:11.62, x1:12.60, h:2.14, zInt:-21.108, zExt:-20.908};
+// Ouverture de la porte d'entrée dans le mur z = -21,11 (le modèle n'a qu'un mur plein) : x 11,60 → 12,62, 2,15 m ;
+// battant de 94,5 × 211 cm (mesuré par Mauro le 12 octobre 2026), dormant de 4 cm : ouverture de 1,025 m, même centre
+export const ENTREE={x0:11.5975, x1:12.6225, h:2.15, zInt:-21.108, zExt:-20.908};
 
 // Ouverture des Velux dans le pan nord (87,5 × 133 cm, épaisseur du toit comprise) : ses sommets sont montés avec les Velux
 // (bas du cadre à 85 cm du sol, mesuré par Mauro ; fenetres.js monte le cadre et la doublure d'autant)

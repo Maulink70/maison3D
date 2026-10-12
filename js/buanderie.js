@@ -21,8 +21,8 @@ function wc(root){
 function lavabo(){
   const g=new THREE.Group(); g.name='rez__lavabo_wc';
   const z0=-24.20, cx=12.59;
-  // meuble à persiennes : une porte à gauche, deux tiroirs à droite
-  const mx0=cx-0.28, mx1=cx+0.28, mz1=z0+0.33, h=0.60;
+  // meuble à persiennes : une porte à gauche, deux tiroirs à droite ; 60 × 34,5 cm, 53 cm de haut (mesuré par Mauro le 12 octobre 2026)
+  const mx0=cx-0.30, mx1=cx+0.30, mz1=z0+0.345, h=0.53;
   boite(g,mx0,mx1,0.02,h,z0,mz1-0.018,blanc);
   boite(g,mx0+0.003,cx-0.003,0.03,h-0.01,mz1-0.018,mz1,blanc,true);
   boite(g,cx+0.003,mx1-0.003,h/2+0.003,h-0.01,mz1-0.018,mz1,blanc,true);
@@ -32,8 +32,8 @@ function lavabo(){
   lignes(g,cx+0.03,mx1-0.03,0.06,h/2-0.03,mz1+0.001,0.025);
   for(const [x,y] of [[cx-0.04,h-0.08],[cx+0.14,h*0.75],[cx+0.14,h*0.25]]){
     const b=new THREE.Mesh(new THREE.SphereGeometry(0.012,12,8),blanc); b.position.set(x,y,mz1+0.012); g.add(b); }
-  // vasque 50 × 40 cm, creuse
-  const v0=cx-0.25, v1=cx+0.25, vz1=z0+0.40, y0=0.69, y1=0.85, e=0.02;
+  // vasque 50 × 40 cm, creuse, bord à 81,5 cm (Mauro)
+  const v0=cx-0.25, v1=cx+0.25, vz1=z0+0.40, y0=0.655, y1=0.815, e=0.02;
   boite(g,v0,v1,y0,y0+0.04,z0,vz1,ceramique);
   boite(g,v0,v1,y0,y1,z0,z0+0.08,ceramique);
   boite(g,v0,v1,y0,y1,vz1-e,vz1,ceramique);
@@ -49,18 +49,18 @@ function lavabo(){
 
 function machines(){
   const g=new THREE.Group(); g.name='rez__lave_linge';
-  const x0=11.41, x1=12.01, zb=-24.91, zf=-24.31, cx=(x0+x1)/2;
+  const x0=11.41, x1=12.01, zb=-24.91, zf=-24.22, cx=(x0+x1)/2;   // 69 cm de profondeur, 1,70 m de haut (mesurés par Mauro)
   // lave-linge (0 à 0,85 m)
   boite(g,x0,x1,0,0.85,zb,zf,blanc,true);
   boite(g,x0+0.07,x0+0.40,0.74,0.81,zf,zf+0.008,sombre);
   boite(g,x1-0.19,x1-0.03,0.70,0.80,zf,zf+0.03,blanc,true);
   const anneau=new THREE.Mesh(new THREE.TorusGeometry(0.17,0.03,12,40),chrome); anneau.position.set(cx,0.40,zf+0.03); g.add(anneau);
   const vitre=new THREE.Mesh(new THREE.CircleGeometry(0.15,40),hublot); vitre.position.set(cx,0.40,zf+0.035); g.add(vitre);
-  // sèche-linge posé dessus (0,86 à 1,71 m) : grille d'aération, grande porte plate, bandeau de commande en haut
-  boite(g,x0,x1,0.86,1.71,zb,zf,blanc,true);
+  // sèche-linge posé dessus (0,86 à 1,70 m) : grille d'aération, grande porte plate, bandeau de commande en haut
+  boite(g,x0,x1,0.86,1.70,zb,zf,blanc,true);
   lignes(g,x0+0.05,x1-0.05,0.90,1.07,zf+0.001,0.018);
   boite(g,x0+0.01,x1-0.01,1.09,1.58,zf,zf+0.03,blanc,true);
-  boite(g,x0+0.08,x0+0.42,1.61,1.69,zf,zf+0.008,sombre);
+  boite(g,x0+0.08,x0+0.42,1.60,1.68,zf,zf+0.008,sombre);
   return g;
 }
 

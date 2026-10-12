@@ -32,7 +32,7 @@ export const META={
   'rez__lit':{l:'Lit 180 × 200',c:'meuble'}, 'rez__chevet_1':{l:'Table de chevet 1',c:'meuble'}, 'rez__chevet_2':{l:'Table de chevet 2',c:'meuble'}, 'rez__lampe_chevet_1':{l:'Lampe de chevet 1',c:'meuble'}, 'rez__lampe_chevet_2':{l:'Lampe de chevet 2',c:'meuble'}, 'rez__lustre_chambre':{l:'Lustre (chambre)',c:'meuble'},
   'rez__douche':{l:'Douche à l’italienne',c:'meuble'}, 'rez__vasque_sdb':{l:'Meuble vasque et miroir',c:'meuble'},
   'rez__seche_serviettes':{l:'Sèche-serviettes',c:'meuble'}, 'rez__wc_sdb':{l:'WC (salle de bain)',c:'meuble'},
-  'etage__lit_chambre_etage':{l:'Lit 140 × 200 (chambre)',c:'meuble'}, 'etage__bureau_chambre_etage':{l:'Bureau noir (chambre)',c:'meuble'},
+  'etage__lit_chambre_etage':{l:'Lit 160 × 200 (chambre)',c:'meuble'}, 'etage__bureau_chambre_etage':{l:'Bureau noir (chambre)',c:'meuble'},
   'etage__chevet_chambre':{l:'Table de chevet 1 (chambre)',c:'meuble'}, 'etage__chevet_chambre_2':{l:'Table de chevet 2 (chambre)',c:'meuble'},
   'etage__etagere_chambre':{l:'Étagère en hêtre (chambre)',c:'meuble'}, 'etage__ecran_chambre':{l:'Écran (chambre)',c:'meuble'}, 'etage__ordinateur_chambre':{l:'Ordinateur (chambre)',c:'meuble'},
   'etage__chaise_bureau':{l:'Chaise de bureau (chambre)',c:'meuble'}, 'etage__applique_chambre':{l:'Applique (chambre)',c:'meuble'},

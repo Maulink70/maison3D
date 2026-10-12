@@ -2,24 +2,27 @@
 import * as THREE from 'three';
 import {MAT, boite, cylindre, sphere, groupe} from './formes.js';
 
-// Meuble TV bas, crème, devant la partie fixe de la baie (mur sud, face intérieure z = -14,34)
+// Meuble TV bas, crème, devant la partie fixe de la baie (mur sud, face intérieure z = -14,34) ; 268 × 45 cm, à 90 cm du
+// mur est (mesurés par Mauro le 12 octobre 2026) ; la télévision est centrée dessus
+const TV_X1=19.44-0.90, TV_X0=TV_X1-2.68, TV_CX=(TV_X0+TV_X1)/2;
 function meubleTV(){
-  const g=groupe('rez__meuble_tv'), x0=16.10, x1=18.10, z1=-14.37, z0=z1-0.45;
+  const g=groupe('rez__meuble_tv'), x0=TV_X0, x1=TV_X1, z1=-14.37, z0=z1-0.45;
   boite(g,x0,x1,0.05,0.45,z0,z1,MAT.creme);
   boite(g,x0+0.04,x1-0.04,0,0.05,z0+0.04,z1-0.04,MAT.cremeFonce);
   const w=(x1-x0)/3; for(let i=0;i<3;i++) boite(g,x0+i*w+0.004,x0+(i+1)*w-0.004,0.07,0.43,z0-0.015,z0,MAT.creme,true);
   return g;
 }
+// Télévision 144 cm de large, 88 cm de haut pied compris (mesurée par Mauro)
 function television(){
-  const g=groupe('rez__tv'), cx=17.10, z=-14.60;
-  boite(g,cx-0.62,cx+0.62,0.53,1.25,z-0.025,z+0.025,MAT.noir);
-  boite(g,cx-0.60,cx+0.60,0.55,1.23,z-0.027,z-0.025,MAT.verreNoir);
-  boite(g,cx-0.04,cx+0.04,0.45,0.53,z-0.02,z+0.02,MAT.inox); boite(g,cx-0.20,cx+0.20,0.45,0.46,z-0.12,z+0.10,MAT.inox);   // pied en aluminium
+  const g=groupe('rez__tv'), cx=TV_CX, z=-14.60;
+  boite(g,cx-0.72,cx+0.72,0.51,1.33,z-0.025,z+0.025,MAT.noir);
+  boite(g,cx-0.70,cx+0.70,0.53,1.31,z-0.027,z-0.025,MAT.verreNoir);
+  boite(g,cx-0.04,cx+0.04,0.45,0.51,z-0.02,z+0.02,MAT.inox); boite(g,cx-0.20,cx+0.20,0.45,0.46,z-0.12,z+0.10,MAT.inox);   // pied en aluminium
   return g;
 }
-// Table basse : plateau en verre sur cadre chromé, sur le tapis
+// Table basse : plateau en verre sur cadre chromé, sur le tapis ; 115 × 80 cm (mesurée par Mauro)
 function tableBasse(){
-  const g=groupe('rez__table_basse'), x0=17.25, x1=18.25, z0=-16.85, z1=-16.25;
+  const g=groupe('rez__table_basse'), x0=17.175, x1=18.325, z0=-16.95, z1=-16.15;
   boite(g,x0,x1,0.38,0.395,z0,z1,MAT.verre);
   for(const [a,b] of [[x0+0.04,z0+0.04],[x1-0.04,z0+0.04],[x0+0.04,z1-0.04],[x1-0.04,z1-0.04]]) boite(g,a-0.012,a+0.012,0,0.38,b-0.012,b+0.012,MAT.chrome);
   boite(g,x0+0.03,x1-0.03,0.36,0.375,z0+0.03,z0+0.05,MAT.chrome); boite(g,x0+0.03,x1-0.03,0.36,0.375,z1-0.05,z1-0.03,MAT.chrome);
