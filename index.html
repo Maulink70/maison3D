@@ -46,62 +46,62 @@
   <header class="bar">
     <div class="brand"><strong>Appart. Diolly</strong><span id="brand-variante" title="Variante affichée">Actuel</span></div>
     <div class="aller">
-      <button class="ib seul" id="variantes" data-icone="save" aria-label="Variantes (enregistrement automatique) : « Actuel » affichée" aria-haspopup="true" aria-expanded="false" aria-controls="variantes-menu"></button>
+      <button class="ib seul" id="variantes" data-nom="Sauvegarde" data-icone="save" aria-label="Variantes (enregistrement automatique) : « Actuel » affichée" aria-haspopup="true" aria-expanded="false" aria-controls="variantes-menu"></button>
       <div id="variantes-menu" class="menu" role="dialog" aria-label="Variantes" hidden></div>
     </div>
     <!-- boutons à icône (icones.js) : le nom de chacun est dans aria-label, montré en infobulle -->
     <div class="seg" role="group" aria-label="Ce que l’on fait">
-      <button class="ib" id="mo-visite" data-icone="eye" aria-label="Visite (rien n’est modifiable)" aria-pressed="true"></button>
-      <button class="ib" id="mo-editer" data-icone="pencil" aria-label="Éditer les meubles" aria-pressed="false"></button>
+      <button class="ib" id="mo-visite" data-nom="Visite" data-icone="eye" aria-label="Visite (rien n’est modifiable)" aria-pressed="true"></button>
+      <button class="ib" id="mo-editer" data-nom="Éditer" data-icone="pencil" aria-label="Éditer les meubles" aria-pressed="false"></button>
     </div>
     <div class="seg" role="group" aria-label="Vue">
-      <button class="ib" id="m-orbit" data-icone="box" aria-label="Maquette" aria-pressed="true"></button>
-      <button class="ib" id="m-walk" data-icone="footprints" aria-label="1re personne" aria-pressed="false"></button>
-      <button class="ib" id="m-plan" data-icone="map" aria-label="Plan 2D" aria-pressed="false"></button>
+      <button class="ib" id="m-orbit" data-nom="3D" data-icone="box" aria-label="Maquette" aria-pressed="true"></button>
+      <button class="ib" id="m-walk" data-nom="1re pers." data-icone="footprints" aria-label="1re personne" aria-pressed="false"></button>
+      <button class="ib" id="m-plan" data-nom="2D" data-icone="map" aria-label="Plan 2D" aria-pressed="false"></button>
     </div>
     <div class="seg" id="plan-style" role="group" aria-label="Style du plan" hidden>
       <button class="ib" id="ps-archi" data-icone="drafting-compass" aria-label="Plan d’architecte" aria-pressed="true"></button>
       <button class="ib" id="ps-reel" data-icone="image" aria-label="Plan réaliste (maquette vue de dessus)" aria-pressed="false"></button>
     </div>
     <div class="seg" role="group" aria-label="Niveau">
-      <button class="ib" id="l-all" data-icone="niv-tout" aria-label="Tout l’appartement" aria-pressed="true"></button>
-      <button class="ib" id="l-rez" data-icone="niv-rez" aria-label="Rez" aria-pressed="false"></button>
-      <button class="ib" id="l-etage" data-icone="niv-etage" aria-label="Étage" aria-pressed="false"></button>
+      <button class="ib" id="l-all" data-nom="Tout" data-icone="niv-tout" aria-label="Tout l’appartement" aria-pressed="true"></button>
+      <button class="ib" id="l-rez" data-nom="Rez" data-icone="niv-rez" aria-label="Rez" aria-pressed="false"></button>
+      <button class="ib" id="l-etage" data-nom="Étage" data-icone="niv-etage" aria-label="Étage" aria-pressed="false"></button>
     </div>
     <div class="seg outils" role="group" aria-label="Outils">
       <div class="aller">
-        <button class="ib" id="aller" data-icone="navigation" aria-label="Aller à une pièce" aria-haspopup="menu" aria-expanded="false" aria-controls="aller-menu"></button>
+        <button class="ib" id="aller" data-nom="Aller à" data-icone="navigation" aria-label="Aller à une pièce" aria-haspopup="menu" aria-expanded="false" aria-controls="aller-menu"></button>
         <div id="aller-menu" class="menu" role="menu" aria-label="Aller à une pièce" hidden></div>
       </div>
-      <button class="ib" id="points-vue" data-icone="pin-photo" aria-label="Points de vue des photos"></button>
+      <button class="ib" id="points-vue" data-nom="Photoshot" data-icone="pin-photo" aria-label="Points de vue des photos"></button>
       <div class="aller">
-        <button class="ib" id="vues" data-icone="bookmark" aria-label="Vues enregistrées" aria-haspopup="true" aria-expanded="false" aria-controls="vues-menu"></button>
+        <button class="ib" id="vues" data-nom="Vues" data-icone="bookmark" aria-label="Vues enregistrées" aria-haspopup="true" aria-expanded="false" aria-controls="vues-menu"></button>
         <div id="vues-menu" class="menu" role="dialog" aria-label="Vues enregistrées" hidden></div>
       </div>
       <div class="aller">
-        <button class="ib" id="calques-bouton" data-icone="layers" aria-label="Calques et affichage" aria-haspopup="true" aria-expanded="false" aria-controls="calques-menu"></button>
+        <button class="ib" id="calques-bouton" data-nom="Affichage" data-icone="layers" aria-label="Calques et affichage" aria-haspopup="true" aria-expanded="false" aria-controls="calques-menu"></button>
         <div id="calques-menu" class="menu" role="dialog" aria-label="Calques" hidden></div>
       </div>
-      <button class="ib" id="mesurer" data-icone="ruler" aria-label="Mesurer (règle)" aria-pressed="false"></button>
+      <button class="ib" id="mesurer" data-nom="Règle" data-icone="ruler" aria-label="Mesurer (règle)" aria-pressed="false"></button>
       <div class="aller">
-        <button class="ib" id="imprimer" data-icone="printer" aria-label="Imprimer en PDF" aria-haspopup="true" aria-expanded="false" aria-controls="impr-menu"></button>
+        <button class="ib" id="imprimer" data-nom="Imprimer" data-icone="printer" aria-label="Imprimer en PDF" aria-haspopup="true" aria-expanded="false" aria-controls="impr-menu"></button>
         <div id="impr-menu" class="menu" role="dialog" aria-label="Imprimer en PDF" hidden></div>
       </div>
-      <button class="ib" id="photos" data-icone="camera" aria-label="Photo réaliste (photos, montages, rendus)" aria-haspopup="dialog" aria-expanded="false"></button>
-      <button class="ib" id="produits" data-icone="shopping-bag" aria-label="Produits (idées d’achat)" aria-haspopup="dialog" aria-expanded="false"></button>
+      <button class="ib" id="photos" data-nom="Media" data-icone="camera" aria-label="Photo réaliste (photos, montages, rendus)" aria-haspopup="dialog" aria-expanded="false"></button>
+      <button class="ib" id="produits" data-nom="Produits" data-icone="shopping-bag" aria-label="Produits (idées d’achat)" aria-haspopup="dialog" aria-expanded="false"></button>
     </div>
     <span class="spacer"></span>
     <div class="seg" role="group" aria-label="Portes et fenêtres">
-      <button class="ib" id="portes" data-icone="door-open" aria-label="Ouvrir les portes" aria-pressed="false"></button>
-      <button class="ib" id="auto" data-icone="radar" aria-label="Portes automatiques : oui" aria-pressed="true"></button>
-      <button class="ib" id="fenetres" data-icone="wind" aria-label="Ouvrir les fenêtres" aria-pressed="false"></button>
+      <button class="ib" id="portes" data-nom="Portes" data-icone="door-open" aria-label="Ouvrir les portes" aria-pressed="false"></button>
+      <button class="ib" id="auto" data-nom="Auto" data-icone="radar" aria-label="Portes automatiques : oui" aria-pressed="true"></button>
+      <button class="ib" id="fenetres" data-nom="Fenêtres" data-icone="wind" aria-label="Ouvrir les fenêtres" aria-pressed="false"></button>
     </div>
     <div class="aller" id="ajouter-boite" hidden>
-      <button class="ib seul" id="ajouter" data-icone="plus" aria-label="Ajouter un objet" aria-haspopup="true" aria-expanded="false" aria-controls="ajouter-menu"></button>
+      <button class="ib seul" id="ajouter" data-nom="Ajouter" data-icone="plus" aria-label="Ajouter un objet" aria-haspopup="true" aria-expanded="false" aria-controls="ajouter-menu"></button>
       <div id="ajouter-menu" class="menu" role="dialog" aria-label="Ajouter un objet" hidden></div>
     </div>
-    <button class="ib seul" id="toggle-panel" data-icone="armchair" aria-label="Meubles (liste et outils)" aria-expanded="true" hidden></button>
-    <button class="ib seul primary" id="installer" data-icone="download" aria-label="Installer l’application" hidden></button>
+    <button class="ib seul" id="toggle-panel" data-nom="Meubles" data-icone="armchair" aria-label="Meubles (liste et outils)" aria-expanded="true" hidden></button>
+    <button class="ib seul primary" id="installer" data-nom="Installer" data-icone="download" aria-label="Installer l’application" hidden></button>
     <div class="aller">
       <button class="ib seul" id="compte" data-icone="circle-user-round" aria-label="Se connecter" aria-haspopup="true" aria-expanded="false" aria-controls="compte-menu"></button>
       <div id="compte-menu" class="menu" role="dialog" aria-label="Compte" hidden></div>

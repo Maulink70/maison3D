@@ -81,7 +81,7 @@ function construire(raison){
   sortir.onclick=()=>{ fermerSession(); ouvrir(false); };
   m.append(bm,f,bs,ns,es,sortir);
 }
-function majBouton(){ const b=$('compte'); nommer(b,connecte()?'Compte : '+moi():'Se connecter'); b.dataset.etat=connecte()?etat.code:''; b.classList.toggle('connecte',connecte()); }
+function majBouton(){ const b=$('compte'); nommer(b,connecte()?'Compte : '+moi():'Se connecter'); b.dataset.nom=connecte()?moi():'Se connecter'; b.dataset.etat=connecte()?etat.code:''; b.classList.toggle('connecte',connecte()); }
 
 // Écran d'entrée (étape 3) : sans compte, on ne voit que lui ; entrer() lance le chargement de la maquette.
 // Se déconnecter (ou un jeton refusé par n8n) recharge la page : on revient à cet écran.

@@ -61,11 +61,13 @@ const bouton=e=>e.target instanceof Element?e.target.closest('button.ib[aria-lab
 
 export function initIcones(){
   for(const b of document.querySelectorAll('button[data-icone]')) b.insertAdjacentHTML('afterbegin',svg(b.dataset.icone));
-  // barre du haut : le nom sous l'icône, montré sur PC seulement (Mauro, 12 octobre 2026 ; css : .ib-nom), il suit aria-label
-  const suivre=new MutationObserver(l=>{ for(const m of l){ const n=m.target.querySelector(':scope > .ib-nom'); if(n) n.textContent=m.target.getAttribute('aria-label')||''; } });
+  // barre du haut : le nom sous l'icône, montré sur PC seulement (Mauro, 12 octobre 2026 ; css : .ib-nom) : le nom court
+  // choisi par Mauro (data-nom), sinon aria-label ; l'infobulle garde le nom complet (aria-label)
+  const nomCourt=b=>b.dataset.nom||b.getAttribute('aria-label')||'';
+  const suivre=new MutationObserver(l=>{ for(const m of l){ const n=m.target.querySelector(':scope > .ib-nom'); if(n) n.textContent=nomCourt(m.target); } });
   for(const b of document.querySelectorAll('header.bar button.ib[data-icone]')){
-    const n=document.createElement('span'); n.className='ib-nom'; n.textContent=b.getAttribute('aria-label')||''; b.append(n);
-    suivre.observe(b,{attributes:true,attributeFilter:['aria-label']}); }
+    const n=document.createElement('span'); n.className='ib-nom'; n.textContent=nomCourt(b); b.append(n);
+    suivre.observe(b,{attributes:true,attributeFilter:['aria-label','data-nom']}); }
   bulle=document.createElement('div'); bulle.id='infobulle'; bulle.setAttribute('role','tooltip'); bulle.hidden=true; document.body.append(bulle);
   // souris : survol
   addEventListener('pointerover',e=>{ if(e.pointerType!=='mouse') return; const b=bouton(e); if(!b||b===cible||b===attente) return;
