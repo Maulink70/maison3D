@@ -75,20 +75,22 @@ function versMur(niv,x,z,dx,dz){
 }
 
 // ---------- ce qu'il faut dessiner : étiquettes et cotes, points en mètres (x, z) au sol d'un niveau ----------
-function aDessiner(niveaux,seule=null){
+// cotes sur le plan 2D seulement (Mauro, 12 octobre 2026) : en 3D, tracées au sol, elles passaient sur les meubles et les murs
+// et glissaient par rapport au haut des murs quand la vue tournait
+function aDessiner(niveaux,seule=null,cotes=true){
   const out=[];
   for(const p of PIECES.filter(q=>niveaux.includes(q.niveau)&&(!seule||q.id===seule))){
     const y=sol(p.niveau)+0.05, [cx,cz]=centre(p), l=lignesPiece(p);
     if(l.length) out.push({type:'etiquette',id:'et:'+p.id,y,x:cx,z:cz,lignes:l,titre:etat.noms});
-    if(etat.cPieces) for(const [k,r] of p.rects.entries()){ if((r[2]-r[0])*(r[3]-r[1])<1.5) continue;
+    if(cotes&&etat.cPieces) for(const [k,r] of p.rects.entries()){ if((r[2]-r[0])*(r[3]-r[1])<1.5) continue;
       const zh=r[1]+(r[3]-r[1])*0.25, xv=r[0]+(r[2]-r[0])*0.25;
       out.push({type:'cote',id:`pi:${p.id}:${k}:l`,y,a:[r[0],zh],b:[r[2],zh],texte:m(r[2]-r[0])});
       out.push({type:'cote',id:`pi:${p.id}:${k}:p`,y,a:[xv,r[1]],b:[xv,r[3]],texte:m(r[3]-r[1])}); }
-    if(etat.cMurs){ const c=contourPiece(p);
+    if(cotes&&etat.cMurs){ const c=contourPiece(p);
       for(let k=0;k<c.length;k++){ const a=c[k], b=c[(k+1)%c.length], L=Math.hypot(b[0]-a[0],b[1]-a[1]); if(L<0.3) continue;
         out.push({type:'cote',id:`mu:${p.id}:${k}`,y,a,b,dedans:[cx,cz],decal:13,texte:m(L)}); } }
   }
-  if(etat.cOuv){
+  if(cotes&&etat.cOuv){
     for(const pt of app.portes){ const d=pt.def; if(d.fenetre) continue; const niv=d.y0>1?'etage':'rez'; if(!niveaux.includes(niv)) continue;
       const h=d.axe==='x'?[d.plan,d.charniere]:[d.charniere,d.plan], autre=d.charniere===d.a0?d.a1:d.a0, f=d.axe==='x'?[d.plan,autre]:[autre,d.plan];
       const vx=f[0]-h[0], vz=f[1]-h[1], c=Math.cos(pt.ouvert), s=Math.sin(pt.ouvert), ov=[vx*c+vz*s,-vx*s+vz*c];
@@ -101,7 +103,7 @@ function aDessiner(niveaux,seule=null){
     }
   }
   const it=app.selected;
-  if(etat.cMeuble&&it&&!it.hidden&&niveaux.includes(niveauDe(it))){
+  if(cotes&&etat.cMeuble&&it&&!it.hidden&&niveaux.includes(niveauDe(it))){
     const niv=niveauDe(it), y=sol(niv)+0.05, g=it.g, c=Math.cos(g.rotation.y), s=Math.sin(g.rotation.y), hx=it.size.x/2, hz=it.size.z/2;
     const P=(lx,lz)=>[g.position.x+lx*c+lz*s, g.position.z-lx*s+lz*c], mil=[g.position.x,g.position.z];
     out.push({type:'cote',id:'me:'+it.name+':l',y,a:P(-hx,-hz),b:P(hx,-hz),dedans:mil,decal:-12,texte:m(it.size.x)});
@@ -169,7 +171,7 @@ export function majCalques(){
   if(app.mode==='plan'){ niveaux=[niveauDuPlan()]; proj=(x,y,z)=>versEcran(x,z); }
   else { niveaux=app.level==='all'?['rez','etage']:[app.level]; const r=svg.getBoundingClientRect(), cam=app.camera;
     proj=(x,y,z)=>{ decaler(v3.set(x,y,z)).project(cam); if(v3.z>1||v3.z<-1) return null; return {x:(v3.x+1)/2*r.width,y:(1-v3.y)/2*r.height}; }; }
-  dessiner(aDessiner(niveaux,app.mode==='orbit'&&isolementActif()?isolement.piece:null),proj);   // pièce isolée : ses calques seulement
+  dessiner(aDessiner(niveaux,app.mode==='orbit'&&isolementActif()?isolement.piece:null,app.mode==='plan'),proj);   // pièce isolée : ses calques seulement
 }
 // 1re personne : pièce où l'on est (nom, surfaces, hauteur), en haut à gauche sous la barre
 function majBandeau(){
@@ -188,7 +190,7 @@ export function initCalques(){
   relire();
   const bt=$('calques-bouton'), menu=$('calques-menu');
   const ouvrir=oui=>{ menu.hidden=!oui; bt.setAttribute('aria-expanded',String(oui)); if(oui){ majMenu(); caler(menu); } };
-  const groupes=[['Affichage',OPTIONS.slice(8)],['Pièces',OPTIONS.slice(0,3)],['Cotes',OPTIONS.slice(3,7)],['Règle',OPTIONS.slice(7,8)]];
+  const groupes=[['Affichage',OPTIONS.slice(8)],['Pièces',OPTIONS.slice(0,3)],['Cotes (sur le plan 2D)',OPTIONS.slice(3,7)],['Règle',OPTIONS.slice(7,8)]];
   for(const [titre,opts] of groupes){
     const g=document.createElement('div'); g.className='menu-groupe';
     const t=document.createElement('div'); t.className='menu-titre'; t.textContent=titre; g.append(t);
