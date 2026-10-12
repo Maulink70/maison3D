@@ -78,8 +78,9 @@ export function select(name){
   $('t-color').value=it.color||'#ffffff';
   $('t-hide').textContent=it.hidden?'Afficher':'Masquer';
   app.selBox=new THREE.BoxHelper(it.g,new THREE.Color(css('--accent')||'#2c5a86')); scene.add(app.selBox);
-  // sur le plan, on déplace en faisant glisser le meuble et on le tourne par sa poignée (pas de poignée 3D)
-  modeOutil(null); $('t-move').disabled=$('t-poignee').disabled=app.mode==='plan';
+  // sur le plan, on déplace en faisant glisser le meuble et on le tourne par sa poignée (pas de poignée 3D) ; ailleurs,
+  // la poignée de déplacement vient d'elle-même (Mauro, 12 octobre 2026), sauf pour les portes et fenêtres
+  modeOutil(app.mode!=='plan'&&it.meta.c!=='ouverture'?'translate':null); $('t-move').disabled=$('t-poignee').disabled=app.mode==='plan';
   majAngle(); majPorte(); majPanneauLampe();
   openSheet(true);
   document.querySelector('.row.sel')?.scrollIntoView({block:'nearest'});
