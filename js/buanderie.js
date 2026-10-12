@@ -94,7 +94,7 @@ function texFaience(){
   const t=textureDe(c); t.wrapS=t.wrapT=THREE.RepeatWrapping; t.colorSpace=THREE.SRGBColorSpace; t.anisotropy=8; return t;
 }
 // Découpe d'un polygone par le demi-espace q·axe ≥ val (sens +1) ou ≤ val (sens -1)
-function couper(poly,axe,val,sens){
+export function couper(poly,axe,val,sens){
   const r=[];
   for(let i=0;i<poly.length;i++){ const a=poly[i], b=poly[(i+1)%poly.length], da=sens*(a[axe]-val), db=sens*(b[axe]-val);
     if(da>=0) r.push(a); if((da>=0)!==(db>=0)) r.push(a.clone().lerp(b,da/(da-db))); }

@@ -10,17 +10,18 @@ import {ENTREE} from './corrections.js';
 // axe 'x' : mur à x constant (plan), battant de a0 à a1 en z ; axe 'z' : mur à z constant, battant en x.
 // charniere : extrémité du battant côté charnière ; sens : côté (+1 / -1 sur la normale du mur) vers lequel il s'ouvre.
 // cadre : 'modele' (cadre du modèle gardé), 'neuf' (cadre reconstruit, épaisseur du mur), 'aucun' (déjà construit)
-// Portes à cadre du modèle : battant à la taille de l'ouverture du cadre, 3 mm de jeu (il faisait 70 cm dans un cadre de
-// 88 à 98 cm : 9 cm de vide de chaque côté et en haut, vu par Mauro le 9 octobre 2026)
+// Portes à cadre du modèle (rez : salle de bain, WC, chambre) : battant et cadre blanc relevés par Mauro le 12 octobre 2026
+// (battant 74,5 × 210 cm dans un cadre de 86,5 × 216, chambre 84,5 × 210 dans 100,5 × 218) ; le cadre remplit l'ouverture
+// du modèle (ouv, jusqu'à haut) jusqu'au battant, 3 mm de jeu : aucun jour (audit du 9 octobre 2026)
 // auto:false : pas d'ouverture à l'approche (le réduit, ouvert, barrerait l'entrée ; portes donnant dehors), seulement
 // en la touchant. ext : porte donnant dehors, une barrière invisible empêche de sortir. vitree : ouvrant vitré
 export const PORTES=[
   {nom:'rez__porte_entree',              axe:'z', plan:-21.08,  a0:11.6375, a1:12.5825, charniere:11.6375, sens:-1, y0:0, h:2.11, mat:'sombre', cadre:'aucun', auto:false, ext:true},   // porte d'entrée : vers l'intérieur
   {nom:'rez__element_mural',             axe:'x', plan:19.47,   a0:-23.86,  a1:-22.826, charniere:-23.86,  sens:-1, y0:0.02, h:2.08, cadre:'vitree', vitree:true, auto:false, ext:true},   // porte-fenêtre cuisine : vers le four
-  {nom:'rez__porte_interieure_88x218',   axe:'x', plan:13.038,  a0:-25.975, a1:-25.105, charniere:-25.105, sens:-1, y0:0, h:2.177, bois:true, cadre:'modele'},  // salle de bain
-  {nom:'rez__porte_interieure_88x218_2', axe:'x', plan:13.038,  a0:-23.540, a1:-22.666, charniere:-22.666, sens:-1, y0:0, h:2.177, bois:true, cadre:'modele'},  // WC / buanderie
-  {nom:'rez__porte_interieure_98_(80)',  axe:'z', plan:-24.968, a0:13.176,  a1:14.150,  charniere:13.176,  sens:-1, y0:0, h:2.177, bois:true, cadre:'modele'},  // chambre
-  {nom:'rez__porte_reduit',              axe:'z', plan:-21.065, a0:12.95,   a1:13.68,   charniere:12.95,   sens:-1, y0:0, h:2.02, bois:false, cadre:'aucun', auto:false},   // réduit sous l'escalier : s'ouvre vers l'entrée, charnière côté porte d'entrée
+  {nom:'rez__porte_interieure_88x218',   axe:'x', plan:13.038,  a0:-25.911, a1:-25.166, charniere:-25.166, sens:-1, y0:0, h:2.10, bois:true, cadre:'modele', ouv:[-25.978,-25.099], haut:2.18, blanc:0.865, mur:0.08},  // salle de bain
+  {nom:'rez__porte_interieure_88x218_2', axe:'x', plan:13.038,  a0:-23.4755,a1:-22.7305,charniere:-22.7305,sens:-1, y0:0, h:2.10, bois:true, cadre:'modele', ouv:[-23.543,-22.663], haut:2.18, blanc:0.865, mur:0.08},  // WC / buanderie
+  {nom:'rez__porte_interieure_98_(80)',  axe:'z', plan:-24.968, a0:13.2405, a1:14.0855, charniere:13.2405, sens:-1, y0:0, h:2.10, bois:true, cadre:'modele', ouv:[13.173,14.153], haut:2.18, blanc:1.005, mur:0.08},  // chambre
+  {nom:'rez__porte_reduit',              axe:'z', plan:-21.065, a0:12.99,   a1:13.64,   charniere:12.99,   sens:-1, y0:0, h:2.10, bois:false, cadre:'aucun', auto:false},   // réduit sous l'escalier : s'ouvre vers l'entrée, charnière côté porte d'entrée
   {nom:'etage__porte_dressing',          axe:'z', plan:-22.79,  a0:12.975,  a1:13.875,  charniere:13.875,  sens:-1, y0:F, h:2.05, bois:false, cadre:'neuf', ouv:[12.93,13.92], mur:0.08},
   {nom:'etage__porte_chambre_etage',     axe:'x', plan:16.74,   a0:-23.82,  a1:-22.91,  charniere:-22.91,  sens:+1, y0:F, h:2.05, bois:false, cadre:'neuf', ouv:[-23.86,-22.87], mur:0.08},
   {nom:'etage__porte_douche_etage',      axe:'x', plan:16.74,   a0:-22.74,  a1:-21.94,  charniere:-22.74,  sens:+1, y0:F, h:2.05, bois:false, cadre:'neuf', ouv:[-22.78,-21.90], mur:0.08}
@@ -46,6 +47,15 @@ function cadreNeuf(g,d){
   piece(o0,b0,d.y0,ht,d.plan-e,d.plan+e); piece(b1,o1,d.y0,ht,d.plan-e,d.plan+e); piece(o0,o1,d.y0+d.h,ht,d.plan-e,d.plan+e);
   for(const s of [-1,1]){ const p0=d.plan+s*e, p1=p0+s*0.012, lo=Math.min(p0,p1), hi=Math.max(p0,p1);
     piece(o0-c,o0+0.01,d.y0,ht+c,lo,hi); piece(o1-0.01,o1+c,d.y0,ht+c,lo,hi); piece(o0-c,o1+c,ht,ht+c,lo,hi); }
+}
+
+// Cadre blanc des portes du rez : montants et traverse dans l'épaisseur du mur, de l'ouverture du modèle jusqu'au battant,
+// 1 cm en saillie de chaque côté ; montants élargis jusqu'à la largeur hors tout mesurée (blanc) quand elle dépasse l'ouverture
+function cadreBlanc(g,d){
+  const [o0,o1]=d.ouv, e=d.mur/2+0.01, c=(o0+o1)/2, f0=Math.min(o0,c-d.blanc/2), f1=Math.max(o1,c+d.blanc/2);
+  const b0=Math.min(d.a0,d.a1)-0.003, b1=Math.max(d.a0,d.a1)+0.003, m=blancPorte;
+  const piece=(a0,a1,y0,y1)=>d.axe==='x'?boite(g,d.plan-e,d.plan+e,y0,y1,a0,a1,m):boite(g,a0,a1,y0,y1,d.plan-e,d.plan+e,m);
+  piece(f0,b0,d.y0,d.haut); piece(b1,f1,d.y0,d.haut); piece(b0,b1,d.y0+d.h+0.003,d.haut);
 }
 
 // Battant (4 cm) et poignées à béquille des deux côtés, construits autour de la charnière
@@ -91,6 +101,7 @@ export function installerPortes(root){
       if(d.cadre!=='aucun'&&!cadre) vieux.push(o); });
     for(const o of vieux) o.removeFromParent();
     const g=new THREE.Group(); if(d.cadre==='neuf') fusionner(cadreNeuf(g,d)||g);
+    if(d.blanc){ cadreBlanc(g,d); fusionner(g); }
     if(d.cadre==='vitree'){ dormantVitree(g,matBois); fusionner(g); }
     if(d.ext) barriere(d);
     const {pivot,feuille,ouvert}=battant(d,matBois); fusionner(pivot); g.add(pivot);   // poignées et chambranles fusionnés : moins d'appels de dessin

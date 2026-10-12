@@ -137,6 +137,16 @@ const MOTIFS={
     const joint=(x,y)=>{ const r=Math.floor(y/H), xx=(x+(r%2?L/2:0))%N; return xx%L<M||y%H<M; };
     const v=(x,y)=>{ const r=Math.floor(y/H), b=Math.floor(((x+(r%2?L/2:0))%N)/L); return joint(x,y)?0.95:tons[(r*3+b)%64]*(0.92+0.1*(f[y*N+x]-0.5)); };
     return {map:toile(N,(x,y)=>gris(v(x,y))), bump:toile(N,(x,y)=>gris(joint(x,y)?0.15:0.7+0.2*f[y*N+x]))}; }, bumpScale:1.6},
+  // plaquettes de pierre (douche et coffrage du WC de la salle de bain du rez) : rangées de 5 cm, bandes de 12 à 40 cm
+  // de long, une teinte par bande, joints sombres en creux
+  plaquettes:{taille:0.60, dessin(){ const a=graine(89), f=fbm(N,3,a,16), R=12, H=N/R, rangs=[];
+    for(let r=0;r<R;r++){ const bords=[0]; let x=0; while(x<N){ x+=Math.round(N*(0.2+0.47*a())); bords.push(Math.min(x,N)); }
+      if(N-bords[bords.length-2]<20) bords.splice(bords.length-2,1);                     // pas de bande trop courte au raccord
+      rangs.push({bords, tons:bords.map(()=>0.72+0.28*a()), relief:bords.map(()=>0.55+0.3*a())}); }
+    const ou=(x,y)=>{ const r=Math.floor(y/H), g=rangs[r], ly=y-r*H; let k=0; while(g.bords[k+1]<=x) k++;
+      return {g, k, joint:ly<1.5||x-g.bords[k]<1.5}; };
+    return {map:toile(N,(x,y)=>{ const o=ou(x,y); return gris(o.joint?0.45:o.g.tons[o.k]*(0.9+0.2*(f[y*N+x]-0.5))); }),
+      bump:toile(N,(x,y)=>{ const o=ou(x,y); return gris(o.joint?0.1:o.g.relief[o.k]+0.2*(f[y*N+x]-0.5)); })}; }, bumpScale:1.8},
   // rotin, cannage : brins tressés
   rotin:{taille:0.12, dessin(){ const a=graine(61), f=fbm(N,2,a,16), B=32;
     const v=(x,y)=>{ const bx=Math.floor(x/B), by=Math.floor(y/B), lx=x%B, ly=y%B; if(lx<2||ly<2) return 0.3;
@@ -147,6 +157,17 @@ const MOTIFS={
 function carreaux(s,j){ const a=graine(s), f=fbm(N,3,a,8), tons=[0,1,2,3].map(()=>0.93+0.05*a()), T=N/2;
   const joint=(x,y)=>{ const tx=x%T, ty=y%T; return tx<j||ty<j||tx>=T-j||ty>=T-j; };
   return {map:toile(N,(x,y)=>gris(joint(x,y)?0.62:tons[(x>=T?1:0)+(y>=T?2:0)]+0.03*(f[y*N+x]-0.5))), bump:toile(N,(x,y)=>gris(joint(x,y)?0.2:0.75))}; }
+// Grand carreau d'aspect pierre (salle de bain du rez, 60 × 30 cm posé en largeur) : un carreau par unité de texture,
+// joints fins sur le bord ; gris clair autour de 1, teinté par la couleur du matériau
+let carreauPierre=null;
+export function texturesCarreauPierre(){
+  if(carreauPierre) return carreauPierre;
+  const a=graine(83), f=fbm(N,4,a,4), fin=fbm(N,2,a,64), grain=fbm(N,2,a,32);
+  const joint=(x,y)=>x<1||x>=N-1||y<2||y>=N-2;
+  const v=(x,y)=>{ const i=y*N+x; return 0.9+0.05*(f[i]-0.5)+0.08*(fin[i]-0.5)+0.05*(grain[i]-0.5); };
+  carreauPierre={map:texture(toile(N,(x,y)=>gris(joint(x,y)?0.74:v(x,y))),true), bump:texture(toile(N,(x,y)=>gris(joint(x,y)?0.2:0.72+0.1*fin[y*N+x])),false)};
+  return carreauPierre;
+}
 // bois en lames : teinte chaude, relief du fil
 const boisDe=v=>({map:toile(N,(x,y)=>{ const g=v(x,y); return [g*255,g*247,g*236].map(Math.round); }), bump:toile(N,(x,y)=>gris(v(x,y)))});
 const cache={};
@@ -192,7 +213,7 @@ export function poserCoordonnees(racine){
 const PAR_NOM={cuir:'cuir', cuirClair:'cuir', etage_cuirNoir:'cuir',
   tissuBleu:'tissu', lingeBleu:'tissu', lingeMarine:'tissu', drap:'tissu', tissuBeige:'tissu', etage_gris:'tissu', etage_tissuNoir:'tissu',
   boisCuisine:'bois', chene:'bois', erable:'bois', boisBrunClair:'bois', etage_hetre:'bois',
-  pierre:'pierre', inox:'inox'};
+  pierre:'pierre', inox:'inox', briqueSombre:'plaquettes', pierreClaire:'pierre'};
 export function habillerConstruits(racine){
   racine.traverse(o=>{ if(!o.isMesh) return; const m=o.material;
     if(!Array.isArray(m)&&!m.userData.motif&&PAR_NOM[m.name]) habiller(m,PAR_NOM[m.name]); });

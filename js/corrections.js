@@ -72,7 +72,7 @@ function triangleMoinsRect(P,r){
 }
 // Perce un rectangle dans les faces planes d'un maillage (test : le triangle est-il dans le plan voulu ?) : triangles
 // touchés neutralisés, refaits sans le rectangle dans un maillage frère (même matériau)
-function percer(o,test,r){
+export function percer(o,test,r){
   o.updateMatrixWorld(true); const nouveaux=[]; let n=0;
   neutraliser(o,pts=>{ if(!test(pts)) return false;
     const xs=pts.map(q=>q.x), ys=pts.map(q=>q.y);

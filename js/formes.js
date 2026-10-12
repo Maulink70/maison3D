@@ -12,7 +12,8 @@ export const MAT={
   sombre:std(0x26292d,{roughness:0.4}), noir:std(0x121314,{roughness:0.3}), plinthe:std(0x2c2c2c,{roughness:0.8}),
   cuir:std(0x6f1f2b,{roughness:0.55}), cuirClair:std(0x86283a,{roughness:0.5}),
   tissuBeige:std(0xcdbfa9,{roughness:0.9}), drap:std(0xf1ede5,{roughness:0.9}),
-  pierre:std(0x4b4e52,{roughness:0.75}), briqueSombre:std(0x4a4440,{roughness:0.85}), carrelageGris:std(0x8f8b86,{roughness:0.7}),
+  pierre:std(0x4b4e52,{roughness:0.75}), briqueSombre:std(0x6a5d52,{roughness:0.8}), carrelageGris:std(0x8f8b86,{roughness:0.7}),
+  pierreClaire:std(0xd3cbbd,{roughness:0.7}),
   porteSombre:std(0x3a2a22,{roughness:0.6}),
   // teintes et matières précisées par Mauro (questionnaire des textures, 8 octobre 2026)
   laqueCreme:std(0xeee6d4,{roughness:0.3}), cremeFonce:std(0xd2c5a8,{roughness:0.5}), verreOpaque:std(0xe2ecf3,{roughness:0.08}),
@@ -45,6 +46,14 @@ export function lignes(parent,a0,a1,y0,y1,plan,pas,axe='z'){
   const pts=[]; for(let y=y0+pas/2;y<y1;y+=pas) pts.push(...(axe==='z'?[a0,y,plan,a1,y,plan]:[plan,y,a0,plan,y,a1]));
   const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.Float32BufferAttribute(pts,3));
   const l=new THREE.LineSegments(g,TRAIT); l.raycast=()=>{}; l.userData.fusion=true; parent.add(l); return l;
+}
+// Polygone vertical extrudé (vitre taillée, mur sous une pente) : pts = [[a, y]…] dans le plan du mur, a = z pour un mur
+// à x constant (axe 'x', de p0 à p1 en x), a = x pour un mur à z constant (axe 'z', de p0 à p1 en z)
+export function prisme(parent,axe,p0,p1,pts,mat){
+  const forme=new THREE.Shape(pts.map(([a,y])=>new THREE.Vector2(axe==='x'?-a:a,y)));
+  const geo=new THREE.ExtrudeGeometry(forme,{depth:p1-p0,bevelEnabled:false});
+  geo.applyMatrix4(axe==='x'?new THREE.Matrix4().set(0,0,1,p0, 0,1,0,0, -1,0,0,0, 0,0,0,1):new THREE.Matrix4().makeTranslation(0,0,p0));
+  const m=new THREE.Mesh(geo,mat); m.userData.fusion=true; parent.add(m); return m;
 }
 export function groupe(nom){ const g=new THREE.Group(); g.name=nom; return g; }
 // Coordonnées de texture en mètres (motif de « taille » m) : une texture de bois ou de carrelage garde son échelle

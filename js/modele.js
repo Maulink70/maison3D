@@ -10,7 +10,7 @@ import {fusionner, MAT} from './formes.js';
 import {remplacerEscalier, remplacerCloison, cloisonReduit, toitSud, decorEntree, jointsToitSud} from './rez_structure.js';
 import {construireCuisine} from './rez_cuisine.js';
 import {construireSalon, construireBuffet} from './rez_salon.js';
-import {construirePieces} from './rez_pieces.js';
+import {construirePieces, carrelerMursSdb} from './rez_pieces.js';
 import {plafondsPin, solDouche, murAubergine, ouvrirPorteDouche, carrelerDouche, faitage} from './etage_structure.js';
 import {construireEtage} from './etage_pieces.js';
 import {installerPortes} from './portes.js';
@@ -70,6 +70,7 @@ function installerStructure(root){
   carrelerMursWC(root);                        // faïence blanche du WC / buanderie (photo de Mauro)
   const corrections=corrigerStructure(root);   // sols, seuil de la baie, mur percé pour la porte d'entrée (audit)
   ouvrirPorteDouche(root); carrelerDouche(root); corrigerVitres(root);
+  carrelerMursSdb(root);                        // murs de la salle de bain du rez carrelés (relevé de Mauro)
   root.traverse(o=>{ if(o.isMesh&&PEINTURE.includes(o.material.name)&&!o.material.userData.motif) habiller(o.material,'peinture'); });
   poserCoordonnees(root);                      // avant les dos des faces, qui partagent la géométrie
   doublerFaces(root); app.model.add(root);

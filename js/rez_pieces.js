@@ -1,7 +1,9 @@
 // Entrée, chambre et salle de bain du rez, d'après les photos de Mauro
 import * as THREE from 'three';
-import {MAT, boite, cylindre, sphere, groupe, lignes, copier} from './formes.js';
-import {ENTREE} from './corrections.js';
+import {MAT, boite, cylindre, sphere, groupe, lignes, copier, prisme, enFlottants} from './formes.js';
+import {texturesCarreauPierre} from './matieres.js';
+import {couper} from './buanderie.js';
+import {ENTREE, percer} from './corrections.js';
 import {app} from './app.js';
 
 // ---------- Entrée ----------
@@ -27,12 +29,9 @@ function porteEntree(){
   boite(g,x0+0.04,x1-0.04,0,0.012,zInt,zExt,MAT.pierre);
   return g;
 }
-// Porte blanche du réduit sous l'escalier, à côté de la porte d'entrée : chambranle ici, battant ouvrable dans portes.js
-function porteReduit(){
-  const g=groupe('rez__porte_reduit'), z0=-21.135, z1=-21.10;
-  boite(g,12.87,12.93,0,2.10,z0,z1,MAT.blanc); boite(g,13.70,13.766,0,2.10,z0,z1,MAT.blanc); boite(g,12.87,13.766,2.04,2.10,z0,z1,MAT.blanc);
-  return g;
-}
+// Porte blanche du réduit sous l'escalier, à côté de la porte d'entrée : affleurante, sans cadre ni chambranle (photo
+// « Entrée 1 ») ; le battant ouvrable est posé dans ce groupe par portes.js
+function porteReduit(){ return groupe('rez__porte_reduit'); }
 // Dans le réduit (x 12,87 → 13,77, du mur z = -21,03 vers le nord, plafond rampant) : aspirateur traîneau contre le
 // mur ouest, près de la porte, et 3 sacs de tri (emballages, papier, verre) au fond
 const tissu=c=>new THREE.MeshStandardMaterial({color:c,roughness:0.85});
@@ -108,19 +107,95 @@ function lustre(){
 }
 
 // ---------- Salle de bain ----------
-// Douche à l'italienne à droite de la baignoire : paroi vitrée, mur en plaquettes de pierre sombre, ciel de pluie
+// Douche à l'italienne à droite de la baignoire, 165 × 98 cm (relevé de Mauro, 12 octobre 2026) : paroi vitrée posée
+// sur le rebord de la baignoire, collée au mur nord et taillée selon la pente (73 cm côté mur, coude 2 cm sous le plafond,
+// horizontale ensuite, 97 cm de long) ; mur du fond en plaquettes de pierre sombre jusqu'à la pente et au plafond ;
+// bandeau lumineux de 1,23 m sous le plafond ; colonne de douche, mitigeur à 1,22 m, pommeau tourné vers le lavabo (ouest).
+// Dans la douche, la pente est plus raide que le pan du toit au-dessus de la baignoire : elle rejoint le plafond à
+// z = -27,37 et non -27,23 (photo « Salle de bain 2 » calée, bandeau de 123 cm mesuré par Mauro) ; voir penteDouche()
+export const pentePanNord=y=>-27.799+(y-1.26)*0.50088;               // pan nord du toit (face intérieure) : z selon la hauteur
+const DOUCHE={x0:13.757, x1:14.748, zMur:-27.799, yGenou:1.26, zPlafond:-27.37};
 function douche(){
-  const g=groupe('rez__douche');
-  boite(g,13.785,13.797,0.02,2.00,-27.78,-26.84,MAT.verre);                              // paroi vitrée fixe
-  boite(g,14.72,14.75,0,2.39,-27.10,-26.11,MAT.briqueSombre); boite(g,14.72,14.75,0,1.40,-27.78,-27.10,MAT.briqueSombre);
-  lignes(g,-27.78,-26.11,0.03,1.38,14.719,0.075,'x');
-  boite(g,14.70,14.72,2.37,2.39,-27.05,-26.15,MAT.lumiere);                              // bandeau lumineux
-  // colonne contre le mur en plaquettes, au début de la pente du toit ; le pommeau est tourné vers le lavabo (ouest)
-  const xc=14.70, zc=-27.12;
-  cylindre(g,xc,0.90,2.02,zc,0.012,MAT.chrome);
-  boite(g,xc-0.06,xc,1.08,1.14,zc-0.07,zc+0.07,MAT.chrome);                             // mitigeur thermostatique
-  boite(g,xc-0.30,xc,2.00,2.02,zc-0.005,zc+0.005,MAT.chrome); cylindre(g,xc-0.32,1.99,2.01,zc,0.12,MAT.chrome);
+  const g=groupe('rez__douche'), {zMur,zPlafond}=DOUCHE, z1=-26.829, yb=0.525, yh=2.38;   // rebord de la baignoire à 52,5 cm
+  prisme(g,'x',13.745,13.757,[[zMur,yb],[z1,yb],[z1,yh],[zPlafond,yh],[zMur,1.24]],MAT.verre);
+  prisme(g,'x',14.72,14.748,[[zMur,0],[-26.108,0],[-26.108,2.40],[zPlafond,2.40],[zMur,DOUCHE.yGenou]],MAT.briqueSombre);
+  boite(g,14.70,14.72,2.37,2.39,-27.355,-26.125,MAT.lumiere);                            // bandeau lumineux
+  const xc=14.70, zc=-27.22;
+  cylindre(g,xc,1.00,2.20,zc,0.012,MAT.chrome);
+  boite(g,xc-0.06,xc,1.19,1.25,zc-0.07,zc+0.07,MAT.chrome);                             // mitigeur thermostatique
+  boite(g,xc-0.30,xc,2.18,2.20,zc-0.005,zc+0.005,MAT.chrome); cylindre(g,xc-0.32,2.17,2.19,zc,0.12,MAT.chrome);
   return g;
+}
+// Murs de la salle de bain carrelés jusqu'au plafond (relevé de Mauro du 12 octobre 2026 et ses photos) : grands carreaux
+// d'aspect pierre de 60 × 30 cm posés en largeur, gris clair sur le mur ouest (vasque, bout de la baignoire), beige sur
+// le mur du sèche-serviettes, dans le renfoncement du WC et sur le mur de la porte, gris foncé sur le mur en face de la
+// baignoire et sous la pente du toit dans la douche. Le mur nord sous la fenêtre (bande sombre) et le fond de la douche
+// (plaquettes) sont à part. Chaque face de peinture du bord de la pièce, tournée vers l'intérieur, est découpée à la
+// pièce et recopiée 2 mm devant, comme la faïence du WC / buanderie
+const ZONES_SDB=[[11.31,-27.80,14.75,-26.11],[11.31,-26.11,13.00,-25.01],[12.19,-25.01,13.00,-24.28]];
+const TEINTES_SDB={clair:0xa29d94, beige:0xc2b6a2, fonce:0x5d6166};
+function teinteMur(n,c){                          // n : normale tournée vers la pièce, c : centre de la face
+  if(n.x>0.7) return c.x<11.5?'clair':'beige';    // mur ouest ; côté ouest du renfoncement du WC
+  if(n.x<-0.7) return c.x>14.6?null:'beige';      // mur de la porte, côté est du renfoncement ; pas le fond de la douche
+  if(n.z<-0.7) return c.z<-25.6?'fonce':'beige';  // mur en face de la baignoire ; mur du sèche-serviettes, fond du renfoncement
+  return null;                                    // mur nord : bande sombre du modèle
+}
+// Pente de la douche : le pan du toit du modèle y est retiré (percé de x 13,757 à 14,748) ; la pente carrelée est posée
+// par carrelerMursSdb, la peinture complète le reste : plafond plat jusqu'à z = -27,37, et la joue verticale (côté
+// baignoire, contre la vitre) entre la pente du modèle et celle de la douche
+function penteDouche(rez){
+  const {x0,x1,zMur,yGenou,zPlafond}=DOUCHE; let mat=null;
+  rez.traverse(o=>{ if(!o.isMesh||o.material.name!=='Material_6'||o.userData.dos) return; mat=mat||o.material;
+    percer(o,pts=>pts.every(q=>Math.abs(q.z-pentePanNord(q.y))<0.004),{x0,x1,y0:yGenou-0.001,y1:2.401}); });
+  if(!mat) return null;
+  const zModele=pentePanNord(2.40), pos=[
+    x0,2.40,zPlafond, x1,2.40,zPlafond, x1,2.40,zModele,   x0,2.40,zPlafond, x1,2.40,zModele, x0,2.40,zModele,   // plafond (vers le bas)
+    x0,yGenou,zMur, x0,2.40,zModele, x0,2.40,zPlafond];                                                       // joue (vers l'ouest)
+  const geo=new THREE.BufferGeometry(); geo.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));
+  geo.setAttribute('uv',new THREE.Float32BufferAttribute(new Array(pos.length/3*2).fill(0),2)); geo.computeVertexNormals();
+  return {geo,mat};
+}
+export function carrelerMursSdb(root){
+  const rez=root.getObjectByName('structure_rez'); if(!rez) return;
+  const {map,bump}=texturesCarreauPierre(), lots={};
+  const peinture=penteDouche(rez);
+  const n=new THREE.Vector3(), e=new THREE.Vector3(), c=new THREE.Vector3(), M=0.02;
+  const v=[0,1,2].map(()=>new THREE.Vector3());
+  rez.traverse(o=>{ if(!o.isMesh||o.material.name!=='Material_6'||o.userData.dos) return;
+    o.updateMatrixWorld(true);
+    let g=enFlottants(o.geometry); if(g.index) g=g.toNonIndexed(); g.applyMatrix4(o.matrixWorld);
+    const p=g.attributes.position;
+    for(let i=0;i+2<p.count;i+=3){ v.forEach((q,k)=>q.fromBufferAttribute(p,i+k));
+      n.subVectors(v[1],v[0]).cross(e.subVectors(v[2],v[0])); if(n.lengthSq()<1e-10) continue; n.normalize();
+      if(Math.abs(n.y)>0.3) continue;
+      for(const [x0,z0,x1,z1] of ZONES_SDB){
+        let poly=v.map(q=>q.clone());
+        for(const [axe,val,sens] of [['x',x0-M,1],['x',x1+M,-1],['z',z0-M,1],['z',z1+M,-1]]){ poly=couper(poly,axe,val,sens); if(poly.length<3) break; }
+        if(poly.length<3) continue;
+        c.set(0,0,0); for(const q of poly) c.add(q); c.multiplyScalar(1/poly.length);
+        if(c.x>11.30&&c.x<13.78&&c.z>-27.81&&c.z<-26.82&&c.y<0.6) continue;       // faces du tablier de la baignoire
+        if(c.x>11.70&&c.x<13.15&&c.y>1.2&&c.z<-27.2) continue;                     // ébrasement peint de la fenêtre
+        // côté peint vers la pièce, ou dos vers la pièce (face unique vue par son dos) ; la pente seulement par-dessous
+        for(const sg of [1,-1]){ const cx=c.x+sg*n.x*0.05, cz=c.z+sg*n.z*0.05; if(!(cx>x0&&cx<x1&&cz>z0&&cz<z1)) continue;
+          const ni=n.clone().multiplyScalar(sg), t=teinteMur(ni,c); if(!t) continue;
+          const l=lots[t]||(lots[t]={pos:[],nor:[],uv:[]}), lat=Math.abs(n.x)>Math.abs(n.z);
+          for(let k=1;k+1<poly.length;k++) for(const q of sg>0?[poly[0],poly[k],poly[k+1]]:[poly[0],poly[k+1],poly[k]]){
+            l.pos.push(q.x+ni.x*0.002,q.y+ni.y*0.002,q.z+ni.z*0.002); l.nor.push(ni.x,ni.y,ni.z);
+            l.uv.push((lat?q.z:q.x)/0.60,q.y/0.30); } }
+      } } });
+  // pente de la douche, carrelée en gris foncé, rangées le long de la pente
+  const {x0,x1,zMur,yGenou,zPlafond}=DOUCHE, L=Math.hypot(2.40-yGenou,zPlafond-zMur), ny=-(zPlafond-zMur)/L, nz=(2.40-yGenou)/L;
+  const fo=lots.fonce||(lots.fonce={pos:[],nor:[],uv:[]}), coin=[[x0,yGenou,zMur,0],[x1,yGenou,zMur,0],[x1,2.40,zPlafond,L],[x0,2.40,zPlafond,L]];
+  for(const k of [0,1,2,0,2,3]){ const [x,y,z,s]=coin[k]; fo.pos.push(x,y,z); fo.nor.push(0,ny,nz); fo.uv.push(x/0.60,(yGenou+s)/0.30); }
+  rez.updateMatrixWorld(true); const inv=rez.matrixWorld.clone().invert();
+  if(peinture){ const m=new THREE.Mesh(peinture.geo,peinture.mat); m.applyMatrix4(inv); rez.add(m); }
+  for(const [t,l] of Object.entries(lots)){
+    const g=new THREE.BufferGeometry();
+    g.setAttribute('position',new THREE.Float32BufferAttribute(l.pos,3)); g.setAttribute('normal',new THREE.Float32BufferAttribute(l.nor,3));
+    g.setAttribute('uv',new THREE.Float32BufferAttribute(l.uv,2));
+    const mat=new THREE.MeshStandardMaterial({color:TEINTES_SDB[t],map,bumpMap:bump,bumpScale:1.2,roughness:0.35}); mat.name='carrelage_sdb_'+t;
+    const m=new THREE.Mesh(g,mat); m.name='rez__carrelage_sdb_'+t; m.applyMatrix4(inv); rez.add(m);
+  }
 }
 // Meuble vasque en chêne suspendu contre le mur ouest (x = 11,31), collé au mur sud (sèche-serviettes), à 18 cm de la
 // baignoire ; grande vasque blanche, miroir et réglette centrés sur le meuble. 160 × 56 cm, dessus à 69 cm, miroir de 84 cm
@@ -145,36 +220,12 @@ function secheServiettes(){
   for(const x of [x0,x1]) for(const y of [1.05,1.75]) boite(g,x-0.008,x+0.008,y-0.008,y+0.008,z,-25.008,MAT.chrome);
   return g;
 }
-// Carrelage du mur de la baignoire (Material_10, mur z = -28,00) : matériau et correspondance (x, y) → (u, v) relevés
-// sur ce mur, pour poser le même carreau, à la même taille, ailleurs
-function carrelageBaignoire(){
-  let res=null;
-  app.model.getObjectByName('structure_rez')?.traverse(o=>{ if(res||!o.isMesh||o.material.name!=='Material_10'||o.userData.dos) return;
-    o.updateMatrixWorld(true); const g=o.geometry, p=g.attributes.position, uv=g.attributes.uv, idx=g.index; if(!uv) return;
-    for(let t=0;t<(idx?idx.count:p.count)&&!res;t+=3){
-      const k=[0,1,2].map(i=>idx?idx.getX(t+i):t+i), q=k.map(i=>new THREE.Vector3().fromBufferAttribute(p,i).applyMatrix4(o.matrixWorld));
-      if(!q.every(v=>Math.abs(v.z+27.998)<0.01)) continue;
-      const m=new THREE.Matrix3().set(q[0].x,q[0].y,1, q[1].x,q[1].y,1, q[2].x,q[2].y,1); if(Math.abs(m.determinant())<1e-4) continue;
-      const inv=m.invert(), cu=new THREE.Vector3(...k.map(i=>uv.getX(i))).applyMatrix3(inv), cv=new THREE.Vector3(...k.map(i=>uv.getY(i))).applyMatrix3(inv);
-      res={mat:o.material, f:(a,b)=>[cu.x*a+cu.y*b+cu.z, cv.x*a+cv.y*b+cv.z]}; } });
-  return res;
-}
-// Coordonnées de texture d'une boîte selon le carrelage du mur : faces avant / arrière (x, y), côtés (z, y), dessus (x, z)
-function plaquer(b,f){
-  b.geometry.translate(b.position.x,b.position.y,b.position.z); b.position.set(0,0,0);
-  const p=b.geometry.attributes.position, n=b.geometry.attributes.normal, uv=b.geometry.attributes.uv;
-  for(let i=0;i<p.count;i++){ const [x,y,z]=[p.getX(i),p.getY(i),p.getZ(i)];
-    uv.setXY(i,...(Math.abs(n.getZ(i))>0.5?f(x,y):Math.abs(n.getX(i))>0.5?f(z,y):f(x,z))); }
-  uv.needsUpdate=true;
-}
 // WC suspendu dans le renfoncement du mur sud (x 12,19 → 13,00, fond à z = -24,28), adossé à un coffrage à mi-hauteur
-// (seulement dans le renfoncement) dans le carrelage du mur de la baignoire (demandé par Mauro le 9 octobre 2026) ;
-// copie du WC de l'étage
+// (seulement dans le renfoncement) en plaquettes de pierre sombre, dessus en pierre claire (photo « Salle de bain 3 »,
+// 12 octobre 2026) ; copie du WC de l'étage
 function wcSdb(root){
   const g=groupe('rez__wc_sdb'), x0=12.188, x1=12.998, zFond=-24.278, zF=-24.48, xc=(x0+x1)/2;
-  const carr=carrelageBaignoire(), mc=carr?carr.mat:MAT.carrelageGris;
-  const cof=[boite(g,x0,x1,0,1.15,zF,zFond,mc), boite(g,x0,x1,1.15,1.17,zF-0.02,zFond,mc)];
-  if(carr) for(const b of cof) plaquer(b,carr.f);
+  boite(g,x0,x1,0,1.15,zF,zFond,MAT.briqueSombre); boite(g,x0,x1,1.15,1.17,zF-0.02,zFond,MAT.pierreClaire);
   const cuvette=root.getObjectByName('etage__wc'), plaque=root.getObjectByName('etage__bouton_wc_douche');
   // à l'étage le WC est adossé au mur z = -21,39 et regarde vers -z, comme ici (adossé au coffrage z = -24,48)
   if(cuvette) g.add(copier(cuvette,new THREE.Vector3(17.179,2.74,-21.39),new THREE.Vector3(xc,0,zF),0));
