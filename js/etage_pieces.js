@@ -59,9 +59,10 @@ function armoireMezzanine(){
   for(const z of [(z0+z1)/2-0.05,(z0+z1)/2+0.05]) poignee(g,x0-0.02,x0,F+0.95,F+1.15,z-0.008,z+0.008);
   return g;
 }
-// Fauteuil relax en cuir noir sur pied pivotant, près de l'armoire, tourné vers le sud-ouest
+// Fauteuil relax en cuir noir sur pied pivotant, devant l'armoire (entre elle et le lit d'appoint), tourné vers le sud :
+// l'armoire mesurée (1,50 m) prend la place où il était, et il ne doit pas barrer le passage vers la porte de la chambre
 function fauteuil(){
-  const g=groupe('etage__fauteuil_mezzanine'), p=pivot(g,15.85,-23.60,-Math.PI/4);   // au bout de l'armoire, élargie à 1,50 m
+  const g=groupe('etage__fauteuil_mezzanine'), p=pivot(g,15.595,-24.70,0);
   cylindre(p,0,F,F+0.04,0,0.30,MAT.chrome); cylindre(p,0,F+0.04,F+0.30,0,0.04,MAT.chrome);   // pied en métal
   boite(p,-0.33,0.33,F+0.30,F+0.50,-0.30,0.34,M.cuirNoir);
   for(const s of [-1,1]) boite(p,s>0?0.31:-0.43,s>0?0.43:-0.31,F+0.30,F+0.64,-0.32,0.22,M.cuirNoir);
