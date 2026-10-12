@@ -126,9 +126,9 @@ polices/              IBM Plex Sans et Mono en TTF (licence OFL.txt), embarquée
 modele/
   structure.glb       Murs, sols, escalier, cloison (~0,45 Mo) : affichés en premier
   mobilier.glb        Meubles, portes, fenêtres (~9,5 Mo) : chargés ensuite
-appartement.glb       Modèle complet (archive, source de modele/ via outils/decouper_glb.mjs) — plus chargé par le site
 vercel.json           En-tête X-Robots-Tag noindex (site non indexé) ; sw.js sans cache HTTP ; seules les mises à jour de main sont déployées
 source/
+  appartement.glb     Modèle complet (archive, source de modele/ via outils/decouper_glb.mjs ; rangé ici le 12 octobre 2026 avec l'accord de Mauro) — plus chargé par le site
   diolly_def2_OBJ.zip Export OBJ d'origine depuis SketchUp (OBJ + MTL + 268 textures, 80 Mo décompressé)
   diolly_def2.stl     Export STL (sans couleurs ni objets séparés — inutile pour le site, gardé pour archive)
 outils/
@@ -591,4 +591,4 @@ Rendre la maquette conforme à la réalité pièce par pièce, d'après les phot
 - Étage revu d'après photos et validé par Mauro. Défauts du modèle corrigés au chargement : sol de la douche à 2,40 m (recouvert à 2,74 m, bande de seuil comprise), face de mur bouchant la porte de la douche. Un point bleu de 2 pixels reste visible au pied du chambranle nord de cette porte, en gros plan seulement (jour dans le modèle).
 - Aucun tableau ni petit objet n'est modélisé (choix de Mauro, pour garder le chargement léger). **À faire à la fin de l'étape 0 : contrôle du poids et de la fluidité**, sur la tablette de Mauro (8 octobre 2026 : modèle 0,45 + 9,5 Mo, ~165 000 triangles, 597 appels de dessin).
 - Résolu le 8 octobre 2026 : `rez__element_mural` = grande porte-fenêtre de la cuisine (vitre identique aux fenêtres) ; `rez__salon` = meuble haut du dégagement ; `rez__cloison` = cloison le long de l'escalier.
-- `appartement.glb` (racine) est gardé en archive ; le déplacer dans `source/` a été bloqué par le garde-fou de la session (action jugée destructive), à refaire avec l'accord de Mauro si on veut ranger.
+- `appartement.glb` est gardé en archive dans `source/` (rangé le 12 octobre 2026 avec l'accord de Mauro ; il était à la racine).
