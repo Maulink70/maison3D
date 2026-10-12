@@ -49,7 +49,8 @@ function lavabo(){
 
 function machines(){
   const g=new THREE.Group(); g.name='rez__lave_linge';
-  const x0=11.41, x1=12.01, zb=-24.91, zf=-24.22, cx=(x0+x1)/2;   // 69 cm de profondeur, 1,70 m de haut (mesurés par Mauro)
+  // contre le mur du fond de la niche, un peu en avant d'elle (photo « WC buanderie 1 » calée, 12 octobre 2026)
+  const x0=11.13, x1=11.73, zb=-24.83, zf=-24.14, cx=(x0+x1)/2;   // 69 cm de profondeur, 1,70 m de haut (mesurés par Mauro)
   // lave-linge (0 à 0,85 m)
   boite(g,x0,x1,0,0.85,zb,zf,blanc,true);
   boite(g,x0+0.07,x0+0.40,0.74,0.81,zf,zf+0.008,sombre);

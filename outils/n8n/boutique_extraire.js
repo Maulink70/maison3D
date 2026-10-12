@@ -32,15 +32,29 @@ if(prod){ if(prod.width) d.L=q(prod.width); if(prod.depth) d.P=q(prod.depth); if
   for(const a of [].concat(prod.additionalProperty||[])){ const n=String(a&&a.name||'').toLowerCase(), v=enCm(a&&a.value,a&&a.unitText);
     if(v==null) continue; if(/larg|breit|width/.test(n)) d.L=d.L||v; else if(/prof|tief|depth/.test(n)) d.P=d.P||v; else if(/haut|höh|hoh|height/.test(n)) d.H=d.H||v; } }
 const texte=dec(html.replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>/gi,' ').replace(/<[^>]+>/g,' ')).replace(/\s+/g,' ');
-const cherche=(re)=>{ const m=texte.match(re); return m?enCm(m[1],m[2]):null; };
-const U='(cm|mm|m)\\b';
-d.L=d.L||cherche(new RegExp('(?:largeur|breite|width)\\s*(?:totale|gesamt)?\\s*[:：]?\\s*(\\d+(?:[.,]\\d+)?)\\s*'+U,'i'));
-d.P=d.P||cherche(new RegExp('(?:profondeur|tiefe|depth)\\s*(?:totale|gesamt)?\\s*[:：]?\\s*(\\d+(?:[.,]\\d+)?)\\s*'+U,'i'));
-d.H=d.H||cherche(new RegExp('(?:hauteur|höhe|hohe|height)\\s*(?:totale|gesamt)?\\s*[:：]?\\s*(\\d+(?:[.,]\\d+)?)\\s*'+U,'i'));
+// « Largeur : 200 cm » (IKEA), « Breite (cm) 230 » (Pfister), « Largeur produit (cm) 105 » (Conforama) ; pas les mesures
+// du colis (Conforama les donne avant celles du produit), ni « hauteur d'assise », « Sitztiefe », « profondeur secondaire »
+// les mesures marquées « produit » / « totale » passent d'abord (Conforama : plusieurs colis avant le produit)
+const NB='(\\d+(?:[.,]\\d+)?)', QUAL=q=>'(?:\\s+(?:du\\s+)?(?:produit|totale?|gesamt|hors\\s+tout|overall))'+(q?'':'?');
+const cherche=(mots,q)=>{
+  const re=new RegExp('(?<![A-Za-zÀ-ÿ])(?:'+mots+')'+QUAL(q)+'\\s*(?:\\((cm|mm|m)\\)\\s*[:：]?\\s*'+NB+'|[:：]?\\s*'+NB+'\\s*(cm|mm|m)\\b)','gi');
+  for(const m of texte.matchAll(re)){
+    if(/colis|emballage|carton|paket|verpackung|karton|versand|packag/i.test(texte.slice(Math.max(0,m.index-55),m.index))) continue;
+    const v=m[1]?enCm(m[2],m[1]):enCm(m[3],m[4]); if(v) return v; }
+  return null; };
+const MOTS={l:'largeur|breite|width',p:'profondeur|tiefe|depth',h:'hauteur|höhe|hohe|height',lo:'longueur|länge|lange|length'};
+const c=m=>cherche(m,true)||cherche(m,false);
+const tl=c(MOTS.l), tp=c(MOTS.p), th=c(MOTS.h), tlo=c(MOTS.lo);
+// « Longueur » et « Largeur » sans « Profondeur » (Conforama) : la longueur est la largeur vue de face, la largeur la profondeur
+if(tlo&&tl&&!tp){ d.L=d.L||tlo; d.P=d.P||tl; } else { d.L=d.L||tl||tlo; d.P=d.P||tp; }
+d.H=d.H||th;
 if(!(d.L&&d.P&&d.H)){ const m=texte.match(/(\d{2,3}(?:[.,]\d)?)\s*[x×]\s*(\d{2,3}(?:[.,]\d)?)\s*[x×]\s*(\d{2,3}(?:[.,]\d)?)\s*(cm|mm)\b/i);
   if(m){ d.L=d.L||enCm(m[1],m[4]); d.P=d.P||enCm(m[2],m[4]); d.H=d.H||enCm(m[3],m[4]); } }
 for(const k of ['L','P','H']) if(!(d[k]>0&&d[k]<2000)) delete d[k];
 const site=origine.replace(/^https?:\/\//i,'').replace(/^www\./,'');
 const liens=debug?[...new Set([...html.matchAll(/href=["']([^"'#]+)["']/gi)].map(m=>abs(dec(m[1]))).concat(debug==='tous'?[...html.matchAll(/https?:(?:\\?\/){2}[^"'\s<>\\]+/g)].map(m=>m[0].replace(/\\\//g,'/')):[]).filter(h=>h.startsWith('http')&&h.includes(site)))].slice(0,300):undefined;
-if(!image) return [{json:{reponse:{ok:false,erreur:'Pas de photo trouvée sur cette page : copiez plutôt l’image du produit.',code:404,nom,dims:d,site,liens},image:null}}];
-return [{json:{image,info:{nom,dims:d,site,url,liens}}}];
+// mise au point (debug) : passages du texte autour des mots de dimensions et des nombres suivis d'une unité
+const extraits=debug?[...texte.matchAll(/(?:largeur|profondeur|hauteur|longueur|breite|tiefe|höhe|länge|width|depth|height)/gi)].slice(0,80).map(m=>texte.slice(Math.max(0,m.index-40),m.index+60)):undefined;
+const ld=debug&&prod?{cles:Object.keys(prod).slice(0,40),width:prod.width,depth:prod.depth,height:prod.height}:undefined;
+if(!image) return [{json:{reponse:{ok:false,erreur:'Pas de photo trouvée sur cette page : copiez plutôt l’image du produit.',code:404,nom,dims:d,site,liens,extraits,ld},image:null}}];
+return [{json:{image,info:{nom,dims:d,site,url,liens,extraits,ld}}}];

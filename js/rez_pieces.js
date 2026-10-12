@@ -238,7 +238,7 @@ function wcSdb(root){
 }
 
 export function construirePieces(root){
-  return [commode(), porteEntree(), porteReduit(), aspirateur(), sacsTri(), plafonnier('rez__plafonnier_entree',12.40,-21.85), plafonnier('rez__plafonnier_degagement',13.95,-23.70),
+  return [commode(), porteEntree(), porteReduit(), aspirateur(), sacsTri(), plafonnier('rez__plafonnier_entree',12.40,-21.85), plafonnier('rez__plafonnier_degagement',13.65,-24.00),
     lit(), chevet('rez__chevet_1',16.42), chevet('rez__chevet_2',18.93), lampeChevet('rez__lampe_chevet_1',16.42), lampeChevet('rez__lampe_chevet_2',18.93), lustre(),
     douche(), vasque(), secheServiettes(), wcSdb(root), plafonnier('rez__plafonnier_sdb',12.40,-25.60), globeWC()];
 }

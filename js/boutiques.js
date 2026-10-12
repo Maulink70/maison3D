@@ -3,14 +3,15 @@
 // (workflow « Maison3D Boutique » : photo principale, nom, dimensions si la page les donne). Une page ne peut pas lire
 // une autre boutique elle-même (sécurité des navigateurs). Essais du 10 octobre 2026 (lecture par n8n) : IKEA photo et
 // dimensions, Micasa et Anthamatten photo ; Galaxus et Maisons du Monde refusent la lecture par un serveur (copier
-// l'image) ; Pfister et Conforama : pages produits non vérifiées, et pas d'adresse de recherche connue (page d'accueil).
+// l'image). Essais du 12 octobre 2026 (Mauro : « teste toi ») : Pfister et Conforama, photo, nom et dimensions ; Pfister
+// cherche par /fr/suche/<mots> ; Conforama n'a pas d'adresse de recherche lisible (page d'accueil).
 const BOUTIQUE='https://n8n.srv1123557.hstgr.cloud/webhook/maison3d-boutique';
 const jeton=()=>{ try{ return JSON.parse(localStorage.getItem('maison3d-compte')||'null')?.jeton||''; }catch{ return ''; } };
 export const BOUTIQUES=[
   {id:'ikea',nom:'IKEA',recherche:'https://www.ikea.com/ch/fr/search/?q=',lien:'photo et dimensions'},
   {id:'micasa',nom:'Micasa',recherche:'https://www.micasa.ch/fr/search?q=',lien:'photo'},
-  {id:'pfister',nom:'Pfister',accueil:'https://www.pfister.ch/fr',lien:'à essayer'},
-  {id:'conforama',nom:'Conforama',accueil:'https://www.conforama.ch/fr/',lien:'à essayer'},
+  {id:'pfister',nom:'Pfister',recherche:'https://www.pfister.ch/fr/suche/',lien:'photo et dimensions'},
+  {id:'conforama',nom:'Conforama',accueil:'https://www.conforama.ch/fr/',lien:'photo et dimensions'},
   {id:'mdm',nom:'Maisons du Monde',accueil:'https://www.maisonsdumonde.com/CH/fr',lien:'copier l’image'},
   {id:'galaxus',nom:'Galaxus',recherche:'https://www.galaxus.ch/fr/search?q=',lien:'copier l’image'},
   {id:'anthamatten',nom:'Anthamatten (Conthey)',recherche:'https://www.anthamatten.ch/search?q=',lien:'photo'},
