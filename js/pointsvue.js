@@ -16,7 +16,7 @@ import {poserIcone, nommer} from './icones.js';
 import {calageActif} from './calage.js';
 import {comparaisonActive} from './comparer.js';
 import {isolementActif, dansIsolement} from './isoler.js';
-import {decalage} from './eclate.js';
+import {decaler} from './eclate.js';
 import {versEcran, niveauDuPlan} from './plan.js';
 import {PIECES} from './pieces.js';
 
@@ -90,7 +90,7 @@ export function majPointsVue(){
       } else {
         if(app.level!=='all'&&app.level!==niv) continue;
         if(isolementActif()&&!dansIsolement(pt)) continue;
-        pt.y+=decalage(pt.y);
+        decaler(pt);
       }
       if(!plan){
         v4.set(pt.x-Math.sin(k.yaw)*0.6,pt.y,pt.z-Math.cos(k.yaw)*0.6);

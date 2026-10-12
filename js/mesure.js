@@ -9,7 +9,7 @@ import {ETAGE_FLOOR} from './config.js';
 import {viser} from './edition.js';
 import {versEcran, versMonde, niveauDuPlan, murs} from './plan.js';
 import {etat} from './calques.js';
-import {decalage} from './eclate.js';
+import {decaler} from './eclate.js';
 import {centreVue} from './jeu.js';
 
 const CLE='maison3d-mesures', NS='http://www.w3.org/2000/svg', AIMANT=14;
@@ -28,13 +28,13 @@ const v3=new THREE.Vector3(), w3=new THREE.Vector3();
 function projection(){
   if(app.mode==='plan') return p=>versEcran(p[0],p[2]);
   const r=$('mesures').getBoundingClientRect(), cam=app.camera;
-  return p=>{ v3.set(p[0],p[1]+decalage(p[1]),p[2]).project(cam); if(v3.z>1||v3.z<-1) return null; return {x:(v3.x+1)/2*r.width,y:(1-v3.y)/2*r.height}; };
+  return p=>{ decaler(v3.set(p[0],p[1],p[2])).project(cam); if(v3.z>1||v3.z<-1) return null; return {x:(v3.x+1)/2*r.width,y:(1-v3.y)/2*r.height}; };
 }
 // segment à l'écran ; en 3D, la partie derrière la caméra est coupée (une longue mesure reste visible quand on est dessus)
 function segmentEcran(a,b){
   if(app.mode==='plan') return {A:versEcran(a[0],a[2]),B:versEcran(b[0],b[2]),va:true,vb:true};
   const cam=app.camera, r=$('mesures').getBoundingClientRect(), lim=-cam.near-0.02;
-  const pa=v3.set(a[0],a[1]+decalage(a[1]),a[2]).applyMatrix4(cam.matrixWorldInverse).clone(), pb=w3.set(b[0],b[1]+decalage(b[1]),b[2]).applyMatrix4(cam.matrixWorldInverse).clone();   // vue éclatée : étage soulevé
+  const pa=decaler(v3.set(a[0],a[1],a[2])).applyMatrix4(cam.matrixWorldInverse).clone(), pb=decaler(w3.set(b[0],b[1],b[2])).applyMatrix4(cam.matrixWorldInverse).clone();   // vue éclatée : étage soulevé, tout éclaté
   const va=pa.z<lim, vb=pb.z<lim; if(!va&&!vb) return null;
   if(!va) pa.lerp(pb,(lim-pa.z)/(pb.z-pa.z)); else if(!vb) pb.lerp(pa,(lim-pb.z)/(pa.z-pb.z));
   const ecran=q=>{ q.applyMatrix4(cam.projectionMatrix); return {x:(q.x+1)/2*r.width,y:(1-q.y)/2*r.height}; };
