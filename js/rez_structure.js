@@ -79,8 +79,8 @@ export function jointsToitSud(mat){
 // Détails muraux de l'entrée : tableau électrique et cache bas (mur ouest, x = 11,45)
 export function decorEntree(){
   const g=new THREE.Group(); g.name='rez__decor_entree';
-  boite(g,11.45,11.47,1.25,1.88,-22.10,-21.62,MAT.blanc,true);
-  boite(g,11.45,11.465,0.12,0.52,-22.22,-21.55,MAT.blanc,true);
+  boite(g,11.45,11.47,1.10,1.82,-21.72,-21.13,MAT.blanc,true);       // place et taille relevées sur deux photos calées (12 octobre 2026)
+  boite(g,11.45,11.465,0.03,0.555,-22.21,-21.30,MAT.blanc,true);
   g.traverse(o=>{ o.raycast=()=>{}; });
   return g;
 }

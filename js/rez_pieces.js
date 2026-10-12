@@ -72,8 +72,9 @@ function globeWC(){ const g=groupe('rez__plafonnier_wc'); cylindre(g,12.25,2.36,
 // ---------- Chambre ----------
 // Lit 180 × 200, tête de lit et cadre en tissu bleu, linge bleu clair (d'après Mauro), contre le mur nord (sous la pente du toit) ;
 // 200 × 210 cm hors tout, dessus du matelas à 68 cm (mesuré par Mauro le 12 octobre 2026), même centre
+// 22 cm plus à l'est que dans la première version (12 octobre 2026 : trois photos calées de la chambre concordent)
 function lit(){
-  const g=groupe('rez__lit'), x0=16.455, x1=18.455, zT=-27.80, zP=zT+2.10;
+  const g=groupe('rez__lit'), x0=16.675, x1=18.675, zT=-27.80, zP=zT+2.10;
   boite(g,x0,x1,0.10,1.00,zT,zT+0.10,MAT.tissuBeige);                     // tête de lit
   boite(g,x0,x1,0.12,0.48,zT+0.10,zP,MAT.tissuBeige);                     // cadre
   for(const [x,z] of [[x0+0.05,zT+0.15],[x1-0.05,zT+0.15],[x0+0.05,zP-0.05],[x1-0.05,zP-0.05]]) boite(g,x-0.03,x+0.03,0,0.12,z-0.03,z+0.03,MAT.sombre);
@@ -183,6 +184,6 @@ function wcSdb(root){
 
 export function construirePieces(root){
   return [commode(), porteEntree(), porteReduit(), aspirateur(), sacsTri(), plafonnier('rez__plafonnier_entree',12.40,-21.85), plafonnier('rez__plafonnier_degagement',13.95,-23.70),
-    lit(), chevet('rez__chevet_1',16.20), chevet('rez__chevet_2',18.71), lampeChevet('rez__lampe_chevet_1',16.20), lampeChevet('rez__lampe_chevet_2',18.71), lustre(),
+    lit(), chevet('rez__chevet_1',16.42), chevet('rez__chevet_2',18.93), lampeChevet('rez__lampe_chevet_1',16.42), lampeChevet('rez__lampe_chevet_2',18.93), lustre(),
     douche(), vasque(), secheServiettes(), wcSdb(root), plafonnier('rez__plafonnier_sdb',12.40,-25.60), globeWC()];
 }
