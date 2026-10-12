@@ -13,6 +13,17 @@ const s=$getWorkflowStaticData('global'), jour=new Date().toISOString().slice(0,
 if(s.jour!==jour){ s.jour=jour; s.n=0; }
 if((s.n||0)>=300) return refus('Limite de 300 messages par jour atteinte : réessayez demain.',429);
 s.n=(s.n||0)+1;
+// « ✨ Améliorer » de « Créer avec l'IA » (comme dans Familia) : la description réécrite en une description riche, en anglais,
+// du sujet seul (fond, lumière et cadrage sont fixés par la consigne de creer_modeles.js)
+if(c.action==='ameliorer'){
+  const dims=String(c.dims||'').replace(/[^0-9a-z ,.]/gi,'').slice(0,60), modele=String(c.modele||'').replace(/[\u0000-\u001f"]/g,' ').slice(0,60);
+  const sys='You write prompts for the AI image model '+(modele||'of the user')+' which draws exactly one subject (a piece of furniture, a lamp, a plant, an animal, a bicycle or any other object) alone on a plain white background, like a studio product photo; the picture is then cut out and placed in a 3D model of an apartment or on a photo of a room. '
+    +'Rewrite the user\'s description (often in French) into one rich, precise description in English of that subject only: what it is, shape, proportions, materials, colors, finish, style and notable details.'
+    +(dims?' Its real size: '+dims+'; keep it.':'')
+    +' Keep every detail and constraint the user gave and invent nothing that contradicts it. Do not describe a background, a room, the lighting or the camera (they are fixed). No lists, no quotes, no preamble: answer with the description only, at most 90 words.';
+  return [{json:{mode:'ameliorer',req:{method:'POST',url:'https://api.kie.ai/gemini-3-6-flash-openai/v1/chat/completions',
+    body:{messages:[{role:'system',content:sys},{role:'user',content:demande}],stream:false}}}}];
+}
 const propre=v=>String(v||'').replace(/[\u0000-\u001f]/g,' ').slice(0,80);
 const pieces=(Array.isArray(c.pieces)?c.pieces:[]).slice(0,30).map(p=>propre(p.id)+'='+propre(p.nom)).join(', ');
 const meubles=(Array.isArray(c.meubles)?c.meubles:[]).slice(0,160).map(m=>propre(m.id)+'='+propre(m.nom)+' ('+propre(m.piece)+')').join(' ; ');

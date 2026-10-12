@@ -17,8 +17,10 @@ const MODELES_CREER=[
     corps:prompt=>({model:'grok-imagine-image-2-0/text-to-image',input:{prompt,aspect_ratio:'1:1'}})}];
 const modeleCreer=id=>MODELES_CREER.find(m=>m.id===id)||null;
 const modelesCreerPublics=()=>MODELES_CREER.map(({id,nom,cout,note})=>({id,nom,cout,note}));
-// consigne fixe : l'objet seul, entier, de trois quarts face, sur fond blanc uni (utilisable tel quel par Tripo et à plat)
-const consigneCreer=(desc,dims)=>'Studio product photograph of exactly one piece of furniture or home object, described here (in French): "'+desc+'".'
+// consigne fixe : le sujet seul (meuble, lampe, plante, animal, vélo… : tout ce que dit la description, Mauro 12 octobre 2026),
+// entier, de trois quarts face, sur fond blanc uni (utilisable tel quel par Tripo, à plat et sur une photo) ; la description peut
+// être en français ou déjà améliorée en anglais (« ✨ Améliorer », workflow « Maison3D Assistant », action ameliorer)
+const consigneCreer=(desc,dims)=>'Studio photograph of exactly one subject (it can be a piece of furniture, a lamp, a plant, an animal, a bicycle or any other object), described here: "'+desc+'".'
   +(dims?' Its real size is about '+dims+' (width × depth × height); keep these proportions.':'')
-  +' Show the whole object, fully visible and centered, three-quarter front view, at eye level slightly above, on a plain pure white background,'
-  +' soft even studio lighting, realistic materials and colors. No people, no room, no floor line, no other objects, no shadows on the edges, no text, no watermark.';
+  +' Show the whole subject, fully visible and centered, three-quarter front view, at eye level slightly above, on a plain pure white background,'
+  +' soft even studio lighting, realistic materials and colors. Nothing else: no room, no floor line, no other objects or people, no shadows on the edges, no text, no watermark.';

@@ -759,6 +759,9 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
 .cr-prop[aria-pressed="true"]{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
 .cr-attente{color:var(--muted);font-family:var(--font-data)}
 #cr-refaire{justify-self:start}
+.cr-ameliorer{margin-top:-4px}
+.cr-ameliorer .btn{font-size:13px;padding:5px 10px}
+.cr-ameliorer .mat-aide{margin:0;font-size:12px}
 
 /* Assistant « Mauro » (assistant.js) : bouton de la barre (visage), panneau à gauche sous la barre (feuille en bas sur téléphone) */
 .ib .ico-avatar{width:30px;height:30px;border-radius:50%;object-fit:cover;display:block}

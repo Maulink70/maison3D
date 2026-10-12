@@ -6,13 +6,18 @@
 //  - « Vraie 3D » : panneau photo rempli, « Mettre en 3D (Tripo) » (confirmation des crédits Tripo) ;
 //  - « L'essayer sur une photo » : montage avec l'objet posé sur une photo de la pièce (bonus accepté par Mauro).
 // Ouvert depuis le menu « + », le montage (« Ajouter un produit précis » → l'objet est posé sur la photo) et l'assistant.
+// L'IA dessine n'importe quel sujet (meuble, lampe, plante, animal, vélo…) : tout dépend de la description. « ✨ Améliorer »
+// (comme dans Familia, demandé par Mauro) la réécrit en une description riche, en anglais, par le modèle de texte de kie.ai
+// (workflow « Maison3D Assistant », action ameliorer, ≈ 0,05 crédit) ; « ↶ Mon texte » rend le texte d'avant.
 import {app} from './app.js';
 import {n8nRendu} from './rendu.js';
 
 const el=(nom,attrs={},texte)=>{ const n=document.createElement(nom); for(const [k,v] of Object.entries(attrs)) n.setAttribute(k,v); if(texte!==undefined) n.textContent=texte; return n; };
 const CLE='maison3d-modele-creer';
 const PAR_DEFAUT=[{id:'nano-banana-pro',nom:'Nano Banana Pro',cout:18,note:''}];
-let fen=null, modeles=null, solde=null, opts={}, propositions=[], choisie=null, enCours=false, nombre=1;
+let fen=null, modeles=null, solde=null, opts={}, propositions=[], choisie=null, enCours=false, nombre=1, avant=null;
+const ASSISTANT='https://n8n.srv1123557.hstgr.cloud/webhook/maison3d-assistant';
+const jeton=()=>{ try{ return JSON.parse(localStorage.getItem('maison3d-compte')||'null')?.jeton||''; }catch{ return ''; } };
 
 export const modelesCreer=()=>modeles||PAR_DEFAUT;
 async function lireSolde(){
@@ -24,7 +29,7 @@ const dire=(t,err=false)=>{ const m=fen.querySelector('.ph-message'); m.textCont
 const q=s=>fen.querySelector(s);
 const cmDe=i=>{ const v=Number(String(q(i).value).replace(',','.')); return Number.isFinite(v)&&v>0&&v<2000?Math.round(v*10)/10:null; };
 const dims=()=>({L:cmDe('#cr-l'),P:cmDe('#cr-p'),H:cmDe('#cr-h')});
-function nomPropose(){ const d=q('#cr-desc').value.trim(); const n=q('#cr-nom').value.trim(); if(n) return n.slice(0,60);
+function nomPropose(){ const d=(avant??q('#cr-desc').value).trim();   // le nom vient du texte de Mauro, pas de la version anglaise const n=q('#cr-nom').value.trim(); if(n) return n.slice(0,60);
   const m=d.split(/[,.;:\n]/)[0].trim(); return (m.charAt(0).toUpperCase()+m.slice(1)).slice(0,60)||'Objet créé par l’IA'; }
 const modeleChoisi=()=>{ const l=modelesCreer(), v=q('#cr-modele').value; return l.find(m=>m.id===v)||l[0]; };
 
@@ -33,7 +38,9 @@ function construire(){
   fen.innerHTML=`<div class="fenetre-carte cr-carte">
     <div class="fenetre-tete"><h2>✨ Créer avec l’IA</h2><button type="button" class="fermer" aria-label="Fermer">×</button></div>
     <div class="cr-etape1">
-      <label class="cr-champ"><span>Décrivez l’objet</span><textarea id="cr-desc" rows="3" maxlength="600" placeholder="ex. : buffet bas en chêne clair, style scandinave, pieds fins, deux portes cannées"></textarea></label>
+      <label class="cr-champ"><span>Décrivez ce que l’IA doit dessiner (meuble, lampe, plante, animal, vélo…)</span><textarea id="cr-desc" rows="3" maxlength="800" placeholder="ex. : buffet bas en chêne clair, style scandinave, pieds fins, deux portes cannées"></textarea></label>
+      <div class="cr-ligne cr-ameliorer"><button type="button" class="btn" id="cr-ameliorer">✨ Améliorer la description</button><button type="button" class="btn" id="cr-avant" hidden>↶ Mon texte</button>
+        <span class="mat-aide">réécrite en anglais, plus précise, ≈ 0,05 crédit</span></div>
       <div class="cr-ligne"><label class="cr-champ cr-nom"><span>Nom (facultatif)</span><input type="text" id="cr-nom" maxlength="60" placeholder="Buffet en chêne"></label></div>
       <div class="cr-ligne cr-dims"><span class="cr-lib">Dimensions (cm, facultatif)</span>
         <label>L <input type="number" id="cr-l" min="1" max="2000" step="0.5" inputmode="decimal"></label>
@@ -60,6 +67,8 @@ function construire(){
   q('#cr-modele').onchange=()=>{ try{ localStorage.setItem(CLE,q('#cr-modele').value); }catch{} majCout(); };
   for(const b of fen.querySelectorAll('.cr-nombre button')) b.onclick=()=>{ nombre=+b.dataset.n; majCout(); };
   q('#cr-ok').onclick=lancer;
+  q('#cr-ameliorer').onclick=ameliorer;
+  q('#cr-avant').onclick=()=>{ if(avant!=null) q('#cr-desc').value=avant; avant=null; q('#cr-avant').hidden=true; dire(''); q('#cr-desc').focus(); };
   q('#cr-refaire').onclick=()=>{ q('.cr-resultats').hidden=true; q('.cr-etape1').hidden=false; dire(''); majCout(); q('#cr-desc').focus(); };
 }
 function remplirModeles(){
@@ -78,6 +87,20 @@ function majCout(){
   if(solde!=null&&solde<c) dire('Plus assez de crédits kie.ai pour ce choix : prenez un modèle moins cher ou moins de propositions.',true);
 }
 function fermer(){ if(!fen) return; fen.hidden=true; enCours=false; }
+// « ✨ Améliorer » : la description réécrite par le modèle de texte de kie.ai (n8n), en anglais ; le texte de Mauro est gardé
+async function ameliorer(){
+  const t=q('#cr-desc').value.trim(); if(t.length<3){ dire('Écrivez d’abord quelques mots.',true); q('#cr-desc').focus(); return; }
+  const b=q('#cr-ameliorer'), lib=b.textContent; b.disabled=true; b.textContent='✨ Amélioration…'; dire('');
+  const d=dims(), dt=[d.L&&d.L+' cm wide',d.P&&d.P+' cm deep',d.H&&d.H+' cm high'].filter(Boolean).join(', ');
+  let r; try{ const x=await fetch(ASSISTANT,{method:'POST',headers:{'Content-Type':'text/plain;charset=UTF-8'},cache:'no-store',
+    body:JSON.stringify({action:'ameliorer',texte:t,dims:dt,modele:modeleChoisi().nom,jeton:jeton()})}); r=await x.json(); }
+  catch{ r={ok:false,erreur:'Pas de connexion au serveur'}; }
+  b.disabled=false; b.textContent=lib; if(fen.hidden) return;
+  if(!r?.ok||!r.texte){ dire((r?.erreur||'Amélioration impossible')+'.',true); return; }
+  if(avant==null) avant=t;
+  q('#cr-desc').value=r.texte; q('#cr-avant').hidden=false;
+  dire('Description améliorée (en anglais, pour l’IA) : vous pouvez la retoucher, ou « ↶ Mon texte ».');
+}
 
 // ouvre la fenêtre ; o : {description, nom, dims:{L,P,H}, retour(img, info), texteRetour, place}
 //   retour : l'image choisie est rendue à l'appelant (montage : posée sur la photo ; assistant) au lieu des actions habituelles
@@ -85,7 +108,7 @@ export async function ouvrirCreer(o={}){
   if(!fen) construire();
   opts=o; propositions=[]; choisie=null; enCours=false; fen.hidden=false;
   q('.cr-etape1').hidden=false; q('.cr-resultats').hidden=true; dire('');
-  q('#cr-desc').value=o.description||''; q('#cr-nom').value=o.nom||'';
+  q('#cr-desc').value=o.description||''; q('#cr-nom').value=o.nom||''; avant=null; q('#cr-avant').hidden=true;
   for(const [k,i] of [['L','#cr-l'],['P','#cr-p'],['H','#cr-h']]) q(i).value=o.dims?.[k]?String(o.dims[k]):'';
   if(o.nombre) nombre=Math.min(4,Math.max(1,o.nombre));
   remplirModeles(); majCout(); setTimeout(()=>q('#cr-desc').focus());
