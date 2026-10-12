@@ -205,7 +205,7 @@ function chaiseBureau(){
 function vasqueDouche(){
   const g=groupe('etage__vasque_douche'), x0=17.77, x1=18.47, z0=-21.735, z1=-21.19, xm=(x0+x1)/2;
   boite(g,x0,x1,F+0.40,F+0.82,z0+0.02,z1,MAT.chene); boite(g,x0+0.004,x1-0.004,F+0.404,F+0.816,z0,z0+0.02,MAT.chene,'sombre');
-  const v0=x0+0.05, v1=x1-0.05, w0=z0-0.02, w1=z1, y0=F+0.82, y1=F+0.96, e=0.02;
+  const v0=x0+0.05, v1=x1-0.05, w0=z0+0.05, w1=z1, y0=F+0.82, y1=F+0.96, e=0.02;   // 5 cm en retrait du bord du meuble (Mauro)
   boite(g,v0,v1,y0,y0+0.04,w0,w1,MAT.ceramique); boite(g,v0,v1,y0,y1,w0,w0+e,MAT.ceramique); boite(g,v0,v1,y0,y1,w1-0.09,w1,MAT.ceramique);
   boite(g,v0,v0+e,y0,y1,w0,w1,MAT.ceramique); boite(g,v1-e,v1,y0,y1,w0,w1,MAT.ceramique);
   cylindre(g,xm,y1,y1+0.16,z1-0.05,0.014,MAT.chrome); boite(g,xm-0.01,xm+0.01,y1+0.13,y1+0.15,z1-0.15,z1-0.05,MAT.chrome);

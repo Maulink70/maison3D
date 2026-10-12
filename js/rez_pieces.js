@@ -185,8 +185,12 @@ export function carrelerMursSdb(root){
       } } });
   // pente de la douche, carrelée en gris foncé, rangées le long de la pente
   const {x0,x1,zMur,yGenou,zPlafond}=DOUCHE, L=Math.hypot(2.40-yGenou,zPlafond-zMur), ny=-(zPlafond-zMur)/L, nz=(2.40-yGenou)/L;
-  const fo=lots.fonce||(lots.fonce={pos:[],nor:[],uv:[]}), coin=[[x0,yGenou,zMur,0],[x1,yGenou,zMur,0],[x1,2.40,zPlafond,L],[x0,2.40,zPlafond,L]];
-  for(const k of [0,1,2,0,2,3]){ const [x,y,z,s]=coin[k]; fo.pos.push(x,y,z); fo.nor.push(0,ny,nz); fo.uv.push(x/0.60,(yGenou+s)/0.30); }
+  // mur nord de la douche plat du sol au genou, 2 mm devant le mur (le modèle y avait un retrait de 20 cm jusqu'à 0,89 m,
+  // coin blanc vu par Mauro), puis la pente : joints alignés
+  const fo=lots.fonce||(lots.fonce={pos:[],nor:[],uv:[]}), z=zMur+0.002;
+  const quad=(coin,n)=>{ for(const k of [0,1,2,0,2,3]){ const [x,y,zz,v]=coin[k]; fo.pos.push(x,y,zz); fo.nor.push(...n); fo.uv.push(x/0.60,v/0.30); } };
+  quad([[x0,0,z,0],[x1,0,z,0],[x1,yGenou,z,yGenou],[x0,yGenou,z,yGenou]],[0,0,1]);
+  quad([[x0,yGenou,z,yGenou],[x1,yGenou,z,yGenou],[x1,2.40,zPlafond,yGenou+L],[x0,2.40,zPlafond,yGenou+L]],[0,ny,nz]);
   rez.updateMatrixWorld(true); const inv=rez.matrixWorld.clone().invert();
   if(peinture){ const m=new THREE.Mesh(peinture.geo,peinture.mat); m.applyMatrix4(inv); rez.add(m); }
   for(const [t,l] of Object.entries(lots)){

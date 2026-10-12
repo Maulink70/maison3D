@@ -64,8 +64,10 @@ def repondre(nom,x,binaire=False):
     {'respondWith':'json','responseBody':'={{ JSON.stringify($json.reponse) }}','options':{}}
   return {'id':str(uuid.uuid5(uuid.NAMESPACE_DNS,'m3df-'+nom)),'name':nom,'type':'n8n-nodes-base.respondToWebhook','typeVersion':1.1,'position':[x,0],'parameters':p}
 dl={'id':str(uuid.uuid5(uuid.NAMESPACE_DNS,'m3df-telecharger')),'name':'Télécharger','type':'n8n-nodes-base.httpRequest','typeVersion':4.2,'position':[1100,-100],
-  'parameters':{'url':'={{ $json.url }}','options':{'response':{'response':{'responseFormat':'file'}}}}}
-ligne=http('Lire la ligne',660,False); ligne['id']=str(uuid.uuid5(uuid.NAMESPACE_DNS,'m3df-lire'))
+  'parameters':{'url':'={{ $json.url }}','options':{'response':{'response':{'responseFormat':'file'}},'timeout':20000}}}
+ligne=http('Lire la ligne',660,False); ligne['id']=str(uuid.uuid5(uuid.NAMESPACE_DNS,'m3df-lire')); ligne['parameters']['options']['timeout']=10000
+# Airtable injoignable un moment (12 octobre 2026 : 2 min 15 s d'attente, photo restée floue) : délai court et 3 essais
+for n in (dl,ligne): n.update({'retryOnFail':True,'maxTries':3,'waitBetweenTries':1000})
 nodesF=[
  {'id':str(uuid.uuid5(uuid.NAMESPACE_DNS,'m3df-webhook')),'name':'Fichier demandé','type':'n8n-nodes-base.webhook','typeVersion':2,'position':[0,0],'webhookId':'4a2f5d0e-6c1b-4c8e-9f3a-maison3d0002',
   'parameters':{'httpMethod':'GET','path':'maison3d-fichier','responseMode':'responseNode','options':{'allowedOrigins':ORIGINES}}},

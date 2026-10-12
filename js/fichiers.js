@@ -28,14 +28,26 @@ export async function envoyerFichier(blob,{nom,type}){
 }
 // relit un fichier (cache du navigateur, sinon n8n) ; renvoie un Blob ou null
 const enCours=new Map();
+// Un morceau lu par n8n : 30 s au plus par essai, 3 essais (le 12 octobre 2026, n8n n'a pas joint Airtable pendant 2 min :
+// la photo restait floue, sa vignette affichée en attendant l'image) ; un refus (jeton, fichier inconnu) n'est pas réessayé
+async function telecharger(id,k){
+  for(let essai=0;essai<3;essai++){
+    if(essai) await new Promise(r=>setTimeout(r,1500*essai));
+    const ac=new AbortController(), t=setTimeout(()=>ac.abort(),30000);
+    try{ const r=await fetch(LIRE+'?id='+encodeURIComponent(id)+'&p='+k+'&j='+encodeURIComponent(jeton()),{cache:'no-store',signal:ac.signal});
+      if(r.ok) return /json/.test(r.headers.get('Content-Type')||'')?null:await r.blob();   // réponse JSON de n8n : refus
+      if(r.status>=400&&r.status<500) return null; }
+    catch{} finally{ clearTimeout(t); }
+  }
+  return null;
+}
 export function lireFichier(id,n=1,type=''){
   const k0=id+':'+n; if(enCours.has(k0)) return enCours.get(k0);
   const p=(async()=>{
     const parts=[]; let c=null; try{ c=await caches.open(CACHE); }catch{}
     for(let k=0;k<n;k++){
       let b=null; try{ const r=await c?.match(cle(id,k)); if(r) b=await r.blob(); }catch{}
-      if(!b){ try{ const r=await fetch(LIRE+'?id='+encodeURIComponent(id)+'&p='+k+'&j='+encodeURIComponent(jeton()),{cache:'no-store'});
-          if(!r.ok||/json/.test(r.headers.get('Content-Type')||'')) return null; b=await r.blob(); await garder(id,k,b); }catch{ return null; } }
+      if(!b){ b=await telecharger(id,k); if(!b) return null; await garder(id,k,b); }
       parts.push(b);
     }
     return new Blob(parts,{type:type||parts[0]?.type||''});

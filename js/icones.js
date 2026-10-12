@@ -37,7 +37,10 @@ const LUCIDE={
 // maison à deux étages : toit, étage (haut), rez (bas) ; « Tout » remplit les deux
 const niveau=k=>`<path d="M2 10.5 12 2.5l10 8"/><rect x="4" y="10" width="16" height="5.5" rx="1"${k!=='rez'?' class="plein"':''}/>`+
   `<rect x="4" y="15.5" width="16" height="6" rx="1"${k!=='etage'?' class="plein"':''}/>`;
-const DESSINS={...LUCIDE,'niv-tout':niveau('tout'),'niv-rez':niveau('rez'),'niv-etage':niveau('etage')};
+// points de vue des photos : repère de lieu (Lucide map-pin) avec un petit appareil photo dedans
+const pinPhoto='<path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"/>'+
+  '<rect x="8.3" y="8.2" width="7.4" height="5.2" rx="1"/><circle cx="12" cy="10.8" r="1.3"/><path d="M10.6 8.2l.6-1.1h1.6l.6 1.1"/>';
+const DESSINS={...LUCIDE,'niv-tout':niveau('tout'),'niv-rez':niveau('rez'),'niv-etage':niveau('etage'),'pin-photo':pinPhoto};
 const svg=nom=>`<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${DESSINS[nom]||''}</svg>`;
 
 let bulle=null, cible=null, attente=null, minuterie=0, avaler=null, finAvaler=0, vueA=0;
@@ -58,6 +61,11 @@ const bouton=e=>e.target instanceof Element?e.target.closest('button.ib[aria-lab
 
 export function initIcones(){
   for(const b of document.querySelectorAll('button[data-icone]')) b.insertAdjacentHTML('afterbegin',svg(b.dataset.icone));
+  // barre du haut : le nom sous l'icône, montré sur PC seulement (Mauro, 12 octobre 2026 ; css : .ib-nom), il suit aria-label
+  const suivre=new MutationObserver(l=>{ for(const m of l){ const n=m.target.querySelector(':scope > .ib-nom'); if(n) n.textContent=m.target.getAttribute('aria-label')||''; } });
+  for(const b of document.querySelectorAll('header.bar button.ib[data-icone]')){
+    const n=document.createElement('span'); n.className='ib-nom'; n.textContent=b.getAttribute('aria-label')||''; b.append(n);
+    suivre.observe(b,{attributes:true,attributeFilter:['aria-label']}); }
   bulle=document.createElement('div'); bulle.id='infobulle'; bulle.setAttribute('role','tooltip'); bulle.hidden=true; document.body.append(bulle);
   // souris : survol
   addEventListener('pointerover',e=>{ if(e.pointerType!=='mouse') return; const b=bouton(e); if(!b||b===cible||b===attente) return;

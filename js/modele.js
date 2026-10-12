@@ -122,7 +122,8 @@ function teinter(root){
 
 // Places corrigées d'après les photos calées (11 octobre 2026) : nœuds du modèle déplacés (x, z en mètres) avant la création des meubles
 const DEPLACES={'rez__Bar_cuisine':[0,0.60],   // îlot : allée de ~1,1 m devant les meubles du fond (0,6 m dans le modèle)
-  'rez__meuble_salon':[0,0.25]};               // buffet : 25 cm plus au sud (trois photos du salon)
+  'rez__meuble_salon':[0,0.25],                // buffet : 25 cm plus au sud (trois photos du salon)
+  'rez__armoire_chambre_a_coucher':[-0.01,0]};  // armoire de la chambre : flanc 1 cm dans le mur (il était dans son plan et scintillait vu d'en haut, Mauro)
 function deplacer(root){
   for(const [nom,[dx,dz]] of Object.entries(DEPLACES)){ const n=root.getObjectByName(nom); if(!n) continue;
     const p=n.getWorldPosition(new THREE.Vector3()); p.x+=dx; p.z+=dz; n.parent.worldToLocal(p); n.position.copy(p); n.updateMatrixWorld(true); }

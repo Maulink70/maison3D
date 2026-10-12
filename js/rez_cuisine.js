@@ -82,8 +82,9 @@ function table(){
 function banquette(){
   // 160 × 63 cm, alignée sur la table, son dos (côté îlot) à 66 cm du bord de la table (mesurés par Mauro le 12 octobre 2026)
   const g=groupe('rez__banquette'), x0=16.05, x1=17.65, z0=-20.5925-0.66, z1=z0+0.63;
-  boite(g,x0,x1,0.08,0.385,z0,z1,MAT.cuir); boite(g,x0,x1,0.385,0.475,z0,z1,MAT.cuirClair);   // assise à 47,5 cm (Mauro)
-  for(const x of [x0+0.08,x1-0.08]) boite(g,x-0.03,x+0.03,0,0.08,z0+0.05,z1-0.05,MAT.inox);
+  // assise à 47,5 cm (Mauro) sur quatre pieds en inox (Mauro, 12 octobre 2026 : « elle n'est pas pleine »)
+  boite(g,x0,x1,0.33,0.385,z0,z1,MAT.cuir); boite(g,x0,x1,0.385,0.475,z0,z1,MAT.cuirClair);
+  for(const x of [x0+0.06,x1-0.06]) for(const z of [z0+0.06,z1-0.06]) boite(g,x-0.02,x+0.02,0,0.33,z-0.02,z+0.02,MAT.inox);
   // dossier côté cuisine (on s'assoit face à la table, d'après Mauro le 9 octobre 2026) : coussin sur toute la longueur,
   // même cuir que l'assise, tenu par deux montants plats en inox près des bouts
   for(const x of [x0+0.15,x1-0.15]) boite(g,x-0.02,x+0.02,0.475,0.80,z0,z0+0.02,MAT.inox);

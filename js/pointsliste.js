@@ -84,4 +84,6 @@ export function allerAuPoint(p){
   const memePiece=lesPhotos().filter(q=>calee(q)&&q.piece===p.piece);
   voirPhoto(p,memePiece.length?memePiece:[p]);
 }
-export function initPointsListe(){ addEventListener('photos',()=>majGrille()); }
+// bouton de la barre, à côté de « Aller à » (Mauro, 12 octobre 2026) ; aussi dans les menus « Aller à », « Vues » et « Photo réaliste »
+export function initPointsListe(){ addEventListener('photos',()=>majGrille());
+  document.getElementById('points-vue')?.addEventListener('click',()=>ouvrirPointsVue(true)); }
