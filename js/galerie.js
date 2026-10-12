@@ -68,27 +68,42 @@ function pieceIci(){
   const n=app.mode==='walk'?(c.y>ETAGE_FLOOR+0.5?'etage':'rez'):(app.level==='etage'?'etage':'rez');
   return pieceEn(c.x,c.z,n)?.id||null;
 }
-const nouveauNom=piece=>{ const deja=lesPhotos().filter(p=>p.piece===piece).map(p=>+(/(\d+)$/.exec(p.nom)?.[1]||0)); return nomPiece(piece)+' '+(Math.max(0,...deja)+1); };
+// nom d'une nouvelle photo : « Salon 5 » (pièce, espace, numéro) ; le numéro voulu s'il est libre, sinon le suivant
+const nouveauNom=(piece,voulu)=>{ const deja=lesPhotos().filter(p=>p.piece===piece).map(p=>+(/(\d+)$/.exec(p.nom)?.[1]||0));
+  return nomPiece(piece)+' '+(voulu>0&&!deja.includes(voulu)?voulu:Math.max(0,...deja)+1); };
+// pièce et numéro lus dans le nom du fichier (Mauro nomme ses photos par pièce : « salon 5.jpg », « salle de bain 2.jpg »,
+// « Entree.jpg », « wc-buanderie.jpg ») : on les envoie toutes d'un coup et chacune va dans sa pièce, avec son numéro
+const MOTS=[['salle de bain','sdb'],['sdb','sdb'],['wc','wc'],['buanderie','wc'],['toilettes?','wc'],['chambre (de l )?etage','chambre_etage'],
+  ['chambre','chambre'],['salon','salon'],['sejour','salon'],['cuisine','cuisine'],['entree','entree'],['degagement','degagement'],['couloir','degagement'],
+  ['mezzanine','mezzanine'],['dressing','dressing'],['douche','douche']];
+export function lireNomFichier(nom){
+  const t=sansAccents(nom).replace(/\.[a-z0-9]+$/,'').replace(/[^a-z0-9]+/g,' ').trim();
+  const m=MOTS.find(([k])=>new RegExp('(^| )'+k+'( |$)').test(t));
+  return m?{piece:m[1],numero:+(/(\d+)$/.exec(t)?.[1]||0)}:{piece:null,numero:0};   // « IMG_2034 » : ni pièce ni numéro
+}
+// nom du fichier dans la table Fichiers : celui de la photo, sans accents ni majuscules (« salle de bain 2 », « wc buanderie 1 »)
+const nomStockage=nom=>sansAccents(nom).replace(/[^a-z0-9]+/g,' ').trim().slice(0,60)||'photo';
 async function ajouter(fichiers){
   const l=[...fichiers].filter(f=>/^image\//.test(f.type)||/\.(jpe?g|png|webp)$/i.test(f.name)); if(!l.length||!app.edition) return;
-  const piece=fen.querySelector('#gal-piece').value||pieceIci()||'salon', erreurs=[]; let n=0, faites=0;
+  const choisie=fen.querySelector('#gal-piece').value||pieceIci()||'salon', erreurs=[], ou={}; let n=0, faites=0;
   fen.querySelectorAll('.gal-ajout button').forEach(b=>b.disabled=true);
   for(const f of l){
     dire(`Envoi de la photo ${++n} sur ${l.length}…`);
     try{
-      const {blob,w,h,vignette}=await preparer(f);
-      const e=await envoyerFichier(blob,{nom:sansAccents(f.name).replace(/\.[a-z0-9]+$/,'').replace(/[^a-z0-9]+/g,'-').slice(0,60)||'photo',type:'photo'});
+      const {blob,w,h,vignette}=await preparer(f), lu=lireNomFichier(f.name), piece=lu.piece||choisie, nom=nouveauNom(piece,lu.numero);
+      const e=await envoyerFichier(blob,{nom:nomStockage(nom),type:'photo'});
       if(e.erreur) throw new Error(e.erreur);
-      const p={id:'ph'+Date.now().toString(36)+Math.random().toString(36).slice(2,6),nom:nouveauNom(piece),piece,image:{id:e.id,n:e.n,type:'image/jpeg',w,h},
+      const p={id:'ph'+Date.now().toString(36)+Math.random().toString(36).slice(2,6),nom,piece,image:{id:e.id,n:e.n,type:'image/jpeg',w,h},
         vignette,calage:null,ordre:0,creeePar:moi()||'',creeeLe:new Date().toISOString()};
       const r=await appel('photo',{op:'enregistrer',photo:{...p,nouvelle:true}});
       if(!r.ok) throw new Error(r.horsLigne?'Pas de connexion : réessayez quand le réseau revient.':(r.erreur||'Enregistrement impossible'));
-      (photos||(photos=[])).push(p); faites++; majGrille(); annoncer();
+      (photos||(photos=[])).push(p); faites++; ou[piece]=(ou[piece]||0)+1; majGrille(); annoncer();
     }catch(err){ erreurs.push(err.message||String(err)); }
   }
   fen.querySelectorAll('.gal-ajout button').forEach(b=>b.disabled=false);
-  filtre=piece; majMode(); majPieces(); majGrille();
-  dire((faites?`${faites} photo${faites>1?'s':''} ajoutée${faites>1?'s':''} dans « ${nomPiece(piece)} ».`:'')+(erreurs.length?' '+erreurs.join(' · '):''),!!erreurs.length);
+  const pieces=Object.keys(ou); filtre=pieces.length>1?null:pieces[0]||choisie; majMode(); majPieces(); majGrille();
+  dire((faites?`${faites} photo${faites>1?'s':''} ajoutée${faites>1?'s':''} `+(pieces.length>1?': '+pieces.map(k=>`${nomPiece(k)} (${ou[k]})`).join(', ')+'.':`dans « ${nomPiece(pieces[0])} ».`):'')
+    +(erreurs.length?' '+erreurs.join(' · '):''),!!erreurs.length);
 }
 
 // ---------- la galerie ----------
@@ -148,7 +163,7 @@ function majMode(){
   if(choix){ aide.textContent=choix.texte; return; }
   if(onglet==='rendus'){ aide.textContent='Les rendus réalistes de chaque pièce, les plus récents d’abord : touchez-en un pour le voir en grand, en avant / après.'; return; }
   if(onglet==='preparer'){ const n=lesPhotos().length, c=lesPhotos().filter(p=>p.calage).length;
-    aide.textContent=`À faire une fois pour toutes : ajouter les photos de chaque pièce et caler la maquette dessus (${c} calée${c>1?'s':''} sur ${n}). Une photo calée apparaît dans la visite 3D (icône d’appareil photo) et place à l’endroit voulu les meubles mis en 3D depuis un montage.`; return; }
+    aide.textContent=`À faire une fois pour toutes : ajouter les photos de chaque pièce et caler la maquette dessus (${c} calée${c>1?'s':''} sur ${n}). Une photo calée apparaît dans la visite 3D (icône d’appareil photo) et place à l’endroit voulu les meubles mis en 3D depuis un montage. Une photo nommée par pièce (« salon 3.jpg », « salle de bain 1.jpg ») va d’elle-même dans sa pièce, avec son numéro : on peut les envoyer toutes d’un coup.`; return; }
   aide.textContent=(filtre?`Les photos de « ${nomPiece(filtre)} » (les autres pièces : pastilles ci-dessus). `:'')
     +'Touchez une photo : « Voir dans la maquette » (photo calée) ou « Faire un montage » (votre demande écrite, des meubles posés sur la photo, des zones à effacer, puis un rendu réaliste).';
 }
