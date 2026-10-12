@@ -119,6 +119,11 @@ export function mesureToucher(cx,cy){
   const nouvelle={a:a.map(v=>+v.toFixed(4)),b:b.map(v=>+v.toFixed(4)),t:Math.max(Date.now(),(mesures.at(-1)?.t||0)+1)};   // t sert d'identifiant
   mesures.push(nouvelle); garder(); majBandeau(); annoncer('ajouter',nouvelle);
 }
+// une mesure tracée par l'assistant (distance entre deux objets), gardée et partagée comme les autres
+export function ajouterMesure(a,b){
+  const nouvelle={a:a.map(v=>+v.toFixed(4)),b:b.map(v=>+v.toFixed(4)),t:Math.max(Date.now(),(mesures.at(-1)?.t||0)+1)};
+  mesures.push(nouvelle); garder(); majBandeau(); annoncer('ajouter',nouvelle); return nouvelle;
+}
 function activer(oui){
   app.mesure=oui; premier=null; survol=null; $('mesurer').setAttribute('aria-pressed',String(oui)); $('app').classList.toggle('mesure',oui); majBandeau();
 }

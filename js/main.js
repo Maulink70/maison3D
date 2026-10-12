@@ -41,8 +41,10 @@ import {initCalage, majCalage, calageActif, fovCalage, zoomCalage, toucherCalage
 import {initPointsVue, majPointsVue} from './pointsvue.js';
 import {initJeu, majJeu, doubleClic, centreVue} from './jeu.js';
 import {initPointsListe} from './pointsliste.js';
+import {initCreer} from './creer.js';
+import {initAssistant} from './assistant.js';
 
-initIcones(); initCompte(); initSynchro(); initVariantes(); initComparer(); initVues(); initVisite(); initEdition(); initSauvegarde(); initAller(); initPlan(); initCalques(); initMesure(); initImpression(); initIsoler(); initCameras(); initHistorique(); initPartage(); initAlertes(); initObjets(); initRevetements(); initGalerie(); initCalage(); initRecu(); initPointsVue(); initProduits(); initJeu(); initPointsListe();
+initIcones(); initCompte(); initSynchro(); initVariantes(); initComparer(); initVues(); initVisite(); initEdition(); initSauvegarde(); initAller(); initPlan(); initCalques(); initMesure(); initImpression(); initIsoler(); initCameras(); initHistorique(); initPartage(); initAlertes(); initObjets(); initRevetements(); initGalerie(); initCalage(); initRecu(); initPointsVue(); initProduits(); initJeu(); initPointsListe(); initCreer(); initAssistant();
 // tableau des meubles : toucher un nom le montre (sélectionné en Éditer) ; bouton du panneau
 initTableau(it=>{ if(app.edition&&!it.hidden) select(it.name); cadrerObjet(it); }); $('f-tableau').onclick=()=>ouvrirTableau(true);
 
@@ -104,7 +106,7 @@ canvas.addEventListener('pointerup',e=>{
   if(pd.tele){ if(app.mode==='orbit') entrerIci(pd.tele); else teleporter(pd.tele); }
   else if(!pd.drag&&!pd.multi&&dt<600&&!app.gizmoDrag&&app.mobilierPret&&!eclatActif()&&!comparaisonActive()&&!doubleClic(e)){   // vue éclatée : rien à toucher
     const [x,y]=ou(e), t={clientX:x,clientY:y};
-    if(app.mesure) mesureToucher(x,y); else if(calageActif()) toucherCalage(t); else toucher(t); }
+    if(app.viseAssistant) app.viseAssistant(x,y); else if(app.mesure) mesureToucher(x,y); else if(calageActif()) toucherCalage(t); else toucher(t); }
   fin();
 });
 canvas.addEventListener('pointercancel',fin);
@@ -142,6 +144,7 @@ app.renderer.setAnimationLoop(()=>{
   const bas=barre.getBoundingClientRect().bottom-$('app').getBoundingClientRect().top;
   $('bandeaux').style.top=(bas+8)+'px';   // bandeaux sous la barre, même sur téléphone
   $('panel').style.top=innerWidth>760?(bas+10)+'px':'';   // panneau des meubles sous la barre (qui peut tenir sur 2 lignes)
+  const pa=$('assistant-panneau'); if(pa&&!pa.hidden) pa.style.top=innerWidth>760?(bas+10)+'px':'';   // assistant : même hauteur, à gauche
   majJeu(); majCalage();   // après les bandeaux : cadre de la photo sous eux, caméra à l'angle de vue de la photo
   rendre();
 });

@@ -131,7 +131,8 @@ function majMenu(){
   }
   if(message) m.append(el('p',{class:messageOk?'var-note var-ok':'cx-erreur',role:'status'},message));
 }
-// nouvelle variante : copie de celle affichée, dans sa base
+// nouvelle variante : copie de celle affichée, dans sa base (aussi depuis l'assistant)
+export async function creerVariante(nom){ await creer(nom); return varianteCourante(); }
 async function creer(nom){
   dire('Création de « '+nom+' »…',true);
   const liste=lesVariantes().filter(v=>!v.fixe), disposition=lireDisposition(), g=groupeDe(varianteCourante());

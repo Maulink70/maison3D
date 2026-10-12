@@ -41,7 +41,7 @@ const niveau=k=>`<path d="M2 10.5 12 2.5l10 8"/><rect x="4" y="10" width="16" he
 const pinPhoto='<path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"/>'+
   '<rect x="8.3" y="8.2" width="7.4" height="5.2" rx="1"/><circle cx="12" cy="10.8" r="1.3"/><path d="M10.6 8.2l.6-1.1h1.6l.6 1.1"/>';
 const DESSINS={...LUCIDE,'niv-tout':niveau('tout'),'niv-rez':niveau('rez'),'niv-etage':niveau('etage'),'pin-photo':pinPhoto};
-const svg=nom=>`<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${DESSINS[nom]||''}</svg>`;
+const svg=nom=>nom==='assistant'?'<img class="ico ico-avatar" src="icones/assistant-visage.webp" alt="" aria-hidden="true">':`<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${DESSINS[nom]||''}</svg>`;
 
 let bulle=null, cible=null, attente=null, minuterie=0, avaler=null, finAvaler=0, vueA=0;
 // change l'icône d'un bouton (porte ouverte / fermée…)

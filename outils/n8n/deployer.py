@@ -224,7 +224,8 @@ else:
   print('workflow Catalogue non publié : SKETCHFAB_CRED (id de la clé « Sketchfab Maison3D » dans n8n) manquant')
 
 # ---------- workflow « Maison3D Rendu » (étape 5, livraison 2) : rendu réaliste d'une photo de pièce (kie.ai) ----------
-# POST /webhook/maison3d-rendu (texte JSON) : solde → {solde, modeles} ; demarrer {images, consigne, ratio, titre, modele, nombre 1-4} → {tache, taches} ;
+# POST /webhook/maison3d-rendu (texte JSON) : solde → {solde, modeles, modelesCreer} ; demarrer {images, consigne, ratio, titre, modele, nombre 1-4} → {tache, taches} ;
+# creer {description, dims, modele, nombre 1-4} → {tache, taches} (« Créer avec l'IA », texte → image, sans Familia) ;
 # suivre {tache} → {etat, image}. Même clé kie.ai que le nettoyage (KIE ci-dessus). Clé externe de Familia (adresse de
 # rappel : le rendu arrive aussi dans la galerie Familia) : FAMILIA_CLE=<32 caractères> python3 outils/n8n/deployer.py ;
 # sans elle, la clé du workflow déjà publié est reprise (jamais dans le dépôt) ; aucune clé : pas de rappel Familia.
@@ -237,7 +238,7 @@ if not re.fullmatch(r'[0-9a-f]{32}',fam) and exR:
 idr=lambda nom:str(uuid.uuid5(uuid.NAMESPACE_DNS,'m3drendu-'+nom))
 def codeR(nom,f,x,y,avecLib=False):
   # la liste des modèles (rendu_modeles.js) est mise en tête des nœuds qui s'en servent
-  js=((lib if avecLib else '')+(lire('rendu_modeles.js')+'\n' if f in ('rendu_analyser.js','rendu_tache.js','rendu_solde.js') else '')+lire(f)).replace('__SECRET__',sec).replace('__FAMILIA__',fam if re.fullmatch(r'[0-9a-f]{32}',fam) else '')
+  js=((lib if avecLib else '')+(lire('rendu_modeles.js')+'\n' if f in ('rendu_analyser.js','rendu_tache.js','rendu_solde.js') else '')+(lire('creer_modeles.js')+'\n' if f in ('rendu_analyser.js','rendu_solde.js') else '')+lire(f)).replace('__SECRET__',sec).replace('__FAMILIA__',fam if re.fullmatch(r'[0-9a-f]{32}',fam) else '')
   return {'id':idr(nom),'name':nom,'type':'n8n-nodes-base.code','typeVersion':2,'position':[x,y],'parameters':{'jsCode':js}}
 def siR(nom,x,y,expr): n=si(nom,x); n['id']=idr(nom); n['position']=[x,y]; n['parameters']['conditions']['conditions'][0]['leftValue']=expr; return n
 def repR(nom,x,y): n=repondre(nom,x); n['id']=idr(nom); n['position']=[x,y]; return n
@@ -250,14 +251,15 @@ nodesR=[
   'parameters':{'httpMethod':'POST','path':'maison3d-rendu','responseMode':'responseNode','options':{'allowedOrigins':ORIGINES}}},
  codeR('Analyser','rendu_analyser.js',220,0,True), siR('Valide ?',440,0,'={{ $json.req != null }}'), repR('Refus',660,400),
  siR('Solde ?',660,0,'={{ $json.op === "solde" }}'), kieR('Lire le solde',880,-300,False), codeR('Solde','rendu_solde.js',1100,-300), repR('Réponse solde',1320,-300),
- siR('Démarrer ?',880,0,'={{ $json.op === "demarrer" }}'),
+ siR('Démarrer ?',880,0,'={{ $json.op === "demarrer" }}'), siR('Créer ?',1100,100,'={{ $json.op === "creer" }}'),
  kieR('Envoyer les images',1100,-100,True), codeR('Préparer la tâche','rendu_tache.js',1320,-100), siR('Images reçues ?',1540,-100,'={{ $json.req != null }}'),
  kieR('Créer la tâche',1760,-200,True), codeR('Tâche créée','rendu_reponse_taches.js',1980,-200), repR('Réponse tâche',2200,-200), repR('Refus kie',1760,0),
  kieR('Lire la tâche',1100,200,False), codeR('État','ia_etat.js',1320,200), siR('Prêt ?',1540,200,'={{ $json.url != null }}'),
  dlR, codeR('Image','ia_image.js',1760,300), repR('Réponse image',1980,300), repR('Réponse état',1760,100)]
 conR={'Demande du site':{'main':[[mm('Analyser')]]},'Analyser':{'main':[[mm('Valide ?')]]},'Valide ?':{'main':[[mm('Solde ?')],[mm('Refus')]]},
  'Solde ?':{'main':[[mm('Lire le solde')],[mm('Démarrer ?')]]},'Lire le solde':{'main':[[mm('Solde')]]},'Solde':{'main':[[mm('Réponse solde')]]},
- 'Démarrer ?':{'main':[[mm('Envoyer les images')],[mm('Lire la tâche')]]},
+ 'Démarrer ?':{'main':[[mm('Envoyer les images')],[mm('Créer ?')]]},
+ 'Créer ?':{'main':[[mm('Créer la tâche')],[mm('Lire la tâche')]]},
  'Envoyer les images':{'main':[[mm('Préparer la tâche')]]},'Préparer la tâche':{'main':[[mm('Images reçues ?')]]},'Images reçues ?':{'main':[[mm('Créer la tâche')],[mm('Refus kie')]]},
  'Créer la tâche':{'main':[[mm('Tâche créée')]]},'Tâche créée':{'main':[[mm('Réponse tâche')]]},
  'Lire la tâche':{'main':[[mm('État')]]},'État':{'main':[[mm('Prêt ?')]]},'Prêt ?':{'main':[[mm('Télécharger le rendu')],[mm('Réponse état')]]},
@@ -299,3 +301,27 @@ if exB:
 else:
   iB=req('POST',B,wfB)['id']
 r=req('POST',B+'/'+iB+'/activate'); print('workflow',iB,'(boutique) actif',r.get('active'))
+
+# ---------- workflow « Maison3D Assistant » (étape 6, 12 octobre 2026) : demande libre comprise par un modèle de texte ----------
+# POST /webhook/maison3d-assistant (texte JSON) : {texte, pieces:[{id,nom}], meubles:[{id,nom,piece}], pieceJointe} →
+# {branche, objet, piece, source, description, couleur, matiere, L, P, H, action, angle, dx, dz, mode, reponse}.
+# Modèle de texte de kie.ai (gemini-3-6-flash-openai, ≈ 0,05 crédit par message), même clé que le nettoyage (KIE).
+ida=lambda nom:str(uuid.uuid5(uuid.NAMESPACE_DNS,'m3dassist-'+nom))
+def codeA(nom,f,x,y,avecLib=False): return {'id':ida(nom),'name':nom,'type':'n8n-nodes-base.code','typeVersion':2,'position':[x,y],'parameters':{'jsCode':((lib if avecLib else '')+lire(f)).replace('__SECRET__',sec)}}
+def siA(nom,x,y,expr): n=si(nom,x); n['id']=ida(nom); n['position']=[x,y]; n['parameters']['conditions']['conditions'][0]['leftValue']=expr; return n
+def repA(nom,x,y): n=repondre(nom,x); n['id']=ida(nom); n['position']=[x,y]; return n
+def kieA(nom,x,y): n=kie(nom,x,y,True); n['id']=ida(nom); return n
+nodesA=[
+ {'id':ida('webhook'),'name':'Demande du site','type':'n8n-nodes-base.webhook','typeVersion':2,'position':[0,0],'webhookId':'4a2f5d0e-6c1b-4c8e-9f3a-maison3d0009',
+  'parameters':{'httpMethod':'POST','path':'maison3d-assistant','responseMode':'responseNode','options':{'allowedOrigins':ORIGINES}}},
+ codeA('Analyser','assistant_analyser.js',220,0,True), siA('Valide ?',440,0,'={{ $json.req != null }}'), repA('Refus',660,200),
+ kieA('Demander au modèle',660,-100), codeA('Lire la réponse','assistant_reponse.js',880,-100), repA('Réponse',1100,-100)]
+conA={'Demande du site':{'main':[[mm('Analyser')]]},'Analyser':{'main':[[mm('Valide ?')]]},'Valide ?':{'main':[[mm('Demander au modèle')],[mm('Refus')]]},
+ 'Demander au modèle':{'main':[[mm('Lire la réponse')]]},'Lire la réponse':{'main':[[mm('Réponse')]]}}
+wfA={'name':'Maison3D Assistant','nodes':nodesA,'connections':conA,'settings':{'executionOrder':'v1','saveDataSuccessExecution':'none','saveDataErrorExecution':'all'}}
+exA=[w for w in req('GET',B+'?limit=200')['data'] if w['name']=='Maison3D Assistant']
+if exA:
+  iA=exA[0]['id']; req('POST',B+'/'+iA+'/deactivate'); req('PUT',B+'/'+iA,wfA)
+else:
+  iA=req('POST',B,wfA)['id']
+r=req('POST',B+'/'+iA+'/activate'); print('workflow',iA,'(assistant) actif',r.get('active'))

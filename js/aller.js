@@ -95,6 +95,10 @@ function ouvrir(oui){
 }
 export function initAller(){
   const m=menu();
+  // les photos calées, tout en haut (Mauro, 12 octobre 2026) : l'écran des points de vue (pointsliste.js), chaque photo avec « Y aller »
+  const gp=document.createElement('div'); gp.className='menu-groupe'; const bp=document.createElement('button'); bp.type='button'; bp.id='aller-photos';
+  bp.innerHTML='<span>📷 Photos : y aller</span><span class="m2">là où elles ont été prises</span>'; bp.onclick=()=>{ ouvrir(false); ouvrirPointsVue(true); };
+  gp.append(bp); m.append(gp);
   const ch=document.createElement('div'); ch.id='aller-choix'; ch.className='impr-ligne';
   ch.innerHTML='<span>Pièce</span><div class="seg" role="group" aria-label="Aller à la pièce ou l’isoler"><button type="button" id="aller-va">Aller</button><button type="button" id="aller-isole">Isoler</button></div>';
   m.append(ch);
@@ -109,10 +113,6 @@ export function initAller(){
     }
     m.append(g);
   }
-  // les points de vue des photos calées (pointsliste.js) : un écran à part
-  const gp=document.createElement('div'); gp.className='menu-groupe'; const bp=document.createElement('button'); bp.type='button'; bp.id='aller-photos';
-  bp.innerHTML='<span>📷 Points de vue des photos…</span><span class="m2">photos calées</span>'; bp.onclick=()=>{ ouvrir(false); ouvrirPointsVue(true); };
-  gp.append(bp); m.append(gp);
   bouton().onclick=e=>{ e.stopPropagation(); ouvrir(m.hidden); };
   addEventListener('pointerdown',e=>{ if(!m.hidden&&!m.contains(e.target)&&!bouton().contains(e.target)) ouvrir(false); });
   m.addEventListener('keydown',e=>{

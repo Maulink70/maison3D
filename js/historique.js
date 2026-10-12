@@ -89,6 +89,14 @@ export function annuler(){ if(pos<=0) return false; appliquer(journal[--pos],'av
 export function retablir(){ if(pos>=journal.length) return false; appliquer(journal[pos++],'apres'); garder(); majPanneau(); return true; }
 function allerA(k){ while(pos>k+1) annuler(); while(pos<k+1) retablir(); }
 export const leJournal=()=>({journal,pos});
+// assistant (étape 6) : tout ce qui a été fait depuis la position « depuis » ne fait plus qu'une ligne, annulée d'un coup
+export const positionJournal=()=>pos;
+export function regrouper(depuis,texte){
+  if(depuis<0||pos-depuis<1) return; const m=new Map();
+  for(const e of journal.slice(depuis,pos)) for(const c of e.ch){ const x=m.get(c.n); if(x) x.apres=c.apres; else m.set(c.n,{n:c.n,avant:c.avant,apres:c.apres}); }
+  const ch=[...m.values()].filter(c=>json(c.avant)!==json(c.apres));
+  journal.splice(depuis,journal.length-depuis,...(ch.length?[{t:Date.now(),ch,texte}]:[])); pos=journal.length; garder(); majPanneau();
+}
 // changement de variante : on passe à son journal (annuler ne doit pas toucher une autre variante)
 export function changerJournal(id){ const c=id?CLE+'-'+id:CLE; if(c===cle) return; cle=c; relire(); etat=app.mobilierPret?photo():null; majPanneau(); }
 

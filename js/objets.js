@@ -21,6 +21,7 @@ import {css} from './app.js';
 import {ouvrirPhoto} from './photo.js';
 import {ouvrirImport, texteOrigine, texteFichier} from './import3d.js';
 import {ouvrirCatalogue} from './catalogue.js';
+import {ouvrirCreer} from './creer.js';
 
 const el=(nom,attrs={},texte)=>{ const n=document.createElement(nom); for(const [k,v] of Object.entries(attrs)) n.setAttribute(k,v); if(texte!==undefined) n.textContent=texte; return n; };
 const cm=v=>Math.round(v*1000)/10;   // mètres → cm, au mm
@@ -31,9 +32,10 @@ let partie=null;   // partie active du sélecteur de matières (clé, ou « * »
 let ici=false;     // enregistrement fait par le sélecteur lui-même : il ne se redessine pas (la pipette de couleur resterait ouverte)
 
 // ---------- où poser un nouvel objet : la pièce regardée ----------
-function lieu(L,P){
+function lieu(L,P,ou){
   let niv, x, z;
-  if(app.mode==='plan'){ niv=niveauDuPlan(); const v=vuePlan(); x=v.cx; z=v.cz; }
+  if(ou){ ({niv,x,z}=ou); }
+  else if(app.mode==='plan'){ niv=niveauDuPlan(); const v=vuePlan(); x=v.cx; z=v.cz; }
   else if(app.mode==='walk'){ const d=new THREE.Vector3(); app.camera.getWorldDirection(d); d.y=0; d.normalize();
     niv=app.camera.position.y>ETAGE_FLOOR+0.5?'etage':'rez'; x=app.camera.position.x+d.x*1.5; z=app.camera.position.z+d.z*1.5; }
   else { niv=app.level==='etage'?'etage':'rez'; x=app.orbit.target.x; z=app.orbit.target.z; }
@@ -80,8 +82,16 @@ export function ajouterObjet(a,place){
   if(ancien) setHidden(ancien,true); if(remplacement) finRemplacement();
   dispatchEvent(new CustomEvent('meubles'));
   select(nom); sousOnglet('taille'); save();   // un seul enregistrement : une ligne d'historique « remplacé par »
+  dispatchEvent(new CustomEvent('objet-ajoute',{detail:{nom,remplace:ancien?.name||null}}));   // l'assistant attend l'objet créé
   return it;
 }
+// une place libre dans une pièce (assistant) : comme pour un nouvel objet, en partant du milieu de la pièce
+export function placeLibre(L,P,piece){ const p=PIECES.find(q=>q.id===piece); if(!p) return null; const b=bornes(p), r=p.rects[0];
+  const c=pieceEn((b.x0+b.x1)/2,(b.z0+b.z1)/2,p.niveau)===p?[(b.x0+b.x1)/2,(b.z0+b.z1)/2]:[(r[0]+r[2])/2,(r[1]+r[3])/2];
+  return lieu(L,P,{niv:p.niveau,x:c[0],z:c[1]}); }
+// remplacer un élément sans ouvrir le menu « + » (assistant : la source du nouvel objet est choisie dans son panneau)
+export function preparerRemplacement(it){ if(!it||it.meta.c==='ouverture') return; remplacement=it.name; }
+export function annulerRemplacement(){ if(remplacement) finRemplacement(); }
 export function ajouterForme(f){
   const ancien=remplacement&&app.items[remplacement], p=parametres(f);
   if(ancien){ const s=ancien.size; if(FORMES[f].rond){ p.L=p.P=+((s.x+s.z)/2).toFixed(4); } else { p.L=+s.x.toFixed(4); p.P=+s.z.toFixed(4); } p.H=+s.y.toFixed(4); }
@@ -103,7 +113,7 @@ function ouvrirMenu(oui){
   const m=$('ajouter-menu'); m.hidden=!oui; $('ajouter').setAttribute('aria-expanded',String(oui)); if(!oui) return;
   const ancien=remplacement&&app.items[remplacement];
   m.replaceChildren(el('div',{class:'menu-titre'},ancien?`Remplacer « ${ancien.meta.l} » par`:'N’importe quel objet'));
-  for(const [k,t,d,f] of [['catalogue','Catalogue 3D…','Poly Haven, Sketchfab',ouvrirCatalogue],['photo','D’après une photo…','Tripo crée le meuble en 3D',ouvrirPhoto],['glb','Fichier 3D…','glb, fbx, obj, dae, stl',ouvrirImport]]){
+  for(const [k,t,d,f] of [['catalogue','Catalogue 3D…','Poly Haven, Sketchfab',ouvrirCatalogue],['ia','Créer avec l’IA…','décrivez-le, l’IA le dessine',()=>ouvrirCreer()],['photo','D’après une photo…','Tripo crée le meuble en 3D',ouvrirPhoto],['glb','Fichier 3D…','glb, fbx, obj, dae, stl',ouvrirImport]]){
     const b=el('button',{type:'button','data-ajout':k}); b.append(el('span',{},t),el('span',{class:'m2'},d)); b.onclick=()=>{ ouvrirMenu(false); f(true); }; m.append(b); }
   const g=el('div',{class:'menu-groupe'}); g.append(el('div',{class:'menu-titre'},'Formes simples')); m.append(g);
   for(const [f,d] of Object.entries(FORMES)){

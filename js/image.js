@@ -36,7 +36,7 @@ async function reduire(src,max=1024,type='image/jpeg'){
 // ---------- état : la base (photo ou rendu), les objets posés, les zones à effacer ----------
 let fen=null, mi=null, sel=null, prep=null;
 // base = {nom, piece, photo (id de la photo d'origine), image:{id,n,type,w,h}, cal:{calage, image} si la photo est calée}
-export async function ouvrirModeImage(base,produit){
+export async function ouvrirModeImage(base,produit,o={}){
   if(!fen) construire();
   if(!mi||mi.base.image.id!==base.image.id) mi={base,objets:[],zones:[],texte:{decrire:'',produit:''}}; else mi.base=base;
   fen.hidden=false; sel=null; prep=null; fen.querySelector('.mi-confirmer').hidden=true;
@@ -46,9 +46,12 @@ export async function ouvrirModeImage(base,produit){
   const b=await lireFichier(base.image.id,base.image.n||1,base.image.type||'image/jpeg');
   if(!b){ dire('La photo n’a pas pu être lue.',true); return; }
   if(mi.url) URL.revokeObjectURL(mi.url); mi.url=URL.createObjectURL(b); img.src=mi.url;
-  mi.mode=undefined; choisirMode(produit?'produit':null);
+  mi.mode=undefined; choisirMode(produit||o.mode==='produit'?'produit':o.demande||o.effacer?'decrire':null);
   await img.decode().catch(()=>{}); caler(); dessiner(); majListe();
   if(produit) await ajouterProduit(produit);
+  // depuis l'assistant : demande écrite déjà remplie, ou une zone à effacer à placer sur l'objet
+  if(o.demande){ const c=fen.querySelector('#mi-precisions'); c.value=o.demande; mi.texte.decrire=o.demande; }
+  if(o.effacer){ ajouterZone(); const c=fen.querySelector('#mi-precisions'); if(!c.value){ c.value='Efface complètement ce qui est dans la zone rouge, sans rien changer d’autre.'; mi.texte.decrire=c.value; } }
 }
 // les deux façons de faire un montage (12 octobre 2026) ; null : l'écran de choix. Chaque mode garde son texte ; les
 // produits posés sont mis de côté pendant « Décrire » (la photo part seule) et reviennent avec « Ajouter un produit précis »
@@ -294,7 +297,7 @@ function construire(){
       <p class="mi-note-mode"></p>
       <div class="mi-exemples"></div>
       <div class="mi-ajout">
-        <div class="mi-ligne"><button type="button" class="btn" id="mi-mes-produits" aria-expanded="false">🛍 Mes produits</button><button type="button" class="btn" id="mi-coller">Coller l’image</button><button type="button" class="btn" id="mi-choisir">Choisir une image</button>
+        <div class="mi-ligne"><button type="button" class="btn" id="mi-mes-produits" aria-expanded="false">🛍 Mes produits</button><button type="button" class="btn" id="mi-creer">✨ Créer avec l’IA</button><button type="button" class="btn" id="mi-coller">Coller l’image</button><button type="button" class="btn" id="mi-choisir">Choisir une image</button>
           <input type="file" id="mi-fichier" accept="image/*" hidden>
           <span class="mi-lien"><input type="url" id="mi-lien" placeholder="ou collez le lien du produit (https://…)" aria-label="Lien du produit"><button type="button" class="btn" id="mi-lien-lire">Lire le lien</button></span></div>
         <div class="mi-mesproduits" hidden></div>
@@ -322,7 +325,10 @@ function construire(){
   for(const t of ['Ajoute de la décoration','Ambiance du soir, lampes allumées','Ajoute des plantes','Style scandinave','Remplace le canapé par un canapé en velours vert']){
     const x=el('button',{type:'button',class:'cat-idee'},t); x.onclick=()=>{ const c=q('#mi-precisions'); c.value=c.value.trim()?c.value.trim()+', '+t.toLowerCase():t; c.focus(); }; q('.mi-exemples').append(x); }
   q('#mi-effacer').onclick=ajouterZone;
-  q('#mi-coller').onclick=coller; q('#mi-mes-produits').onclick=mesProduits; q('#mi-choisir').onclick=()=>q('#mi-fichier').click();
+  q('#mi-coller').onclick=coller; q('#mi-mes-produits').onclick=mesProduits;
+  // un objet dessiné par l'IA d'après une description (creer.js), posé sur la photo comme un produit (Mauro, 12 octobre 2026)
+  q('#mi-creer').onclick=async()=>{ const {ouvrirCreer}=await import('./creer.js');
+    ouvrirCreer({retour:(image,i)=>ajouterProduit({image,nom:i.nom,dims:i.dims}),texteRetour:'Poser sur la photo',piece:mi?.base.piece}); }; q('#mi-choisir').onclick=()=>q('#mi-fichier').click();
   q('#mi-fichier').onchange=e=>{ const f=e.target.files[0]; e.target.value=''; depuisFichier(f); };
   q('#mi-lien-lire').onclick=lien;
   q('#mi-rendu').onclick=preparer; q('#mi-modele').onchange=majCout;

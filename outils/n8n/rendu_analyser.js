@@ -25,6 +25,22 @@ if(c.action==='demarrer'){
   return im.map((d,k)=>({json:{op:'demarrer',k,consigne:c.consigne,ratio,titre,qui:moi.n,modele:m.id,nombre,
     req:{method:'POST',url:'https://kieai.redpandaai.co/api/file-base64-upload',body:{base64Data:d,uploadPath:'maison3d-rendus',fileName:'rendu-'+t+'-'+k+'.'+(d.slice(11,15).replace(/[^a-z]/g,'')||'jpg')}}}}));
 }
+// Créer avec l'IA (12 octobre 2026) : 1 à 4 images d'un objet décrit par le texte, sans image de départ (MODELES_CREER) ;
+// 40 créations par jour au plus, compteur à part de celui des rendus ; pas d'envoi dans Familia (ce ne sont pas des rendus)
+if(c.action==='creer'){
+  const m=modeleCreer(c.modele||MODELES_CREER[0].id); if(!m) return refus('Modèle inconnu : '+String(c.modele).slice(0,60));
+  const desc=String(c.description||'').replace(/[\u0000-\u001f]/g,' ').trim().slice(0,600);
+  if(desc.length<3) return refus('Décrivez l’objet à créer');
+  const d=c.dims||{}, cm=v=>Number.isFinite(+v)&&+v>0&&+v<2000?Math.round(+v):null, L=cm(d.L), P=cm(d.P), H=cm(d.H);
+  const dims=L&&P&&H?L+' × '+P+' × '+H+' cm':'';
+  const s=$getWorkflowStaticData('global'), jour=new Date().toISOString().slice(0,10);
+  if(s.jourC!==jour){ s.jourC=jour; s.nc=0; }
+  const nombre=Math.min(4,Math.max(1,Math.round(+c.nombre||1)));
+  if((s.nc||0)+nombre>40) return refus((s.nc||0)>=40?'Limite de 40 créations par jour atteinte : réessayez demain.':'Limite de 40 créations par jour : il en reste '+(40-(s.nc||0))+' aujourd’hui.',429);
+  s.nc=(s.nc||0)+nombre;
+  const corps=m.corps(consigneCreer(desc,dims));
+  return Array.from({length:nombre},()=>({json:{op:'creer',req:{method:'POST',url:'https://api.kie.ai/api/v1/jobs/createTask',body:corps}}}));
+}
 if(c.action==='suivre'){
   if(typeof c.tache!=='string'||!/^[A-Za-z0-9_-]{6,100}$/.test(c.tache)) return refus('Tâche inconnue');
   return [{json:{op:'suivre',req:{method:'GET',url:'https://api.kie.ai/api/v1/jobs/recordInfo?taskId='+encodeURIComponent(c.tache)}}}];
