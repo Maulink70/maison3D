@@ -40,7 +40,11 @@ export const BAIE={nom:'rez__baie_vitree', int:-14.347, ext:-14.111, a:[12.888,1
   bas:0.06, haut:2.38, course:1.38};
 // Velux : charnière en haut côté extérieur, tout l'ouvrant part vers l'extérieur, le bas se soulève, 30 % de l'ouverture (précisé par Mauro)
 export const VELUX=[{nom:'etage__Velux', x:[15.363,16.118]}, {nom:'etage__Velux_2', x:[12.733,13.488]}];
-const VELUX_BAS=new THREE.Vector3(0,3.567,-26.990), VELUX_HAUT=new THREE.Vector3(0,4.699,-26.357);
+// vitre du modèle (bas et haut) ; ouverture du toit 87,5 × 133 cm, comme les vrais Velux cadre compris (mesurés par Mauro)
+export const VELUX_BAS=new THREE.Vector3(0,3.567,-26.990), VELUX_HAUT=new THREE.Vector3(0,4.699,-26.357);
+// Bas du cadre à 85 cm du sol (mesuré par Mauro le 12 octobre 2026 ; 77 cm dans le modèle) : Velux, doublure et ouverture
+// du toit montés de 7,6 cm le long du pan nord (pente 2:1, z = -27,03 + h / 2)
+export const VELUX_MONTEE=new THREE.Vector3(0,0.076,0.038);
 
 // Pièce de bois : boîte en coordonnées locales du parent (a le long du mur, y, d dans l'épaisseur), veinage à l'échelle
 function piece(g,f,a0,a1,y0,y1,d0,d1,mat){
@@ -152,10 +156,14 @@ function velux(root,v){
   const node=root.getObjectByName(v.nom); if(!node) return;
   let blanc=null; node.traverse(o=>{ if(o.isMesh&&o.material.name==='Material_363'&&!blanc) blanc=o.material; });
   const vieux=[]; node.traverse(o=>{ if(o.isMesh&&o.material.name!=='Material_368') vieux.push(o); }); for(const o of vieux) o.removeFromParent();
+  // la doublure suit la montée (l'ouverture du toit est montée au chargement de la structure, corrections.js)
+  node.updateMatrixWorld(true); const doublure=[]; node.traverse(o=>{ if(o.isMesh&&!o.parent.isMesh) doublure.push(o); });
+  for(const o of doublure){ const p=o.parent, a=o.getWorldPosition(new THREE.Vector3()), b=a.clone().add(VELUX_MONTEE);
+    o.position.add(p.worldToLocal(b).sub(p.worldToLocal(a))); o.updateMatrixWorld(true); }
   const u=new THREE.Vector3(1,0,0), w=new THREE.Vector3().subVectors(VELUX_HAUT,VELUX_BAS), L=w.length(); w.normalize();
   const n=new THREE.Vector3().crossVectors(u,w);                    // vers l'intérieur (sud, vers le bas)
   const cadre=new THREE.Group(); cadre.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(u,w,n));
-  cadre.position.set((v.x[0]+v.x[1])/2,(VELUX_BAS.y+VELUX_HAUT.y)/2,(VELUX_BAS.z+VELUX_HAUT.z)/2);
+  cadre.position.set((v.x[0]+v.x[1])/2,(VELUX_BAS.y+VELUX_HAUT.y)/2,(VELUX_BAS.z+VELUX_HAUT.z)/2).add(VELUX_MONTEE);
   const lx=(v.x[1]-v.x[0])/2, ly=L/2, p=0.06, m=blanc||MAT.blanc, H=ly+p, E=-0.03;
   const pivot=new THREE.Group(); pivot.name=v.nom+'__ouvrant'; pivot.position.set(0,H,E); cadre.add(pivot);   // arête haute, face extérieure
   const b=(x0,x1,y0,y1,z0,z1,mat)=>boite(pivot,x0,x1,y0-H,y1-H,z0-E,z1-E,mat);

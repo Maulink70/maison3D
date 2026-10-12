@@ -1,7 +1,8 @@
 // Défauts du modèle SketchUp relevés par l'audit du 8 octobre 2026 (sols, fenêtres, seuil de la baie, porte
 // d'entrée), corrigés au chargement : le fichier 3D n'est pas modifié
 import * as THREE from 'three';
-import {uvMonde} from './formes.js';
+import {uvMonde, enFlottants} from './formes.js';
+import {VELUX, VELUX_BAS, VELUX_HAUT, VELUX_MONTEE} from './fenetres.js';
 
 // Neutralise les triangles dont les trois sommets (coordonnées monde) répondent au test ; renvoie leur nombre
 function neutraliser(o,test){
@@ -139,6 +140,22 @@ function fenetreSalleDeBain(rez,mur,carrelage){
 // Ouverture de la porte d'entrée dans le mur z = -21,11 (le modèle n'a qu'un mur plein) : x 11,62 → 12,60, 2,14 m
 export const ENTREE={x0:11.62, x1:12.60, h:2.14, zInt:-21.108, zExt:-20.908};
 
+// Ouverture des Velux dans le pan nord (87,5 × 133 cm, épaisseur du toit comprise) : ses sommets sont montés avec les Velux
+// (bas du cadre à 85 cm du sol, mesuré par Mauro ; fenetres.js monte le cadre et la doublure d'autant)
+function monterVelux(etage){
+  const w=new THREE.Vector3().subVectors(VELUX_HAUT,VELUX_BAS).normalize(), nv=new THREE.Vector3(1,0,0).cross(w);
+  const centres=VELUX.map(v=>new THREE.Vector3((v.x[0]+v.x[1])/2,(VELUX_BAS.y+VELUX_HAUT.y)/2,(VELUX_BAS.z+VELUX_HAUT.z)/2));
+  const d=new THREE.Vector3(), dans=q=>centres.some(c=>{ d.subVectors(q,c); const n=d.dot(nv); return Math.abs(d.x)<0.45&&Math.abs(d.dot(w))<0.70&&n>-0.12&&n<0.40; });
+  let n=0;
+  etage.traverse(o=>{ if(!o.isMesh) return; o.updateMatrixWorld(true);
+    const p=o.geometry.attributes.position, inv=o.matrixWorld.clone().invert(), q=new THREE.Vector3(); let geo=null;
+    for(let i=0;i<p.count;i++){ q.fromBufferAttribute(p,i).applyMatrix4(o.matrixWorld); if(!dans(q)) continue;
+      if(!geo) geo=o.geometry=enFlottants(o.geometry);   // positions compressées en entiers dans le modèle
+      q.add(VELUX_MONTEE).applyMatrix4(inv); geo.attributes.position.setXYZ(i,q.x,q.y,q.z); n++; }
+    if(geo){ geo.computeBoundingBox(); geo.computeBoundingSphere(); } });
+  return n;
+}
+
 export function corrigerStructure(root){
   root.updateMatrixWorld(true);
   const rez=root.getObjectByName('structure_rez'), etage=root.getObjectByName('structure_etage'), ajouts=new THREE.Group();
@@ -187,6 +204,8 @@ export function corrigerStructure(root){
         [[[11.458,3.60],[12.533,3.60],[12.533,4.32],[11.458,4.32]]]));
     }
   }
+  // 6. Velux montés de 7,6 cm (bas du cadre à 85 cm du sol, mesuré par Mauro le 12 octobre 2026) : leur ouverture dans le toit aussi
+  if(etage) ajouts.userData.veluxMontes=monterVelux(etage);
   return ajouts;
 }
 
