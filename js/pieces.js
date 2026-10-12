@@ -11,7 +11,7 @@ export const PIECES=[
   {id:'degagement', nom:'Dégagement',       niveau:'rez',   rects:[[13.08,-24.93,14.87,-22.58]],                              arrivee:[13.6,-22.9],  vers:[13.9,-24.9]},
   {id:'chambre',    nom:'Chambre',          niveau:'rez',   rects:[[14.88,-27.80,19.44,-25.01],[13.08,-26.03,14.88,-25.01]], arrivee:[14.5,-25.5],  vers:[19.4,-25.9]},
   {id:'sdb',        nom:'Salle de bain',    niveau:'rez',   rects:[[11.31,-27.80,14.75,-26.11],[11.31,-26.11,13.00,-25.01]], arrivee:[12.3,-26.3],  vers:[13.6,-27.4], incl:-0.2},
-  {id:'wc',         nom:'WC / buanderie',   niveau:'rez',   rects:[[11.31,-24.20,13.00,-22.66],[11.31,-24.93,12.11,-24.20]], arrivee:[12.55,-23.45],vers:[11.3,-23.6], incl:-0.5},
+  {id:'wc',         nom:'WC / buanderie',   niveau:'rez',   rects:[[11.31,-23.90,13.00,-22.66],[11.31,-24.93,12.11,-23.90]], arrivee:[12.55,-23.10],vers:[11.3,-23.6], incl:-0.5},
   {id:'mezzanine',  nom:'Mezzanine',        niveau:'etage', rects:[[14.10,-26.53,16.70,-21.11],[11.45,-22.75,14.10,-21.11]], arrivee:[13.3,-21.6],  vers:[15.4,-23.8]},
   {id:'dressing',   nom:'Dressing',         niveau:'etage', rects:[[11.31,-26.53,13.97,-22.83]],                              arrivee:[13.2,-23.9],  vers:[12.3,-25.6]},
   {id:'chambre_etage',nom:'Chambre de l’étage',niveau:'etage',rects:[[16.78,-26.53,19.44,-22.83]],                           arrivee:[17.5,-23.9],  vers:[18.6,-25.6], incl:-0.15},

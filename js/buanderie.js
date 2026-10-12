@@ -20,7 +20,7 @@ function wc(root){
 
 function lavabo(){
   const g=new THREE.Group(); g.name='rez__lavabo_wc';
-  const z0=-24.20, cx=12.59;
+  const z0=MUR_LAVABO.vers-0.002, cx=12.59;   // contre le mur du lavabo, avancé de 30 cm (voir avancerMurLavabo)
   // meuble à persiennes : une porte à gauche, deux tiroirs à droite ; 60 × 34,5 cm, 53 cm de haut (mesuré par Mauro le 12 octobre 2026)
   const mx0=cx-0.30, mx1=cx+0.30, mz1=z0+0.345, h=0.53;
   boite(g,mx0,mx1,0.02,h,z0,mz1-0.018,blanc);
@@ -67,6 +67,34 @@ function machines(){
 
 export function construireBuanderie(root){ return [wc(root),lavabo(),machines()]; }
 
+// Mur du lavabo (face sud du pilier, entre la niche des machines et la porte) : 30 cm plus en avant que dans le modèle.
+// Mauro a mesuré 1,24 m de ce mur au mur d'en face (1,54 m dans le modèle, 12 octobre 2026), ce que confirme la photo
+// « WC buanderie 1 » calée (coin du pilier à z = -23,89). Derrière, une gaine de 38 cm jusqu'au renfoncement du WC de la
+// salle de bain (z = -24,278, inchangé). Seules les deux faces verticales du pilier bougent (sa face sud et sa face côté
+// niche, prolongée) : sol et plafond restent, cachés dans le mur. Avant la faïence, les copies de la visite et le plan.
+export const MUR_LAVABO={z:-24.198, vers:-23.898, x0:12.10, x1:13.005, xNiche:12.108};
+export function avancerMurLavabo(root){
+  const rez=root.getObjectByName('structure_rez'); if(!rez) return 0;
+  const {z,vers,x0,x1,xNiche}=MUR_LAVABO, v=[0,1,2].map(()=>new THREE.Vector3()), n=new THREE.Vector3(), e=new THREE.Vector3();
+  let k=0;
+  rez.traverse(o=>{ if(!o.isMesh||o.material.name!=='Material_6') return;
+    o.updateMatrixWorld(true);
+    const g0=o.geometry, p0=g0.attributes.position, idx=g0.index, nb=(idx?idx.count:p0.count)/3, choisis=[];
+    const lire=(geo,t)=>{ for(let j=0;j<3;j++) v[j].fromBufferAttribute(geo.attributes.position,geo.index?geo.index.getX(3*t+j):3*t+j).applyMatrix4(o.matrixWorld); };
+    for(let t=0;t<nb;t++){ lire(g0,t);
+      n.subVectors(v[1],v[0]).cross(e.subVectors(v[2],v[0])); if(n.lengthSq()<1e-12) continue; n.normalize();
+      const face=n.z>0.9&&v.every(q=>Math.abs(q.z-z)<0.004&&q.x>x0&&q.x<x1);                          // face sud du pilier
+      const cote=n.x<-0.9&&v.every(q=>Math.abs(q.x-xNiche)<0.004&&q.z>-24.935&&q.z<z+0.004);            // face côté niche
+      if(face||cote) choisis.push(t); }
+    if(!choisis.length) return;
+    let g=enFlottants(g0); if(g.index) g=g.toNonIndexed();   // sommets partagés avec le sol et le plafond : on les sépare
+    const p=g.attributes.position, inv=o.matrixWorld.clone().invert(), q=new THREE.Vector3();
+    for(const t of choisis) for(let j=0;j<3;j++){ q.fromBufferAttribute(p,3*t+j).applyMatrix4(o.matrixWorld);
+      if(Math.abs(q.z-z)<0.004){ q.z=vers; q.applyMatrix4(inv); p.setXYZ(3*t+j,q.x,q.y,q.z); k++; } }
+    p.needsUpdate=true; g.computeBoundingBox(); g.computeBoundingSphere(); o.geometry=g; });
+  return k;
+}
+
 // Sol du WC : la mosaïque bleue SketchUp devient le carrelage anthracite 30 × 30 cm des photos
 export function carrelerSol(mesh){
   const c=document.createElement('canvas'); c.width=c.height=128;
@@ -85,7 +113,7 @@ export function carrelerSol(mesh){
 // posés en hauteur, joints gris clair alignés, du sol au plafond (coffrage du WC, pilier du lavabo et niche des machines
 // compris). Les faces de la peinture (Material_6) tournées vers l'intérieur de la pièce sont recopiées, découpées à
 // l'emprise de la pièce, dans un maillage carrelé posé 2 mm devant (coordonnées de texture en mètres).
-const PIECE_WC=[[11.10,-24.20,13.00,-22.66],[11.10,-24.93,12.11,-24.20]];   // jusqu'au mur ouest (fond de la niche des machines à x = 11,108)
+const PIECE_WC=[[11.10,-23.90,13.00,-22.66],[11.10,-24.93,12.11,-23.90]];   // jusqu'au mur ouest (fond de la niche des machines à x = 11,108)
 const dansWC=(x,z,m=0)=>PIECE_WC.some(([x0,z0,x1,z1])=>x>x0-m&&x<x1+m&&z>z0-m&&z<z1+m);
 function texFaience(){
   const c=document.createElement('canvas'); c.width=150; c.height=200; const x=c.getContext('2d');
