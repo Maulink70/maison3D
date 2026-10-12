@@ -101,7 +101,7 @@ js/                   Code en modules ES, sans build :
                       Préparer : ajout (fichiers, appareil photo), renommer, changer de pièce, supprimer, caler ; évènement « photos »
   calage.js           photo posée sur la 1re personne (transparence) et calage manuel de la caméra (réglages fins, angle de vue),
                       « Valider » garde le calage avec la photo, « Voir dans la maquette » (« Recaler » seulement depuis « Préparer »)
-  pointsliste.js      écran « Points de vue des photos » (menus « Aller à » et « Vues ») : toucher une photo calée = y aller
+  pointsliste.js      écran « Points de vue des photos » (menus « Aller à », « Vues » et fenêtre « Photo réaliste ») : toucher une photo calée = y aller
                       (selon la vue), puis la photo en grand
   pointsvue.js        points de vue des photos calées dans la 3D (icône d'appareil photo, maquette, 1re personne, plan), « Voir en vrai ici »,
                       liste légère des photos (sans vignettes), calque « Points de vue des photos »
@@ -420,6 +420,7 @@ Vercel, relié à GitHub : projet « maison3d » (`prj_xamwNtiD0YBKAkVO3DebYhOWM
 - **Liste « Produits »** partagée et synchronisée, **sans prix** pour le moment ; **favori « Envoyer à Maison3D »** sur PC ; « Partager » de la tablette vers la liste.
 - **Pas de recherche IKEA intégrée** ; les raccourcis des magasins restent tels quels (Mauro réfléchit à leur utilité).
 - **Seulement les montages** : le rendu depuis la maquette est retiré de l'écran, son code gardé.
+- **Crédits kie.ai et dépenses des générations** (Mauro, 12 octobre 2026) : suivis dans le projet **Familia**, pas dans Maison3D ; ne rien développer ici à ce sujet (Maison3D garde seulement le coût et le solde affichés dans la confirmation d'un montage).
 - **Trois livraisons** : (1) séparer la photo et la 3D — **faite le 11 octobre 2026** ; (2) Produits — **faite le 11 octobre 2026** ; (3) photos calées (calage des photos actuelles en parallèle, séance guidée après l'essai sur la tablette).
 
 ### Décisions de Mauro pour l'étape 5 (10 octobre 2026, recommandations acceptées, « go »)
