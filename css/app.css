@@ -764,8 +764,8 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
 .cr-ameliorer .mat-aide{margin:0;font-size:12px}
 
 /* Assistant « Mauro » (assistant.js) : bouton de la barre (visage), panneau à gauche sous la barre (feuille en bas sur téléphone) */
-.ib .ico-avatar{width:30px;height:30px;border-radius:50%;object-fit:cover;display:block}
-#assistant.ib.seul{padding:0;display:grid;place-items:center;overflow:hidden}
+.ib .ico-avatar{width:30px;height:30px;border-radius:50%;object-fit:cover;display:block;box-shadow:0 0 0 1px var(--line)}
+@media (hover:hover) and (pointer:fine){ .bar .ib .ico-avatar{width:34px;height:34px} }   /* PC : le visage seul, sans nom dessous (Mauro), à la hauteur des autres boutons */
 #assistant[aria-expanded="true"]{box-shadow:0 0 0 2px var(--accent)}
 .assistant{position:absolute;z-index:45;top:76px;left:16px;bottom:16px;width:360px;max-width:calc(100% - 32px);background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:12px;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 8px 28px rgba(0,0,0,.18)}
 .as-tete{display:flex;align-items:center;gap:8px;padding:8px 10px;border-bottom:1px solid var(--line)}

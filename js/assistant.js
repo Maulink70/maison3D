@@ -721,7 +721,7 @@ function micro(){
 function construire(){
   pan=el('aside',{id:'assistant-panneau',class:'assistant',role:'dialog','aria-label':'Mauro, ton assistant',hidden:''});
   const tete=el('header',{class:'as-tete'});
-  tete.append(el('img',{src:'icones/assistant-visage.webp',alt:'',class:'as-avatar'}),el('div',{class:'as-nom'},el('b',{},'Mauro'),el('span',{},'ton assistant')));
+  tete.append(el('img',{src:'icones/assistant-tete.webp',alt:'',class:'as-avatar'}),el('div',{class:'as-nom'},el('b',{},'Mauro'),el('span',{},'ton assistant')));
   const bv=el('button',{type:'button',class:'as-mini',id:'as-voix','aria-pressed':String(voix),title:'Lire les réponses à voix haute'},'🔈');
   bv.onclick=()=>{ voix=!voix; bv.setAttribute('aria-pressed',String(voix)); bv.textContent=voix?'🔊':'🔈'; try{ localStorage.setItem('maison3d-assistant',JSON.stringify({voix})); }catch{} if(!voix) try{ speechSynthesis.cancel(); }catch{} };
   const br=el('button',{type:'button',class:'as-mini',id:'as-recommencer',title:'Recommencer','aria-label':'Recommencer'},'↺'); br.onclick=()=>demarrer(accueil);
