@@ -206,6 +206,7 @@ function construireFenetre(){
       </div>
       <div class="ph-final">
         <button type="button" class="btn primary wide" id="ph-tripo">Mettre en 3D (Tripo)</button>
+        <button type="button" class="btn wide" id="ph-montage">L’essayer d’abord sur une photo de la pièce (montage)</button>
       </div>
     </div></div>`;
   document.body.append(fen);
@@ -253,6 +254,7 @@ function construireFenetre(){
   q('#ph-tripo-non').onclick=()=>{ q('.ph-tripo').hidden=true; };
   q('#ph-tripo-ok').onclick=lancerTripo;
   q('#ph-suivi-fermer').onclick=()=>ouvrirPhoto(false);
+  q('#ph-montage').onclick=essayerSurPhoto;
   q('#ph-recents').onclick=montrerRecents;
 }
 function majHauteur(){ if(!src||!fen.querySelector('#ph-ratio').checked) return; const r=rogner(src); ratio=r.height/r.width; const L=lireCm('#ph-l'); if(L) fen.querySelector('#ph-h').value=String(Math.round(L*ratio*2)/2); }
@@ -357,6 +359,17 @@ async function lancerTripo(){
   // Tripo exporte l'avant du modèle vers +x (export_orientation par défaut) : un quart de tour pour le mettre vers +z
   await importerModele(new File([r.blob],'tripo.glb',{type:'model/gltf-binary'}),{nom,largeur:L,tourner:-Math.PI/2,place:pl,origine:og,
     message:'Modèle 3D créé par Tripo'+(r.credits?` (${r.credits} crédits)`:'')+(texture==='aucune'?', sans texture':texture==='hd'?', textures HD':'')+'. Vérifiez les dimensions (cm), puis « Ajouter »'+(pl?' : il sera posé là où il est sur la photo.':'.')});
+}
+// l'image (retouchée ou non) essayée sur une vraie photo de la pièce (Mauro, 13 octobre 2026 : « une fois l'image retouchée,
+// est-ce que j'aurais pu la mettre dans un montage ? ») : on choisit la photo, le montage s'ouvre avec l'objet posé à ses
+// dimensions ; de là, « Mettre en 3D » revient ici. Rien n'est envoyé ni payé avant « Lancer le rendu » du montage
+async function essayerSurPhoto(){
+  if(!src) return;
+  const nom=fen.querySelector('#ph-nom').value.trim().slice(0,60)||'Objet', og=produit, image=rogner(src).toDataURL('image/png');
+  const {choisirPhoto,faireMontage}=await import('./galerie.js');   // galerie → montage → panneau photo : importé au besoin
+  ouvrirPhoto(false);
+  dispatchEvent(new CustomEvent('essai-montage',{detail:{nom}}));   // l'assistant, s'il attendait l'objet, suit le montage
+  choisirPhoto(ph=>faireMontage(ph,{image,nom,dims:{L:lireCm('#ph-l'),P:lireCm('#ph-p'),H:lireCm('#ph-h')},lien:og?.lien,site:og?.site}),`Choisissez la photo de la pièce où essayer « ${nom} ».`);
 }
 async function ajouter(){
   if(!src) return;

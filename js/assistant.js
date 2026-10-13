@@ -293,6 +293,8 @@ function majSuiviTripo(){
   const b=sv.querySelector('.ph-barre'); b.querySelector('i').style.width=d.p+'%'; b.classList.toggle('indetermine',d.phase==='envoi'||d.phase==='attente');
   sv.querySelector('.as-suivi-temps').textContent=d.phase==='pret'?'':d.temps;
 }
+// panneau photo → « L'essayer d'abord sur une photo de la pièce » : le parcours suit le montage au lieu d'attendre un objet
+function suivreMontage(ok){ const f=e=>{ removeEventListener('essai-montage',f); ok({montage:e.detail.nom}); }; addEventListener('essai-montage',f); nettoyages.push(()=>removeEventListener('essai-montage',f)); }
 // d'où vient le nouvel objet ; renvoie le nom de l'objet ajouté (il est déjà dans la maquette)
 const SOURCES=[['forme','Une forme simple','table, armoire, lampe… à tes mesures'],['catalogue','Le catalogue 3D gratuit','Poly Haven, Sketchfab'],['photo','Une photo ou une image','image plate, ou vraie 3D par Tripo'],
   ['lien','Le lien d’un produit','IKEA, Pfister, Conforama…'],['produits','Un de mes produits','ta liste « Produits »'],['ia','Le générer avec l’IA','d’après ta description'],['fichier','Un fichier 3D','.glb, .obj, .fbx…'],['propose','Je ne sais pas, propose-moi','je cherche dans le catalogue']];
@@ -302,7 +304,7 @@ async function source(o){
   if(!s||!SOURCES.some(x=>x[0]===s)){ const r=await demander('source',{titre:'D’où vient le nouvel objet ?',choix:SOURCES.map(([k,l,sous])=>ch(l,k,{sous}))}); s=r.v; }
   const attendreAjout=(texte,ouvrir)=>etape('ajout-'+s,{titre:texte,aide:'Je t’attends : dès que l’objet est posé, je continue.',attente:true,choix:[ch('Je laisse tomber','stop')]},()=>new Promise(ok=>{
     const f=e=>{ removeEventListener('objet-ajoute',f); ok(e.detail.nom); };
-    addEventListener('objet-ajoute',f); nettoyages.push(()=>removeEventListener('objet-ajoute',f)); ouvrir();
+    addEventListener('objet-ajoute',f); nettoyages.push(()=>removeEventListener('objet-ajoute',f)); suivreMontage(ok); ouvrir();
   }));
   let nom;
   if(s==='forme'){
@@ -338,6 +340,8 @@ async function source(o){
     nom=await attendreAjout('Choisis le fichier 3D dans la fenêtre d’import, puis « Ajouter »',()=>ouvrirImport(true));
   }
   if(nom?.abandon){ annulerRemplacement(); dire('D’accord, on laisse tomber.'); nouveau(()=>menu(false)); }
+  if(nom?.montage){ annulerRemplacement(); await finir('Le montage s’ouvre',[`Choisis la photo de la pièce : « ${nom.montage} » y sera posé à sa taille. Place-le, puis « Lancer le rendu » (les crédits sont demandés avant).`,
+    'Si le résultat te plaît, « Mettre en 3D » dans le montage le met ensuite dans la maquette.']); }
   return nom;
 }
 // une image (photo, produit, lien) : image plate tout de suite ou vraie 3D par Tripo
@@ -348,7 +352,7 @@ async function avecImage(blob,info,o){
   return etape('ajout-image',{titre:r.v==='plat'?(i.L&&i.P&&i.H?'Je le pose…':'Complète ses dimensions dans le panneau photo, puis « Ajouter en photo »'):'Dans le panneau photo, choisis les textures et confirme « Oui, créer en 3D » : Tripo crée le modèle (1 à 3 min)',
     aide:'Je t’attends : dès que l’objet est posé, je continue.',attente:true,choix:[ch('Je laisse tomber','stop')]},()=>new Promise(ok=>{
     const f=e=>{ removeEventListener('objet-ajoute',f); ok(e.detail.nom); };
-    addEventListener('objet-ajoute',f); nettoyages.push(()=>removeEventListener('objet-ajoute',f));
+    addEventListener('objet-ajoute',f); nettoyages.push(()=>removeEventListener('objet-ajoute',f)); suivreMontage(ok);
     ouvrirPhotoAvec(blob,i,false).then(()=>{ if(r.v==='plat'){ if(i.L&&i.P&&i.H) document.querySelector('#ph-ajouter')?.click(); }
       else document.querySelector('#ph-tripo')?.click(); });
   }));
