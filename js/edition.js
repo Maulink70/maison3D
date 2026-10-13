@@ -5,6 +5,7 @@ import {CAT_LABEL} from './config.js';
 import {save} from './sauvegarde.js';
 import {glisserVers} from './visite.js';
 import {basculerPorte, basculerElement, ouvrantsDe} from './portes.js';
+import {rideauDe, basculerRideau} from './etage_pieces.js';
 import {dansIsolement} from './isoler.js';
 import {estLampe, soirOuNuit, basculerLampe, marquerLampe, majPanneauLampe} from './lampes.js';
 import {majApparence, appliquerEtat, origineDe} from './etats.js';
@@ -20,8 +21,16 @@ export function viser(x,y){
   const {canvas,camera,renderer,model}=app;
   const r=canvas.getBoundingClientRect();
   rc.setFromCamera(new THREE.Vector2((x-r.left)/r.width*2-1,-(y-r.top)/r.height*2+1),camera); rc.far=Infinity;
-  return rc.intersectObjects([model],true).find(h=>renderer.clippingPlanes.every(pl=>pl.distanceToPoint(h.point)>=0)&&visibleChain(h.object)&&dansIsolement(h.point));   // pièce isolée : rien autour
+  const hs=rc.intersectObjects([model],true).filter(h=>renderer.clippingPlanes.every(pl=>pl.distanceToPoint(h.point)>=0)&&visibleChain(h.object)&&dansIsolement(h.point));   // pièce isolée : rien autour
+  // à travers une vitre de meuble (vitre de la douche…), le meuble qui est juste derrière l'emporte (rideau de douche) ;
+  // un mur derrière : la vitre reste touchée. Les vitres des portes et fenêtres gardent leur rôle (ouvrir, sélectionner)
+  const h=hs[0]; if(!h||!vitreMeuble(h.object)) return h;
+  for(const x of hs){ if(x===h) continue; if(x.distance>h.distance+1.5) break;
+    const xi=x.object.userData.item; if(xi===h.object.userData.item||vitreMeuble(x.object)) continue;
+    return xi?x:h; }
+  return h;
 }
+const vitreMeuble=o=>!!(o.material?.transparent&&o.material.opacity<0.6&&!o.userData.porte);
 function visibleChain(o){ while(o){ if(!o.visible) return false; o=o.parent;} return true; }
 
 // Toucher bref. Visite : une porte s'ouvre ou se ferme, le sol fait avancer (1re personne), le reste ne réagit pas.
@@ -31,6 +40,7 @@ export function toucher(e){
   if(!app.edition){
     const lampe=app.items[h?.object.userData.item];
     if(h?.object.userData.porte) basculerPorte(h.object.userData.porte);
+    else if(h?.object.userData.rideau) basculerRideau(h.object.userData.rideau);   // rideau de douche : tiré ou replié
     else if(lampe&&estLampe(lampe)&&soirOuNuit()) basculerLampe(lampe);   // le soir, toucher une lampe l'allume ou l'éteint
     else if(h&&app.mode==='walk') glisserVers(h.point);
     return;
@@ -60,7 +70,9 @@ function modeOutil(m){ const {tc}=app;
   $('t-move').textContent=m==='translate'?'Terminer le déplacement':app.mode==='plan'?'Glissez-le sur le plan':'Déplacer';
   $('t-poignee').textContent=m==='rotate'?'Terminer la rotation':app.mode==='plan'?'Tournez-le par sa poignée':'Tourner à la main';
   $('t-poignee').setAttribute('aria-pressed',String(m==='rotate')); }
-function majPorte(){ const l=app.selected?ouvrantsDe(app.selected.name):[]; $('t-porte').hidden=!l.length; if(!l.length) return;
+function majPorte(){ const r=app.selected&&rideauDe(app.selected.name);
+  if(r){ $('t-porte').hidden=false; $('t-porte').textContent=r.cible?'Replier le rideau':'Tirer le rideau'; return; }
+  const l=app.selected?ouvrantsDe(app.selected.name):[]; $('t-porte').hidden=!l.length; if(!l.length) return;
   const quoi=l[0].def.fenetre?'la fenêtre':'la porte'; $('t-porte').textContent=(l.some(p=>!p.cible)?'Ouvrir ':'Fermer ')+quoi; }
 
 export function select(name){
@@ -175,7 +187,7 @@ export function initEdition(){
   $('t-rotr').onclick=()=>app.selected&&tourner(deg(app.selected.g.rotation.y)-90);
   $('t-angle').oninput=e=>tourner(+e.target.value);
   $('t-angle-num').onchange=e=>{ const a=Number(String(e.target.value).replace(',','.')); if(Number.isFinite(a)) tourner(deg(a*Math.PI/180)); else majAngle(); };
-  $('t-porte').onclick=()=>{ if(app.selected){ basculerElement(app.selected.name); majPorte(); } };
+  $('t-porte').onclick=()=>{ if(app.selected){ const r=rideauDe(app.selected.name); if(r) basculerRideau(r); else basculerElement(app.selected.name); majPorte(); } };
   $('t-lampe').onchange=e=>{ if(app.selected) marquerLampe(app.selected,e.target.checked); };
   $('t-allumer').onclick=()=>{ if(app.selected) basculerLampe(app.selected); };
   $('t-color').oninput=e=>{ if(!app.selected) return; paint(app.selected,e.target.value); save(); };

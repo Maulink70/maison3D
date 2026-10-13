@@ -229,33 +229,48 @@ function vasqueDouche(){
   return g;
 }
 // Rideau de douche (élément à part, modifiable) : tringle blanche le long de la face nord de la douche, de la vitre au mur
-// est, embout rond côté vitre ; rideau ouvert, replié contre la vitre comme sur la photo (on le tire vers la fenêtre)
+// est, embout rond côté vitre ; au repos, replié contre la vitre comme sur la photo. Il se tire jusqu'au mur du fond et se
+// replie (toucher en Visite, bouton du panneau en Éditer) : le tissu s'étire depuis la vitre (échelle de son pivot, ce qui
+// reste juste si sa matière change) et les anneaux s'écartent le long de la tringle
+export const rideaux=[];
+export const rideauDe=nom=>rideaux.find(r=>r.nom===nom);
+export function basculerRideau(r){ r.cible=!r.cible; }
+export function majRideaux(dt){ for(const r of rideaux){ const but=r.cible?1:0; if(r.t===but) continue;
+  r.t+=Math.max(-1.6*dt,Math.min(1.6*dt,but-r.t)); r.poser(r.t); } }
 function rideauDouche(){
   const g=groupe('etage__rideau_douche'), xv=18.60, xm=19.435, zr=-22.03, yt=F+2.00;
   const tige=new THREE.Mesh(new THREE.CylinderGeometry(0.009,0.009,xm-xv,12),MAT.blanc);
   tige.rotation.z=Math.PI/2; tige.position.set((xv+xm)/2,yt,zr); tige.userData.fusion=true; g.add(tige);
   const embout=new THREE.Mesh(new THREE.CylinderGeometry(0.03,0.03,0.016,24),MAT.blanc);
   embout.rotation.z=Math.PI/2; embout.position.set(xv+0.008,yt,zr); embout.userData.fusion=true; g.add(embout);
+  const r={nom:'etage__rideau_douche', t:0, cible:false}, anneaux=[];
   for(let i=0;i<10;i++){ const a=new THREE.Mesh(new THREE.TorusGeometry(0.018,0.003,6,16),MAT.blanc);
-    a.rotation.y=Math.PI/2; a.position.set(xv+0.035+i*0.015,yt-0.012,zr); a.userData.fusion=true; g.add(a); }
-  // tissu replié : 0,95 m de large serrés en 14 à 22 cm, plis de 4,5 cm, du dessous des anneaux au fond du bac
-  const n=11, haut=yt-0.03, bas=F+0.12, geo=new THREE.PlaneGeometry(1,1,n*8,12), p=geo.attributes.position, uv=geo.attributes.uv;
-  for(let i=0;i<p.count;i++){ const u=p.getX(i)+0.5, v=p.getY(i)+0.5, w=0.14+0.08*(1-v), amp=0.035+0.012*(1-v);
-    p.setXYZ(i,xv+0.03+u*w,bas+v*(haut-bas),zr+Math.sin(u*n*Math.PI)*amp+0.012*(1-v)*Math.sin(v*5));
+    a.rotation.y=Math.PI/2; a.position.set(xv+0.035+i*0.015,yt-0.012,zr); a.userData.rideau=r; g.add(a); anneaux.push(a); }
+  // tissu replié : 0,95 m de tissu serré sur 17 cm, plis de 3,5 à 5 cm, du dessous des anneaux au fond du bac
+  const n=11, w0=0.17, haut=yt-0.03, bas=F+0.12, geo=new THREE.PlaneGeometry(1,1,n*8,12), p=geo.attributes.position, uv=geo.attributes.uv;
+  for(let i=0;i<p.count;i++){ const u=p.getX(i)+0.5, v=p.getY(i)+0.5, amp=0.035+0.015*(1-v);
+    p.setXYZ(i,u*w0,bas+v*(haut-bas),Math.sin(u*n*Math.PI)*amp+0.012*(1-v)*Math.sin(v*5));
     uv.setXY(i,u*0.95/0.25,v*(haut-bas)/0.25); }
   geo.computeVertexNormals();
-  const tissu=new THREE.Mesh(geo,rideau); tissu.userData.fusion=true; g.add(tissu);
+  const pli=new THREE.Group(); pli.position.set(xv+0.03,0,zr); g.add(pli);
+  const tissu=new THREE.Mesh(geo,rideau); tissu.userData.rideau=r; pli.add(tissu);
+  const L=xm-0.01-(xv+0.03);                                                   // tiré : jusqu'au mur du fond
+  r.poser=t=>{ pli.scale.set(1+t*(L/w0-1),1,1-0.45*t);
+    anneaux.forEach((a,i)=>{ a.position.x=xv+0.035+i*(0.015+t*((L-0.02)/9-0.015)); }); };
+  rideaux.push(r);
   return g;
 }
 
 export function construireEtage(root){
+  rideaux.length=0;
   // lit de la chambre : le lit du modèle (orienté est-ouest, couvre-lit à motifs) est remplacé
   const lit=root.getObjectByName('etage__lit_chambre_etage');
   if(lit){ const vieux=[]; lit.traverse(o=>{ if(o.isMesh) vieux.push(o); }); for(const o of vieux) o.removeFromParent();
     const nouveau=fusionner(litChambre()); lit.updateMatrixWorld(true); lit.attach(nouveau); }
-  // douche : la vitre côté lavabo est gardée ; le bloc « rideau » bleu pâle du modèle est retiré, le rideau est un élément à part
+  // douche : la vitre côté lavabo est gardée ; le bloc « rideau » bleu pâle du modèle et sa barre (Material_376) sont retirés,
+  // le rideau est un élément à part, avec sa tringle
   const douche=root.getObjectByName('etage__Douche_etage');
-  if(douche){ const bloc=[]; douche.traverse(o=>{ if(o.isMesh&&o.material.name==='Material_377') bloc.push(o); }); for(const o of bloc) o.removeFromParent(); }
+  if(douche){ const bloc=[]; douche.traverse(o=>{ if(o.isMesh&&(o.material.name==='Material_377'||o.material.name==='Material_376')) bloc.push(o); }); for(const o of bloc) o.removeFromParent(); }
   return [litMezzanine(), armoireMezzanine(), fauteuil(), commodeMezzanine(),
     bureauMezzanine(), ecranMezzanine(), tabouret('etage__tabouret_mezzanine_1',12.78,-21.45,MAT.blanc,MAT.blanc), tabouret('etage__tabouret_mezzanine_2',12.73,-22.25,MAT.blanc,MAT.blanc),
     applique('etage__spot_mezzanine_1',14.10,'x',-23.76,F+1.90,1,0.08,0.08), applique('etage__spot_mezzanine_2',16.70,'x',-23.95,F+1.90,-1,0.08,0.08),

@@ -9,6 +9,7 @@ import {initVisite, walk, regarder, teleporter, solSous, reculer, reprendreVisit
 import {initEdition, toucher, viser, buildList, select} from './edition.js';
 import {initSauvegarde, restore} from './sauvegarde.js';
 import {majPortes} from './portes.js';
+import {majRideaux} from './etage_pieces.js';
 import {initAller, majCadrage} from './aller.js';
 import {majCouvercles} from './coupes.js';
 import {initPlan, majPlan, camPlan} from './plan.js';
@@ -136,7 +137,7 @@ function rendre(){
 app.renderer.setAnimationLoop(()=>{
   const dt=Math.min(clock.getDelta(),0.1);
   if(app.mode==='walk') walk(dt); else if(app.mode==='plan') majPlan(dt); else { majCadrage(dt); suivreEclat(); app.orbit.update(); }
-  majPortes(dt); majCouvercles(); majTransparence(); majRevetements(); majAlertes(); majLumiere(); majLampes(); majReflets();
+  majPortes(dt); majRideaux(dt); majCouvercles(); majTransparence(); majRevetements(); majAlertes(); majLumiere(); majLampes(); majReflets();
   if(app.selected&&eclatActif()) select(null);   // vue éclatée : pas de sélection (la poignée suivrait mal le meuble soulevé)
   if(app.selBox&&app.tc.object) app.selBox.update();
   app.camera.updateMatrixWorld();   // calques, mesures et points de vue à la place de la caméra de cette image (sinon ils traînaient d'une image en tournant)
