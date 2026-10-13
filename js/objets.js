@@ -22,6 +22,7 @@ import {ouvrirPhoto} from './photo.js';
 import {ouvrirImport, texteOrigine, texteFichier} from './import3d.js';
 import {ouvrirCatalogue} from './catalogue.js';
 import {ouvrirCreer} from './creer.js';
+import {ouvrirMesObjets} from './mesobjets.js';
 
 const el=(nom,attrs={},texte)=>{ const n=document.createElement(nom); for(const [k,v] of Object.entries(attrs)) n.setAttribute(k,v); if(texte!==undefined) n.textContent=texte; return n; };
 const cm=v=>Math.round(v*1000)/10;   // mètres → cm, au mm
@@ -69,7 +70,8 @@ function lieu(L,P,ou){
 }
 // ajoute un objet (définition a sans niveau ni position : forme, photo, fichier 3D, catalogue), posé dans la pièce regardée,
 // à la place de l'élément à remplacer, ou là où il est sur une photo calée (place = {x, z, r, niv}, montage)
-export function ajouterObjet(a,place){
+// plus (« Mes objets 3D ») : couleur c, matières m, hauteur de pose (m), meubles à masquer en même temps (un seul enregistrement)
+export function ajouterObjet(a,place,plus={}){
   const ancien=remplacement&&app.items[remplacement];
   let o, r=0;
   if(ancien){ const niv=ancien.lvl==='Étage'?'etage':'rez', base=niv==='etage'?ETAGE_FLOOR:0, x=ancien.g.position.x, z=ancien.g.position.z;
@@ -77,9 +79,10 @@ export function ajouterObjet(a,place){
   else if(place){ const base=place.niv==='etage'?ETAGE_FLOOR:0; o={x:place.x,z:place.z,niv:place.niv,y:solSous(new THREE.Vector3(place.x,base,place.z))??base}; r=place.r||0; }
   else o=lieu(a.p.L,a.p.P);
   const nom=nouveauNom();
-  const e=normaliser(nom,{x:o.x,z:o.z,r,h:false,c:null,a:{...a,v:o.niv,y:+o.y.toFixed(4),e:0}});
+  const e=normaliser(nom,{x:o.x,z:o.z,r,h:false,c:plus.c||null,m:plus.m||null,a:{...a,v:o.niv,y:+o.y.toFixed(4),e:+plus.pose||0}});
   const it=creerAjout(nom,e); if(!it) return null;
   if(ancien) setHidden(ancien,true); if(remplacement) finRemplacement();
+  for(const n of plus.masquer||[]){ const x=app.items[n]; if(x&&!x.hidden) setHidden(x,true); }
   dispatchEvent(new CustomEvent('meubles'));
   select(nom); sousOnglet('taille'); save();   // un seul enregistrement : une ligne d'historique « remplacé par »
   dispatchEvent(new CustomEvent('objet-ajoute',{detail:{nom,remplace:ancien?.name||null}}));   // l'assistant attend l'objet créé
@@ -107,13 +110,14 @@ export function remplacer(it){
   ouvrirMenu(true);
 }
 function finRemplacement(){ remplacement=null; $('bandeau-remplacer').hidden=true; if(!$('ajouter-menu').hidden) ouvrirMenu(true); }
+export const remplacementEnCours=()=>remplacement&&app.items[remplacement]||null;
 
 // ---------- menu « Ajouter » ----------
 function ouvrirMenu(oui){
   const m=$('ajouter-menu'); m.hidden=!oui; $('ajouter').setAttribute('aria-expanded',String(oui)); if(!oui) return;
   const ancien=remplacement&&app.items[remplacement];
   m.replaceChildren(el('div',{class:'menu-titre'},ancien?`Remplacer « ${ancien.meta.l} » par`:'N’importe quel objet'));
-  for(const [k,t,d,f] of [['catalogue','Catalogue 3D…','Poly Haven, Sketchfab',ouvrirCatalogue],['ia','Créer avec l’IA…','décrivez-le, l’IA le dessine',()=>ouvrirCreer()],['photo','D’après une photo…','Tripo crée le meuble en 3D',ouvrirPhoto],['glb','Fichier 3D…','glb, fbx, obj, dae, stl',ouvrirImport]]){
+  for(const [k,t,d,f] of [['mes','Mes objets 3D…','déjà faits dans vos variantes : sans les refaire',ouvrirMesObjets],['catalogue','Catalogue 3D…','Poly Haven, Sketchfab',ouvrirCatalogue],['ia','Créer avec l’IA…','décrivez-le, l’IA le dessine',()=>ouvrirCreer()],['photo','D’après une photo…','Tripo crée le meuble en 3D',ouvrirPhoto],['glb','Fichier 3D…','glb, fbx, obj, dae, stl',ouvrirImport]]){
     const b=el('button',{type:'button','data-ajout':k}); b.append(el('span',{},t),el('span',{class:'m2'},d)); b.onclick=()=>{ ouvrirMenu(false); f(true); }; m.append(b); }
   const g=el('div',{class:'menu-groupe'}); g.append(el('div',{class:'menu-titre'},'Formes simples')); m.append(g);
   for(const [f,d] of Object.entries(FORMES)){

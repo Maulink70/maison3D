@@ -693,6 +693,14 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
 #bandeau-tripo .ph-barre{width:120px;height:8px}
 #bandeau-tripo .bt-temps{font-family:var(--font-data);color:var(--muted);font-size:12px}
 #bandeau-tripo .actions{margin-left:auto}
+.mo-liste{list-style:none;margin:0;padding:0;display:grid;gap:8px}   /* « Mes objets 3D » (menu +) */
+.mo-carte{display:grid;grid-template-columns:64px 1fr auto;gap:10px;align-items:center;border:1px solid var(--line);border-radius:10px;padding:8px}
+.mo-vign{width:64px;height:64px;border-radius:8px;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;overflow:hidden}
+.mo-vign svg{width:34px;height:34px}.mo-vign img{width:100%;height:100%;object-fit:contain}
+.mo-info{display:grid;gap:2px;min-width:0;font-size:13px}.mo-info strong{font-size:14px}
+.mo-ici{justify-self:start;font-size:12px;background:var(--accent-soft);color:var(--accent);border-radius:6px;padding:1px 6px}
+.mo-masquer{display:flex;gap:6px;align-items:flex-start;font-size:12.5px;margin-top:2px}.mo-masquer input{margin:2px 0 0;flex:none}
+@media (max-width:520px){.mo-carte{grid-template-columns:48px 1fr}.mo-vign{width:48px;height:48px}.mo-carte>.btn{grid-column:1/-1}}
 .as-suivi{display:grid;gap:6px;background:var(--accent-soft);border-radius:8px;padding:8px 10px}
 .as-suivi[hidden]{display:none}
 .as-suivi p{margin:0;font-size:13px}
