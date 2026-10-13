@@ -5,6 +5,7 @@ Site web qui affiche l'appartement (modélisé dans SketchUp) en 3D : vue maquet
 ## Règles de travail avec Mauro (à respecter strictement)
 
 - **Toujours répondre en français.**
+- **Prononciation du prénom (Mauro, 13 octobre 2026)** : « Mauro » se prononce **« Maou-ro »** (et non « Moro ») ; dans toute voix générée (vidéos, voix off, synthèse vocale), l'écrire « Maouro » dans le texte envoyé au modèle de voix pour forcer la bonne prononciation.
 - **Ne jamais modifier, committer, pousser ni déployer sans son accord explicite.** D'abord discuter, proposer la ou les meilleures solutions, lui demander s'il est d'accord, et n'agir qu'après son « go ».
   - **Précision de Mauro (9 octobre 2026)** : pour les **petites modifications** (retouches qu'il a demandées, défauts à corriger), pas besoin de son « go » : les tester, les publier (regroupées, une publication par lot, à cause de la limite Vercel) et lui décrire ce qui a été fait. Le « go » reste nécessaire pour les **grosses livraisons** (nouvelles fonctions, livraisons du plan, changements d'apparence importants).
 - Il veut des **explications concrètes, étape par étape, clic par clic** (il est sur Windows et sur une tablette Android, novice en administration serveur).
