@@ -190,8 +190,20 @@ function construireFenetre(){
       </div>
       <p class="ph-message" role="status"></p>
       <div class="ph-tripo" hidden><p>Tripo va créer un vrai modèle 3D d’après cette photo (1 à 3 minutes). Cela consomme des crédits Tripo<span class="ph-solde"></span>.</p>
+        <fieldset class="ph-textures"><legend>Textures du modèle 3D</legend>
+          <label><input type="radio" name="ph-texture" value="standard" checked><span><strong>Avec textures</strong> : couleurs et matières de la photo · environ 30 crédits</span></label>
+          <label><input type="radio" name="ph-texture" value="hd"><span><strong>Textures HD</strong> : plus fines, plus de détails · environ 40 crédits</span></label>
+          <label><input type="radio" name="ph-texture" value="aucune"><span><strong>Sans texture</strong> : la forme seule, grise · environ 20 crédits</span></label>
+        </fieldset>
         <p class="mat-aide">Meilleur résultat : le meuble seul, entier, sur un fond uni (« Options avancées » : « Nettoyer (IA) » ou « Retirer le fond » d’abord si besoin).</p>
         <div class="ph-boutons"><button type="button" class="btn primary" id="ph-tripo-ok">Oui, créer en 3D</button><button type="button" class="btn" id="ph-tripo-non">Non</button></div></div>
+      <div class="ph-suivi" hidden>
+        <div class="ph-suivi-tete"><strong class="ph-suivi-titre" role="status"></strong><span class="ph-suivi-pc"></span></div>
+        <div class="ph-barre" role="progressbar" aria-label="Avancement de Tripo" aria-valuemin="0" aria-valuemax="100"><i></i></div>
+        <p class="ph-suivi-temps"></p>
+        <p class="ph-suivi-note"><strong>Vous pouvez fermer cette fenêtre</strong> : la création continue. Quand le modèle sera prêt, la fenêtre « Fichier 3D » s’ouvrira toute seule pour vérifier ses dimensions, puis « Ajouter ».</p>
+        <button type="button" class="btn" id="ph-suivi-fermer">Fermer la fenêtre (la création continue)</button>
+      </div>
       <div class="ph-final">
         <button type="button" class="btn primary wide" id="ph-tripo">Mettre en 3D (Tripo)</button>
       </div>
@@ -240,6 +252,7 @@ function construireFenetre(){
   q('#ph-tripo').onclick=demanderTripo;
   q('#ph-tripo-non').onclick=()=>{ q('.ph-tripo').hidden=true; };
   q('#ph-tripo-ok').onclick=lancerTripo;
+  q('#ph-suivi-fermer').onclick=()=>ouvrirPhoto(false);
   q('#ph-recents').onclick=montrerRecents;
 }
 function majHauteur(){ if(!src||!fen.querySelector('#ph-ratio').checked) return; const r=rogner(src); ratio=r.height/r.width; const L=lireCm('#ph-l'); if(L) fen.querySelector('#ph-h').value=String(Math.round(L*ratio*2)/2); }
@@ -266,12 +279,16 @@ async function lancerIA(){
   memoriser(); src=await charger(r.blob); outil=null; majBoutons(); majHauteur();
   dire('Photo nettoyée par l’IA. Vous pouvez maintenant « Retirer le fond » (blanc) pour ne garder que le meuble.');
 }
-// vrai modèle 3D par Tripo : confirmation (solde affiché), puis création ; le modèle s'ouvre dans la fenêtre d'import 3D
-// (dimensions : celles de Tripo, ou la largeur saisie ici avec les proportions du modèle)
+// vrai modèle 3D par Tripo : confirmation (solde affiché, textures au choix), puis création ; le modèle s'ouvre dans la
+// fenêtre d'import 3D (dimensions : celles de Tripo, ou la largeur saisie ici avec les proportions du modèle)
 let tripoEnCours=false, largeurSaisie=false;
+const CLE_TEXTURE='maison3d-tripo-texture';
 async function demanderTripo(){
   if(!src||tripoEnCours) return;
   const t=fen.querySelector('.ph-tripo'), s=t.querySelector('.ph-solde'), ok=t.querySelector('#ph-tripo-ok'); t.hidden=false; s.textContent=' (solde : …)';
+  // textures : le dernier choix de cet appareil, coché d'avance (standard au départ)
+  let tx='standard'; try{ tx=localStorage.getItem(CLE_TEXTURE)||'standard'; }catch{}
+  const r0=t.querySelector(`input[name="ph-texture"][value="${tx}"]`)||t.querySelector('input[name="ph-texture"]'); r0.checked=true;
   const r=await soldeTripo();
   s.textContent=r.erreur?'':' (solde : '+Math.floor(r.solde).toLocaleString('fr-FR')+' crédits)';
   // solde vide : rien n'est envoyé (les crédits de l'application web Tripo ne servent pas pour l'API)
@@ -279,20 +296,67 @@ async function demanderTripo(){
   if(r.erreur) dire(r.erreur,true);
   else if(r.solde<=0) dire('Plus de crédits API chez Tripo : rechargez sur developers.tripo3d.ai (Billing). Les crédits du site Tripo ne servent pas ici.',true);
 }
+// suivi de la création, bien visible (Mauro, 13 octobre 2026 : « je ne sais pas si je peux fermer la fenêtre ») : barre,
+// pourcentage, temps écoulé et restant estimé, dans le panneau ; fenêtre fermée, dans le bandeau #bandeau-tripo (sous la
+// barre) ; et pour l'assistant, l'évènement « tripo-progres » {actif, phase, nom, p, titre, temps}
+const suivi={actif:false,phase:'',nom:'',p:0,debut:0,tCrea:0,minuterie:0};
+const duree=s=>{ s=Math.max(0,Math.round(s)); return s<60?s+' s':Math.floor(s/60)+' min '+String(s%60).padStart(2,'0'); };
+function textesSuivi(){
+  const ec=(Date.now()-suivi.debut)/1000, p=suivi.p;
+  const titre=suivi.phase==='envoi'?'Envoi de la photo à Tripo…':suivi.phase==='attente'?`« ${suivi.nom} » : en file d’attente chez Tripo…`
+    :suivi.phase==='pret'?`« ${suivi.nom} » est prêt`:p>=98?`« ${suivi.nom} » : Tripo termine et envoie le modèle…`:`Tripo crée « ${suivi.nom} » en 3D`;
+  let reste='';
+  if(suivi.phase==='creation'&&p>=5&&p<98&&suivi.tCrea){ const tc=(Date.now()-suivi.tCrea)/1000, r=tc*(100-p)/p; reste=' · encore environ '+duree(r<60?Math.max(10,Math.round(r/10)*10):Math.round(r/5)*5); }
+  else if(suivi.phase==='creation'&&p>=98) reste=' · presque fini';
+  else if(suivi.phase!=='pret') reste=' · 1 à 3 minutes en tout, en général';
+  return {titre,temps:'Temps écoulé : '+duree(ec)+reste};
+}
+function majSuivi(){
+  const {titre,temps}=textesSuivi(), pc=suivi.phase==='pret'?100:suivi.p;
+  if(fen){ const b=fen.querySelector('.ph-suivi'); b.hidden=!suivi.actif;
+    b.querySelector('.ph-suivi-titre').textContent=titre; b.querySelector('.ph-suivi-pc').textContent=suivi.phase==='creation'||suivi.phase==='pret'?pc+' %':'';
+    b.querySelector('.ph-suivi-temps').textContent=temps; const br=b.querySelector('.ph-barre'); br.querySelector('i').style.width=pc+'%'; br.setAttribute('aria-valuenow',String(pc));
+    br.classList.toggle('indetermine',suivi.phase==='envoi'||suivi.phase==='attente'); }
+  const bd=document.getElementById('bandeau-tripo');
+  if(bd){ bd.hidden=!suivi.actif||!!(fen&&!fen.hidden);
+    bd.querySelector('.bt-texte').textContent=titre+(suivi.phase==='creation'?' · '+pc+' %':'');
+    bd.querySelector('.bt-temps').textContent=temps.replace('Temps écoulé : ','');
+    bd.querySelector('.ph-barre i').style.width=pc+'%'; bd.querySelector('.ph-barre').classList.toggle('indetermine',suivi.phase==='envoi'||suivi.phase==='attente'); }
+  dispatchEvent(new CustomEvent('tripo-progres',{detail:{actif:suivi.actif,phase:suivi.phase,nom:suivi.nom,p:pc,titre,temps}}));
+}
+function etatSuivi(phase,p){
+  if(phase==='envoi'){ Object.assign(suivi,{actif:true,p:0,debut:Date.now(),tCrea:0}); clearInterval(suivi.minuterie); suivi.minuterie=setInterval(majSuivi,1000); }
+  if(phase==='creation'&&!suivi.tCrea) suivi.tCrea=Date.now();
+  suivi.phase=phase; if(p!=null) suivi.p=Math.max(suivi.p,Math.min(100,Math.round(p)));
+  if(phase==='pret'||phase==='echec'){ suivi.actif=false; clearInterval(suivi.minuterie); }
+  majSuivi();
+}
+// le bandeau (créé une fois) : « Voir » rouvre le panneau tel qu'il est, sans le remettre à zéro
+function bandeauTripo(){
+  if(document.getElementById('bandeau-tripo')) return;
+  const bd=el('div',{id:'bandeau-tripo',hidden:''});
+  bd.innerHTML='<span class="bt-texte" role="status"></span><span class="ph-barre" aria-hidden="true"><i></i></span><span class="bt-temps"></span><span class="actions"><button type="button" class="btn" id="bandeau-tripo-voir">Voir</button></span>';
+  (document.getElementById('bandeaux')||document.body).append(bd);
+  bd.querySelector('#bandeau-tripo-voir').onclick=()=>{ if(!fen) return; fen.hidden=false; majSuivi(); };
+}
 async function lancerTripo(){
   if(!src||tripoEnCours) return; tripoEnCours=true;
-  fen.querySelector('.ph-tripo').hidden=true;
+  const t=fen.querySelector('.ph-tripo'); t.hidden=true;
+  const texture=t.querySelector('input[name="ph-texture"]:checked')?.value||'standard'; try{ localStorage.setItem(CLE_TEXTURE,texture); }catch{}
   const boutons=['#ph-tripo','#ph-ajouter'].map(x=>fen.querySelector(x)); boutons.forEach(b=>b.disabled=true);
-  dire('Envoi de la photo à Tripo…');
-  const fin=rogner(src), blob=await new Promise(ok=>fin.toBlob(ok,'image/png'));
+  fen.querySelector('#ph-tripo').textContent='Création Tripo en cours…';
   const nom=fen.querySelector('#ph-nom').value.trim().slice(0,60)||'Objet 3D', L=largeurSaisie?lireCm('#ph-l'):null, pl=place, og=produit;
-  const r=await creer3D(blob,(p,st)=>dire(!p&&st!=='running'?'En file d’attente chez Tripo…':`Tripo crée le modèle 3D… ${p} %`),nom);
-  tripoEnCours=false; boutons.forEach(b=>b.disabled=false);
-  if(r.erreur){ fen.hidden=false; dire(r.erreur+' Le modèle se retrouve plus tard dans « Modèles Tripo récents » s’il a été créé.',true); return; }   // fenêtre refermée pendant l'attente : l'erreur se voit quand même
+  suivi.nom=nom; bandeauTripo(); dire(''); etatSuivi('envoi');
+  fen.querySelector('.ph-suivi').scrollIntoView({block:'nearest'});
+  const fin=rogner(src), blob=await new Promise(ok=>fin.toBlob(ok,'image/png'));
+  const r=await creer3D(blob,(p,st)=>etatSuivi(!p&&st!=='running'?'attente':'creation',p),nom,texture);
+  tripoEnCours=false; boutons.forEach(b=>b.disabled=false); fen.querySelector('#ph-tripo').textContent='Mettre en 3D (Tripo)';
+  if(r.erreur){ etatSuivi('echec'); fen.hidden=false; dire(r.erreur+' Le modèle se retrouve plus tard dans « Modèles Tripo récents » s’il a été créé.',true); return; }   // fenêtre refermée pendant l'attente : l'erreur se voit quand même
+  etatSuivi('pret',100);
   ouvrirPhoto(false); ouvrirImport(true);
   // Tripo exporte l'avant du modèle vers +x (export_orientation par défaut) : un quart de tour pour le mettre vers +z
   await importerModele(new File([r.blob],'tripo.glb',{type:'model/gltf-binary'}),{nom,largeur:L,tourner:-Math.PI/2,place:pl,origine:og,
-    message:'Modèle 3D créé par Tripo'+(r.credits?` (${r.credits} crédits)`:'')+'. Vérifiez les dimensions (cm), puis « Ajouter »'+(pl?' : il sera posé là où il est sur la photo.':'.')});
+    message:'Modèle 3D créé par Tripo'+(r.credits?` (${r.credits} crédits)`:'')+(texture==='aucune'?', sans texture':texture==='hd'?', textures HD':'')+'. Vérifiez les dimensions (cm), puis « Ajouter »'+(pl?' : il sera posé là où il est sur la photo.':'.')});
 }
 async function ajouter(){
   if(!src) return;
@@ -348,7 +412,8 @@ export async function ouvrirPhotoAvec(blob,{nom,L,P,H,origine:og}={},garder=fals
 }
 export function ouvrirPhoto(oui=true){
   if(oui&&!fen) construireFenetre();
-  if(!fen) return; fen.hidden=!oui;
+  if(!fen) return; fen.hidden=!oui; majSuivi();
+  if(oui&&tripoEnCours) return;   // création Tripo en cours : le panneau se rouvre tel quel, sur son suivi
   if(oui){ src=null; origine=null; pile=[]; outil=null; cadre=null; fondAvant=null; largeurSaisie=false; place=null; produit=null; dire(''); fen.querySelector('#ph-nom').value=''; fen.querySelector('.ph-tripo').hidden=true;
     fen.querySelector('#ph-avance').open=false;
     fen.querySelector('#ph-recents').setAttribute('aria-expanded','false'); fen.querySelector('.ph-recents-liste').hidden=true; majBoutons(); setTimeout(()=>fen.querySelector('#ph-coller').focus()); }

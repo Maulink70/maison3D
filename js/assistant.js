@@ -154,7 +154,8 @@ function dessiner(c){
   if(c.lignes?.length){ const u=el('ul'); for(const l of c.lignes) u.append(el('li',{},l)); k.append(u); }
   if(c.aide) k.append(el('p',{class:'as-aide'},c.aide));
   if(c.cout) k.append(el('p',{class:'as-cout'},c.cout));
-  if(c.attente) k.append(el('span',{class:'as-points','aria-hidden':'true'},el('i'),el('i'),el('i')));
+  if(c.attente){ k.append(el('span',{class:'as-points','aria-hidden':'true'},el('i'),el('i'),el('i')));
+    const sv=el('div',{class:'as-suivi',hidden:''}); sv.append(el('p',{class:'as-suivi-t',role:'status'}),el('span',{class:'ph-barre','aria-hidden':'true'},el('i')),el('p',{class:'as-suivi-temps'})); k.append(sv); }
   if(c.choix?.length){
     const z=el('div',{class:'as-choix'+(c.vign?' vign':c.choix.length>6&&c.choix.every(x=>x.l.length<34&&!x.sous)?' deux':'')});
     for(const ch of c.choix){
@@ -172,6 +173,7 @@ function dessiner(c){
   fil.scrollTop=Math.min(k.offsetTop-6,fil.scrollHeight-fil.clientHeight);   // le haut de la carte reste visible (et le buste au départ)
   if(fil.firstChild?.classList.contains('as-accueil')&&k.offsetTop+k.offsetHeight<=fil.clientHeight+4) fil.scrollTop=0;
   if(c.titre) parler(c.titre);
+  if(c.attente) majSuiviTripo();
   $('as-retour').disabled=!reponses.length;
 }
 function parler(t){
@@ -279,6 +281,18 @@ async function parListe(cle,o){
   const r=await demander(cle+'-l',{titre:'Lequel ?',choix:l.map(it=>ch(it.meta.l+(it.hidden?' (masqué)':''),it.name))});
   return r.v;
 }
+// création Tripo en cours (panneau photo, évènement « tripo-progres ») : l'avancement s'affiche aussi dans la carte où
+// l'assistant attend l'objet ; le panneau photo peut être fermé pendant ce temps (Mauro, 13 octobre 2026)
+let tripo=null;
+addEventListener('tripo-progres',e=>{ tripo=e.detail; majSuiviTripo(); });
+function majSuiviTripo(){
+  const sv=carte?.querySelector('.as-suivi'); if(!sv) return;
+  const d=tripo, voir=!!d&&(d.actif||d.phase==='pret'); sv.hidden=!voir; if(!voir) return;
+  sv.querySelector('.as-suivi-t').textContent=d.phase==='pret'?`« ${d.nom} » est prêt : vérifie ses dimensions dans la fenêtre « Fichier 3D », puis touche « Ajouter ».`
+    :d.titre+(d.phase==='creation'?' · '+d.p+' %':'')+'. Tu peux fermer le panneau photo : je te tiens au courant ici.';
+  const b=sv.querySelector('.ph-barre'); b.querySelector('i').style.width=d.p+'%'; b.classList.toggle('indetermine',d.phase==='envoi'||d.phase==='attente');
+  sv.querySelector('.as-suivi-temps').textContent=d.phase==='pret'?'':d.temps;
+}
 // d'où vient le nouvel objet ; renvoie le nom de l'objet ajouté (il est déjà dans la maquette)
 const SOURCES=[['forme','Une forme simple','table, armoire, lampe… à tes mesures'],['catalogue','Le catalogue 3D gratuit','Poly Haven, Sketchfab'],['photo','Une photo ou une image','image plate, ou vraie 3D par Tripo'],
   ['lien','Le lien d’un produit','IKEA, Pfister, Conforama…'],['produits','Un de mes produits','ta liste « Produits »'],['ia','Le générer avec l’IA','d’après ta description'],['fichier','Un fichier 3D','.glb, .obj, .fbx…'],['propose','Je ne sais pas, propose-moi','je cherche dans le catalogue']];
@@ -329,9 +343,9 @@ async function source(o){
 // une image (photo, produit, lien) : image plate tout de suite ou vraie 3D par Tripo
 async function avecImage(blob,info,o){
   const r=await demander('rendu-3d',{titre:'Comment le montrer dans la maquette ?',aide:'L’image plate est prête tout de suite et gratuite, mais n’est juste que de face ; la vraie 3D se voit de tous les côtés.',
-    choix:[ch('En image plate (tout de suite, gratuit)','plat',{prim:true}),ch('En vraie 3D (environ 2 min, 30 crédits Tripo)','3d')]});
+    choix:[ch('En image plate (tout de suite, gratuit)','plat',{prim:true}),ch('En vraie 3D (environ 2 min, 20 à 40 crédits Tripo selon les textures)','3d')]});
   const d=o.dims||{}, i={nom:info.nom||'Objet',L:info.L||d.L,P:info.P||d.P,H:info.H||d.H,origine:info.origine};
-  return etape('ajout-image',{titre:r.v==='plat'?(i.L&&i.P&&i.H?'Je le pose…':'Complète ses dimensions dans le panneau photo, puis « Ajouter en photo »'):'Confirme « Oui, créer en 3D » dans le panneau photo : Tripo crée le modèle (1 à 3 min)',
+  return etape('ajout-image',{titre:r.v==='plat'?(i.L&&i.P&&i.H?'Je le pose…':'Complète ses dimensions dans le panneau photo, puis « Ajouter en photo »'):'Dans le panneau photo, choisis les textures et confirme « Oui, créer en 3D » : Tripo crée le modèle (1 à 3 min)',
     aide:'Je t’attends : dès que l’objet est posé, je continue.',attente:true,choix:[ch('Je laisse tomber','stop')]},()=>new Promise(ok=>{
     const f=e=>{ removeEventListener('objet-ajoute',f); ok(e.detail.nom); };
     addEventListener('objet-ajoute',f); nettoyages.push(()=>removeEventListener('objet-ajoute',f));

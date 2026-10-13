@@ -145,6 +145,9 @@ app.renderer.setAnimationLoop(()=>{
   $('bandeaux').style.top=(bas+8)+'px';   // bandeaux sous la barre, même sur téléphone
   $('panel').style.top=innerWidth>760?(bas+10)+'px':'';   // panneau des meubles sous la barre (qui peut tenir sur 2 lignes)
   const pa=$('assistant-panneau'); if(pa&&!pa.hidden) pa.style.top=innerWidth>760?(bas+10)+'px':'';   // assistant : même hauteur, à gauche
+  // assistant ouvert à gauche : les bandeaux passent à sa droite (sinon cachés dessous, ex. le suivi de Tripo)
+  const gb=pa&&!pa.hidden&&innerWidth>760?Math.round(pa.getBoundingClientRect().right-$('app').getBoundingClientRect().left+8):0, bx=$('bandeaux');
+  if(+bx.dataset.g!==gb){ bx.dataset.g=gb; bx.style.left=gb?gb+'px':''; bx.style.maxWidth=gb?`calc(100% - ${gb+16}px)`:''; }
   majJeu(); majCalage();   // après les bandeaux : cadre de la photo sous eux, caméra à l'angle de vue de la photo
   rendre();
 });

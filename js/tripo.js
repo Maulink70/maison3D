@@ -29,10 +29,12 @@ function noter(tache,nom){
   const garde=Object.entries(n).sort((a,b)=>b[1].t-a[1].t).slice(0,40);
   try{ localStorage.setItem(CLE_NOMS,JSON.stringify(Object.fromEntries(garde))); }catch{}
 }
-// photo (blob png ou jpeg) → {blob: modèle GLB, credits} ou {erreur} ; progres(pourcentage, statut) pendant l'attente
-export async function creer3D(blob,progres=()=>{},nom=''){
+// photo (blob png ou jpeg) → {blob: modèle GLB, credits} ou {erreur} ; progres(pourcentage, statut) pendant l'attente ;
+// texture : 'standard' (couleurs et matières de la photo), 'hd' (textures détaillées) ou 'aucune' (forme seule, grise) :
+// demandé à chaque création (Mauro, 13 octobre 2026), les crédits Tripo en dépendent
+export async function creer3D(blob,progres=()=>{},nom='',texture='standard'){
   if(!connecte()) return {erreur:'Connectez-vous pour utiliser Tripo.'};
-  const d=await poster({action:'demarrer',image:await dataURL(blob)});
+  const d=await poster({action:'demarrer',image:await dataURL(blob),texture});
   if(!d.ok||!d.tache) return {erreur:message(d)};
   noter(d.tache,nom);
   progres(0,'queued');
@@ -57,6 +59,7 @@ async function attendre(tache,progres,vite){
   for(let premier=true;Date.now()<fin;premier=false){
     if(!(vite&&premier)) await pause(4000);
     let r; try{ r=await envoyer({action:'suivre',tache}); }catch{ continue; }   // réseau coupé un instant : on réessaie
+    if(r.status===404||r.status>=500) continue;   // workflow republié ou serveur occupé un instant : la tâche continue chez Tripo
     if(r.ok&&!/json/i.test(r.headers.get('content-type')||'')) return {blob:await r.blob(),credits:+r.headers.get('x-tripo-credits')||null};
     let s; try{ s=await r.json(); }catch{ return {erreur:'Réponse de Tripo illisible.'}; }
     if(!s.ok) return {erreur:message(s)};

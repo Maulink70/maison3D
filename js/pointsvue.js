@@ -83,7 +83,9 @@ export function majPointsVue(){
       else if(walk){
         if(niv!==monNiveau) continue;
         const dh=Math.hypot(pt.x-c.x,pt.z-c.z);
-        if(dh<ICI){ if(ignoree!==p.id&&(!ici||dh<ici.d)) ici={p,d:dh}; continue; }   // on y est : le bandeau prend le relais
+        // on y est : le bandeau prend le relais, sauf si un mur sépare (Mauro, 13 octobre 2026 : dans la douche de l'étage,
+        // « Chambre de l'étage 1 », prise dos au mur de la douche, 20 cm de l'autre côté, était annoncée « prise d'ici »)
+        if(dh<ICI){ if(ignoree!==p.id&&(!ici||dh<ici.d)&&!cachee(icone(p),pt)) ici={p,d:dh}; continue; }
         if(dh>PORTEE) continue;
         pt.y=+k.y-0.25;   // un peu sous les yeux : l'icône ne cache pas ce qu'on regarde
         if(cachee(icone(p),pt)) continue;

@@ -22,7 +22,9 @@ if(c.action==='demarrer'){
   const ext=m[1]==='png'?'png':'jpg', mime='image/'+m[1], nom='photo-'+Date.now()+'.'+ext;
   let bin; try{ bin=await this.helpers.prepareBinaryData(Buffer.from(m[2],'base64'),nom,mime); }
   catch(e){ bin={data:m[2],mimeType:mime,fileName:nom,fileExtension:ext}; }
-  return [{json:{op:'demarrer',qui:moi.n,req:{method:'POST',url:API+'/files'}},binary:{data:bin}}];
+  // textures choisies sur le site à chaque création (Mauro, 13 octobre 2026) : standard, hd ou aucune
+  const texture=['standard','hd','aucune'].includes(c.texture)?c.texture:'standard';
+  return [{json:{op:'demarrer',qui:moi.n,texture,req:{method:'POST',url:API+'/files'}},binary:{data:bin}}];
 }
 if(c.action==='suivre'){
   if(typeof c.tache!=='string'||!/^[A-Za-z0-9_-]{6,100}$/.test(c.tache)) return refus('Tâche inconnue');
