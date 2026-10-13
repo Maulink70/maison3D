@@ -22,11 +22,16 @@ const patchwork=std(0xffffff,{roughness:0.9,map:texture((x,l,h)=>{
   const c=['#b8283c','#d9566b','#8f1f30','#e48a8f','#3e5a8a','#c7413a']; let s=3;
   for(let i=0;i<6;i++) for(let j=0;j<6;j++){ s=(s*16807)%2147483647; x.fillStyle=c[s%c.length]; x.fillRect(i*l/6,j*h/6,l/6,h/6); }
 })});
-// Rideau de douche blanc à motifs bleus
-const rideau=new THREE.MeshStandardMaterial({roughness:0.8,side:THREE.DoubleSide,map:texture((x,l,h)=>{
-  x.fillStyle='#f1f3f6'; x.fillRect(0,0,l,h); x.fillStyle='#4f6f9f'; let s=11;
-  for(let i=0;i<70;i++){ s=(s*16807)%2147483647; const a=s%l; s=(s*16807)%2147483647; const b=s%h; x.beginPath(); x.arc(a,b,2+s%4,0,Math.PI*2); x.fill(); }
+// Rideau de douche blanc moucheté de bleu (photo « Douche + WC 1 ») : petites taches bleu foncé et bleu clair en grappes,
+// un motif = 25 cm de tissu, répété
+const rideau=new THREE.MeshStandardMaterial({name:'etage_rideau',roughness:0.85,side:THREE.DoubleSide,map:texture((x,l,h)=>{
+  x.fillStyle='#f3f5f8'; x.fillRect(0,0,l,h); let s=11; const r=()=>(s=(s*16807)%2147483647)/2147483647;
+  for(let k=0;k<150;k++){ const cx=r()*l, cy=r()*h, n=12+r()*30;
+    for(let i=0;i<n;i++){ const a=r()*Math.PI*2, d=r()*r()*22, px=cx+Math.cos(a)*d, py=cy+Math.sin(a)*d;
+      x.fillStyle=r()<0.45?'#2c4f93':'#8ea9d6'; const w=1+r()*2.5, t=1+r()*2;
+      for(const [ox,oy] of [[0,0],[-l,0],[l,0],[0,-h],[0,h]]) x.fillRect(px+ox,py+oy,w,t); } }
 })});
+rideau.map.wrapS=rideau.map.wrapT=THREE.RepeatWrapping; rideau.map.needsUpdate=true;
 
 // Sous-groupe tourné autour de son centre (meubles posés en biais) : on dessine en coordonnées locales, face vers +z
 function pivot(g,x,z,rot){ const p=new THREE.Group(); p.position.set(x,0,z); p.rotation.y=rot; g.add(p); return p; }
@@ -200,28 +205,46 @@ function chaiseBureau(){
 }
 
 // ---------- Douche + WC ----------
-// Meuble vasque en bois clair contre le mur sud, vasque blanche, miroir et réglette (plafond bas : pente sud) ;
-// 70 × 54,5 cm (mesuré par Mauro le 12 octobre 2026), même centre
+// Meuble vasque d'après la photo calée « Douche + WC 1 » (13 octobre 2026) : contre le mur sud, 54,5 cm le long du mur et
+// 70 cm de profondeur (mesures de Mauro ; largeur et profondeur étaient inversées), caisson suspendu à deux tiroirs sans
+// poignée sur la face nord, plateau en bois, grande vasque blanche posée devant, tablette derrière (savon, mouchoirs),
+// mitigeur sur la plage arrière ; miroir sur le mur sud jusqu'à la vitre de la douche, réglette sous le plafond en pente
 function vasqueDouche(){
-  const g=groupe('etage__vasque_douche'), x0=17.77, x1=18.47, z0=-21.735, z1=-21.19, xm=(x0+x1)/2;
-  boite(g,x0,x1,F+0.40,F+0.82,z0+0.02,z1,MAT.chene); boite(g,x0+0.004,x1-0.004,F+0.404,F+0.816,z0,z0+0.02,MAT.chene,'sombre');
-  const v0=x0+0.05, v1=x1-0.05, w0=z0+0.05, w1=z1, y0=F+0.82, y1=F+0.96, e=0.02;   // 5 cm en retrait du bord du meuble (Mauro)
-  boite(g,v0,v1,y0,y0+0.04,w0,w1,MAT.ceramique); boite(g,v0,v1,y0,y1,w0,w0+e,MAT.ceramique); boite(g,v0,v1,y0,y1,w1-0.09,w1,MAT.ceramique);
+  const g=groupe('etage__vasque_douche'), x0=17.725, x1=18.27, z0=-21.89, z1=-21.19, xm=(x0+x1)/2;
+  boite(g,x0,x1,F+0.40,F+0.785,z0+0.02,z1,MAT.chene);                                   // caisson, de 40 à 78,5 cm
+  boite(g,x0+0.003,x1-0.003,F+0.403,F+0.597,z0,z0+0.02,MAT.chene,'sombre');              // tiroir du bas
+  boite(g,x0+0.003,x1-0.003,F+0.603,F+0.782,z0,z0+0.02,MAT.chene,'sombre');              // tiroir du haut
+  boite(g,x0,x1,F+0.785,F+0.82,z0,z1,MAT.chene);                                          // plateau de 3,5 cm
+  const v0=xm-0.25, v1=xm+0.25, w0=z0+0.02, w1=w0+0.47, y0=F+0.82, y1=F+0.97, e=0.015;   // vasque 50 × 47 × 15 cm
+  boite(g,v0,v1,y0,y0+0.035,w0,w1,MAT.ceramique);
+  boite(g,v0,v1,y0,y1,w0,w0+e,MAT.ceramique); boite(g,v0,v1,y0,y1,w1-0.09,w1,MAT.ceramique);
   boite(g,v0,v0+e,y0,y1,w0,w1,MAT.ceramique); boite(g,v1-e,v1,y0,y1,w0,w1,MAT.ceramique);
-  cylindre(g,xm,y1,y1+0.16,z1-0.05,0.014,MAT.chrome); boite(g,xm-0.01,xm+0.01,y1+0.13,y1+0.15,z1-0.15,z1-0.05,MAT.chrome);
-  boite(g,x0+0.05,x1-0.05,F+1.05,F+1.72,z1-0.006,z1,M.miroir);
-  boite(g,x0+0.10,x1-0.10,F+1.76,F+1.80,z1-0.08,z1,MAT.chrome); boite(g,x0+0.12,x1-0.12,F+1.755,F+1.76,z1-0.07,z1-0.02,MAT.lumiere);
+  cylindre(g,xm,y0+0.035,y0+0.04,w0+0.19,0.022,MAT.chrome);                             // bonde
+  const zr=w1-0.045;                                                                      // mitigeur : corps, bec, manette
+  cylindre(g,xm,y1,y1+0.17,zr,0.018,MAT.chrome);
+  boite(g,xm-0.012,xm+0.012,y1+0.13,y1+0.155,zr-0.14,zr,MAT.chrome);
+  boite(g,xm-0.006,xm+0.006,y1+0.17,y1+0.18,zr-0.01,zr+0.07,MAT.chrome);
+  boite(g,17.62,18.55,F+0.92,F+1.74,z1-0.006,z1,M.miroir);                               // miroir (plafond à 1,90 m au mur)
+  boite(g,17.70,18.47,F+1.79,F+1.83,z1-0.07,z1,MAT.chrome); boite(g,17.72,18.45,F+1.785,F+1.79,z1-0.06,z1-0.02,MAT.lumiere);
   return g;
 }
-// Rideau de douche côté fenêtre (face nord de la douche ; la vitre du modèle ferme le côté lavabo jusqu'au
-// plafond en pente) : tringle du mur est à la vitre, rideau fermé sur toute la largeur
+// Rideau de douche (élément à part, modifiable) : tringle blanche le long de la face nord de la douche, de la vitre au mur
+// est, embout rond côté vitre ; rideau ouvert, replié contre la vitre comme sur la photo (on le tire vers la fenêtre)
 function rideauDouche(){
-  const g=new THREE.Group(), xv=18.58, xm=19.44, zr=-22.05, yt=F+1.97;
-  boite(g,xv,xm,yt,yt+0.015,zr-0.008,zr+0.008,MAT.chrome);
-  const l=xm-xv-0.04, n=12, geo=new THREE.PlaneGeometry(l,1.85,n*2,1), p=geo.attributes.position;
-  for(let i=0;i<p.count;i++) p.setZ(i,Math.sin(p.getX(i)/l*n*Math.PI)*0.035);
-  geo.translate((xv+xm)/2,F+0.10+0.925,zr+0.035); geo.computeVertexNormals();
-  g.add(new THREE.Mesh(geo,rideau));
+  const g=groupe('etage__rideau_douche'), xv=18.60, xm=19.435, zr=-22.03, yt=F+2.00;
+  const tige=new THREE.Mesh(new THREE.CylinderGeometry(0.009,0.009,xm-xv,12),MAT.blanc);
+  tige.rotation.z=Math.PI/2; tige.position.set((xv+xm)/2,yt,zr); tige.userData.fusion=true; g.add(tige);
+  const embout=new THREE.Mesh(new THREE.CylinderGeometry(0.03,0.03,0.016,24),MAT.blanc);
+  embout.rotation.z=Math.PI/2; embout.position.set(xv+0.008,yt,zr); embout.userData.fusion=true; g.add(embout);
+  for(let i=0;i<10;i++){ const a=new THREE.Mesh(new THREE.TorusGeometry(0.018,0.003,6,16),MAT.blanc);
+    a.rotation.y=Math.PI/2; a.position.set(xv+0.035+i*0.015,yt-0.012,zr); a.userData.fusion=true; g.add(a); }
+  // tissu replié : 0,95 m de large serrés en 14 à 22 cm, plis de 4,5 cm, du dessous des anneaux au fond du bac
+  const n=11, haut=yt-0.03, bas=F+0.12, geo=new THREE.PlaneGeometry(1,1,n*8,12), p=geo.attributes.position, uv=geo.attributes.uv;
+  for(let i=0;i<p.count;i++){ const u=p.getX(i)+0.5, v=p.getY(i)+0.5, w=0.14+0.08*(1-v), amp=0.035+0.012*(1-v);
+    p.setXYZ(i,xv+0.03+u*w,bas+v*(haut-bas),zr+Math.sin(u*n*Math.PI)*amp+0.012*(1-v)*Math.sin(v*5));
+    uv.setXY(i,u*0.95/0.25,v*(haut-bas)/0.25); }
+  geo.computeVertexNormals();
+  const tissu=new THREE.Mesh(geo,rideau); tissu.userData.fusion=true; g.add(tissu);
   return g;
 }
 
@@ -230,15 +253,14 @@ export function construireEtage(root){
   const lit=root.getObjectByName('etage__lit_chambre_etage');
   if(lit){ const vieux=[]; lit.traverse(o=>{ if(o.isMesh) vieux.push(o); }); for(const o of vieux) o.removeFromParent();
     const nouveau=fusionner(litChambre()); lit.updateMatrixWorld(true); lit.attach(nouveau); }
-  // douche : la vitre côté lavabo est gardée ; le bloc « rideau » bleu pâle du modèle laisse place à un vrai rideau, fermé
+  // douche : la vitre côté lavabo est gardée ; le bloc « rideau » bleu pâle du modèle est retiré, le rideau est un élément à part
   const douche=root.getObjectByName('etage__Douche_etage');
-  if(douche){ const bloc=[]; douche.traverse(o=>{ if(o.isMesh&&o.material.name==='Material_377') bloc.push(o); }); for(const o of bloc) o.removeFromParent();
-    douche.updateMatrixWorld(true); douche.attach(rideauDouche()); }
+  if(douche){ const bloc=[]; douche.traverse(o=>{ if(o.isMesh&&o.material.name==='Material_377') bloc.push(o); }); for(const o of bloc) o.removeFromParent(); }
   return [litMezzanine(), armoireMezzanine(), fauteuil(), commodeMezzanine(),
     bureauMezzanine(), ecranMezzanine(), tabouret('etage__tabouret_mezzanine_1',12.78,-21.45,MAT.blanc,MAT.blanc), tabouret('etage__tabouret_mezzanine_2',12.73,-22.25,MAT.blanc,MAT.blanc),
     applique('etage__spot_mezzanine_1',14.10,'x',-23.76,F+1.90,1,0.08,0.08), applique('etage__spot_mezzanine_2',16.70,'x',-23.95,F+1.90,-1,0.08,0.08),
     applique('etage__applique_bureau',-22.75,'z',11.85,F+1.70,1,0.20,0.20), applique('rez__applique_escalier',12.87,'x',-18.22,2.80,1,0.18,0.26),
     armoiresDressing(), buffetDressing(), portant(), applique('etage__applique_dressing',13.97,'x',-23.80,F+1.80,-1,0.32,0.18),
     chevetChambre('etage__chevet_chambre',16.85), chevetChambre('etage__chevet_chambre_2',19.00), etagereChambre(), ecranChambre(), ordinateurChambre(), chaiseBureau(), applique('etage__applique_chambre',19.44,'x',-23.75,F+1.95,-1,0.36,0.12),
-    vasqueDouche()];
+    vasqueDouche(), rideauDouche()];
 }

@@ -46,7 +46,7 @@ export const META={
   'etage__portant_dressing':{l:'Portant à vêtements',c:'meuble'}, 'etage__applique_dressing':{l:'Applique (dressing)',c:'meuble'},
   'etage__vasque_douche':{l:'Meuble vasque et miroir (douche)',c:'meuble'},
   'etage__wc':{l:'WC',c:'meuble'}, 'etage__bouton_wc_douche':{l:'Plaque WC',c:'meuble'},
-  'etage__Douche_etage':{l:'Douche (rideau)',c:'meuble'}, 'etage__barre_linge_douche':{l:'Porte-linge',c:'meuble'},
+  'etage__Douche_etage':{l:'Douche',c:'meuble'}, 'etage__rideau_douche':{l:'Rideau de douche',c:'meuble'}, 'etage__barre_linge_douche':{l:'Porte-linge',c:'meuble'},
   'rez__porte_interieure_88x218':{l:'Porte salle de bain',c:'ouverture'}, 'rez__porte_interieure_88x218_2':{l:'Porte WC / buanderie',c:'ouverture'},
   'rez__porte_interieure_98_(80)':{l:'Porte chambre',c:'ouverture'}, 'rez__baie_vitree':{l:'Baie vitrée',c:'ouverture'},
   'rez__Fenetre_salon_haute':{l:'Fenêtre haute salon',c:'ouverture'}, 'rez__fenetre_salon_grande':{l:'Grande fenêtre salon',c:'ouverture'},
