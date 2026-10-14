@@ -182,7 +182,8 @@ export function sousOnglet(n){
 
 // Panneau (feuille en bas sur téléphone)
 const mq=matchMedia('(max-width:760px)');
-export function openSheet(open){ $('panel').hidden=!open; $('toggle-panel').setAttribute('aria-expanded',String(open)); document.body.classList.toggle('sheet-open',open&&mq.matches); }
+export function openSheet(open){ $('panel').hidden=!open; $('toggle-panel').setAttribute('aria-expanded',String(open)); document.body.classList.toggle('sheet-open',open&&mq.matches);
+  document.body.classList.toggle('panneau-ouvert',open); }   // poignée du bord droit (tiroir, 14 octobre 2026)
 export function petitEcran(){ return mq.matches; }
 
 export function initEdition(){

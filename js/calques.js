@@ -26,6 +26,8 @@ let budget=0;
 
 // ---------- mémoire ----------
 function garder(){ try{ localStorage.setItem(CLE,JSON.stringify({etat,masquees:[...masquees]})); }catch{} }
+// bouton « Lumière » de la barre (lumiere.js) : même choix que le menu « Affichage », gardé de même
+export function choisirLumiere(k){ etat.lumiere=k; garder(); }
 function relire(){ try{ const d=JSON.parse(localStorage.getItem(CLE)||'{}'); Object.assign(etat,d.etat||{}); delete etat.ecartMurs; delete etat.toutEclat; for(const k of d.masquees||[]) masquees.add(k); }catch{} }   // (murs soulevés et « Tout éclaté », retirés)
 
 // ---------- données des pièces : point d'étiquette, contour, hauteurs ----------

@@ -82,6 +82,17 @@
         <div id="calques-menu" class="menu" role="dialog" aria-label="Calques" hidden></div>
       </div>
       <button class="ib" id="realiste" data-nom="Réaliste" data-icone="sparkles" aria-label="Passer au rendu réaliste" aria-pressed="false"></button>
+      <!-- lumière du jour : un bouton et ses choix (Mauro, 14 octobre 2026), aussi dans le menu « Affichage » -->
+      <div class="aller">
+        <button class="ib" id="lumiere" data-nom="Lumière" data-icone="sun-dim" aria-label="Lumière : normale" aria-pressed="false" aria-haspopup="true" aria-expanded="false" aria-controls="lumiere-menu"></button>
+        <div id="lumiere-menu" class="menu menu-choix" role="dialog" aria-label="Lumière du jour" hidden>
+          <button class="ib" data-lumiere="normale" data-icone="sun-dim" aria-label="Normale" aria-pressed="true"></button>
+          <button class="ib" data-lumiere="matin" data-icone="sunrise" aria-label="Matin" aria-pressed="false"></button>
+          <button class="ib" data-lumiere="midi" data-icone="sun" aria-label="Midi" aria-pressed="false"></button>
+          <button class="ib" data-lumiere="soir" data-icone="sunset" aria-label="Soir" aria-pressed="false"></button>
+          <button class="ib" data-lumiere="nuit" data-icone="moon" aria-label="Nuit" aria-pressed="false"></button>
+        </div>
+      </div>
       <button class="ib" id="mesurer" data-nom="Règle" data-icone="ruler" aria-label="Mesurer (règle)" aria-pressed="false"></button>
       <div class="aller">
         <button class="ib" id="imprimer" data-nom="Imprimer" data-icone="printer" aria-label="Imprimer en PDF" aria-haspopup="true" aria-expanded="false" aria-controls="impr-menu"></button>
@@ -95,7 +106,7 @@
     <!-- portes, fenêtres, stores et éclairages : un seul bouton, les choix dans son menu (Mauro, 14 octobre 2026 : « on gagne de la place ») -->
     <div class="aller">
       <button class="ib seul" id="ouvertures" data-nom="Ouvrir" data-icone="door-open" aria-label="Portes, fenêtres, stores et éclairages" aria-haspopup="true" aria-expanded="false" aria-controls="ouvertures-menu"></button>
-      <div id="ouvertures-menu" class="menu" role="dialog" aria-label="Portes, fenêtres, stores et éclairages" hidden>
+      <div id="ouvertures-menu" class="menu menu-choix" role="dialog" aria-label="Portes, fenêtres, stores et éclairages" hidden>
         <button class="ib" id="portes" data-icone="door-open" aria-label="Ouvrir les portes" aria-pressed="false"></button>
         <button class="ib" id="fenetres" data-icone="wind" aria-label="Ouvrir les fenêtres" aria-pressed="false"></button>
         <button class="ib" id="stores" data-icone="blinds" aria-label="Fermer les stores" aria-pressed="false" hidden></button>
@@ -107,7 +118,6 @@
       <button class="ib seul" id="ajouter" data-nom="Ajouter" data-icone="plus" aria-label="Ajouter un objet" aria-haspopup="true" aria-expanded="false" aria-controls="ajouter-menu"></button>
       <div id="ajouter-menu" class="menu" role="dialog" aria-label="Ajouter un objet" hidden></div>
     </div>
-    <button class="ib seul" id="toggle-panel" data-nom="Meubles" data-icone="armchair" aria-label="Meubles (liste et outils)" aria-expanded="true" hidden></button>
     <button class="ib seul primary" id="installer" data-nom="Installer" data-icone="download" aria-label="Installer l’application" hidden></button>
     <div class="aller">
       <button class="ib seul" id="compte" data-icone="circle-user-round" aria-label="Se connecter" aria-haspopup="true" aria-expanded="false" aria-controls="compte-menu"></button>
@@ -209,6 +219,8 @@
       <div class="volet-corps" id="sm"><p class="mat-aide">Choisissez une pièce, ou touchez un sol ou un mur dans la vue.</p><div id="sm-liste"></div></div>
     </div>
   </aside>
+  <!-- poignée du panneau des meubles, au bord droit (Mauro, 14 octobre 2026 : « un bandeau sur le côté », on gagne de la place en haut) -->
+  <button class="ib poignee" id="toggle-panel" data-icone="armchair" aria-label="Meubles (liste et outils)" aria-expanded="true" aria-controls="panel" hidden><span class="poignee-nom">Meubles</span><span class="poignee-fleche" aria-hidden="true"></span></button>
 
   <div id="pad" hidden aria-label="Déplacement">
     <button class="up" data-k="fwd" aria-label="Avancer">▲</button>
