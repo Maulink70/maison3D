@@ -13,7 +13,7 @@ import {app, $} from './app.js';
 import {ouvrantsDe} from './portes.js';
 import {rideauDe} from './etage_pieces.js';
 import {ouvrantsCopies} from './ouvrants3d.js';
-import {nommer} from './icones.js';
+import {nommer, poserIcone} from './icones.js';
 import {invaliderPlan} from './plan.js';
 
 const CLE='maison3d-stores', DUREE=1.6;
@@ -131,9 +131,12 @@ export const texteStore=s=>s.sorte==='rideau'?(s.cible?'Tirer le rideau':'Ouvrir
 
 // ---------- bouton « Stores » de la barre ----------
 const visibles=()=>[...etats.values()].filter(s=>s.sorte==='store'&&!s.it.hidden);
+// comme les portes et les fenêtres (Mauro, 14 octobre 2026) : le bouton dit ce qu'il fera et son icône suit l'état
+// (stores ouverts = remontés : icône du store baissé, « Fermer les stores » ; stores fermés : icône du store replié, « Ouvrir les stores »)
 function majBoutonStores(){
   const b=$('stores'); if(!b) return; const l=visibles(); b.hidden=!l.length; if(!l.length) return;
-  const baisses=l.some(s=>!s.cible); b.setAttribute('aria-pressed',String(baisses)); nommer(b,baisses?'Remonter les stores':'Baisser les stores'); }
+  const fermes=l.some(s=>!s.cible); b.setAttribute('aria-pressed',String(fermes));
+  poserIcone(b,fermes?'store-ouvert':'blinds'); nommer(b,fermes?'Ouvrir les stores':'Fermer les stores'); }
 export function initStores(){
   const b=$('stores');
   if(b) b.onclick=()=>{ const l=visibles(), monter=l.some(s=>!s.cible); for(const s of l) s.cible=monter?1:0; majBoutonStores(); };

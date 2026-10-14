@@ -22,7 +22,7 @@ body{background:var(--bg);color:var(--ink);font-family:var(--font-ui);font-size:
 button{font:inherit;color:inherit;cursor:pointer}
 button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 
-.bar{position:absolute;top:12px;left:16px;right:16px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;pointer-events:none}
+.bar{position:absolute;top:12px;left:16px;right:16px;display:flex;flex-wrap:nowrap;gap:8px;align-items:center;pointer-events:none}
 .bar>*{pointer-events:auto}
 /* nom de l'appartement, en petit (Mauro : « Appart. Diolly », 2 niveaux, 1:1), aussi haut que les groupes de boutons */
 .brand{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:3px 10px;display:flex;flex-direction:column;justify-content:center;align-self:stretch;line-height:1.25;white-space:nowrap}
@@ -68,6 +68,49 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
   .ib{width:34px;height:36px}
   .ib.seul{width:42px;height:42px}
 }
+/* barre sur UNE seule ligne partout (Mauro, 14 octobre 2026) : barre.js essaie ces paliers dans l'ordre et garde le premier où
+   tout tient (n1 noms serrés, n2 icônes seules, n3 à n5 boutons de plus en plus étroits, n6 la ligne défile au doigt, téléphone) ;
+   les boutons des menus (.menu) ne changent pas */
+.bar-ligne{display:contents}
+.bar-ligne>*{flex-shrink:0}   /* rien ne se tasse : barre.js mesure les vraies largeurs */
+.bar .spacer{pointer-events:none;flex-shrink:1}
+.bar.n1,.bar.n2{gap:6px}
+.bar.n1 .ib:not(.menu .ib){padding:4px 3px}
+.bar.n1 .ib:not(.menu .ib) .ib-nom{font-size:9.5px}
+.bar.n2 .ib:not(.menu .ib) .ib-nom,.bar.n3 .ib:not(.menu .ib) .ib-nom,.bar.n4 .ib:not(.menu .ib) .ib-nom,.bar.n5 .ib:not(.menu .ib) .ib-nom,.bar.n6 .ib:not(.menu .ib) .ib-nom{display:none}
+.bar.n2 .ib:not(.menu .ib){display:grid;width:36px;min-width:36px;height:38px;min-height:38px;padding:0}
+.bar.n2 .ib:not(.menu .ib).seul{width:44px;height:44px}
+.bar.n3,.bar.n4{gap:4px}
+.bar.n5,.bar.n6{gap:3px}
+.bar.n3 .brand,.bar.n4 .brand,.bar.n5 .brand,.bar.n6 .brand{display:none}
+.bar.n3 .seg:not(.menu .seg){padding:2px;gap:1px}
+.bar.n3 .ib:not(.menu .ib){display:grid;width:31px;min-width:31px;height:36px;min-height:36px;padding:0}
+.bar.n3 .ib:not(.menu .ib).seul{width:38px;height:40px}
+.bar.n4 .seg:not(.menu .seg){padding:1px;gap:0}
+.bar.n4 .ib:not(.menu .ib){display:grid;width:27px;min-width:27px;height:34px;min-height:34px;padding:0}
+.bar.n4 .ib:not(.menu .ib) .ico{width:18px;height:18px}
+.bar.n4 .ib:not(.menu .ib).seul{width:32px;height:36px}
+.bar.n4 .ib:not(.menu .ib) .ico-avatar{width:24px;height:24px}
+.bar.n5 .seg:not(.menu .seg){padding:1px;gap:0}
+.bar.n5 .ib:not(.menu .ib){display:grid;width:24px;min-width:24px;height:34px;min-height:34px;padding:0}
+.bar.n5 .ib:not(.menu .ib) .ico{width:17px;height:17px}
+.bar.n5 .ib:not(.menu .ib).seul{width:29px;height:36px}
+.bar.n5 .ib:not(.menu .ib) .ico-avatar{width:22px;height:22px}
+.bar.n6 .seg:not(.menu .seg){padding:2px;gap:1px}
+.bar.n6 .ib:not(.menu .ib){display:grid;width:34px;min-width:34px;height:36px;min-height:36px;padding:0}
+.bar.n6 .ib:not(.menu .ib).seul{width:40px;height:40px}
+.bar.n6 .bar-ligne{display:flex;flex:1;min-width:0;gap:4px;align-items:center;overflow-x:auto;overflow-y:hidden;scrollbar-width:none;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch}
+.bar.n6 .bar-ligne::-webkit-scrollbar{display:none}
+.bar.n6 .bar-ligne>*{flex:none}
+.bar.n6 .aller{position:static}
+.bar.n6 .menu{left:0;right:0;min-width:0}
+/* menu « Ouvrir » (portes, fenêtres, stores) : une ligne par choix, icône + ce que fera le bouton */
+#ouvertures-menu{min-width:250px}
+.bar #ouvertures-menu .ib{display:flex;flex-direction:row;align-items:center;justify-content:flex-start;gap:10px;width:100%;min-width:0;height:auto;min-height:40px;padding:8px 10px;color:var(--ink)}
+.bar #ouvertures-menu .ib[hidden]{display:none}
+.bar #ouvertures-menu .ib .ico{width:20px;height:20px;flex:none}
+.bar #ouvertures-menu .ib .ib-nom{display:block;font-size:14px;font-weight:500;white-space:nowrap}
+.bar #ouvertures-menu .ib[aria-pressed="true"]{background:var(--accent-soft);color:var(--accent)}
 #infobulle{position:fixed;z-index:60;max-width:min(320px,calc(100vw - 16px));background:var(--ink);color:var(--panel);font-size:12.5px;font-weight:500;line-height:1.3;
   padding:5px 9px;border-radius:7px;pointer-events:none;box-shadow:0 4px 14px rgba(0,0,0,.18)}
 .btn{border:1px solid var(--line);background:var(--panel);border-radius:var(--r);padding:8px 12px;font-weight:500}

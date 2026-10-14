@@ -33,6 +33,9 @@ const LUCIDE={
   'plus':'<path d="M5 12h14"/><path d="M12 5v14"/>',
   'rotate-cw':'<path d="M20 12.5a8 8 0 1 1-5.26-7.52" stroke-width="2.4"/><path d="M18.1 6.2 13.4 8.3l1.9-5.6z" fill="currentColor" stroke-width="1.2"/>',
   'blinds':'<path d="M3 3h18"/><path d="M20 7H8"/><path d="M20 11H8"/><path d="M10 19h10"/><path d="M8 15h12"/><path d="M4 3v14"/><circle cx="4" cy="19" r="2"/>',
+  'lightbulb':'<path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/>',
+  'lightbulb-off':'<path d="M16.8 11.2c.8-.9 1.2-2 1.2-3.2a6 6 0 0 0-9.8-4.6"/><path d="M6.3 6.3a4.67 4.67 0 0 0 1.2 5.2c.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/><path d="m2 2 20 20"/>',
+  'sparkles':'<path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/><path d="M20 3v4"/><path d="M22 5h-4"/><path d="M4 17v2"/><path d="M5 18H3"/>',
   'wind':'<path d="M12.8 19.6A2 2 0 1 0 14 16H2"/><path d="M17.5 8a2.5 2.5 0 1 1 2 4H2"/><path d="M9.8 4.4A2 2 0 1 1 11 8H2"/>',
 };
 // maison à deux étages : toit, étage (haut), rez (bas) ; « Tout » remplit les deux
@@ -41,7 +44,9 @@ const niveau=k=>`<path d="M2 10.5 12 2.5l10 8"/><rect x="4" y="10" width="16" he
 // points de vue des photos : repère de lieu (Lucide map-pin) avec un petit appareil photo dedans
 const pinPhoto='<path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"/>'+
   '<rect x="8.3" y="8.2" width="7.4" height="5.2" rx="1"/><circle cx="12" cy="10.8" r="1.3"/><path d="M10.6 8.2l.6-1.1h1.6l.6 1.1"/>';
-const DESSINS={...LUCIDE,'niv-tout':niveau('tout'),'niv-rez':niveau('rez'),'niv-etage':niveau('etage'),'pin-photo':pinPhoto};
+// stores remontés (ouverts) : le store « blinds » de Lucide replié sous son caisson
+const storeOuvert='<path d="M3 3h18"/><path d="M20 6H8"/><path d="M20 9H8"/><path d="M4 3v14"/><circle cx="4" cy="19" r="2"/>';
+const DESSINS={...LUCIDE,'niv-tout':niveau('tout'),'niv-rez':niveau('rez'),'niv-etage':niveau('etage'),'pin-photo':pinPhoto,'store-ouvert':storeOuvert};
 const svg=nom=>nom==='assistant'?'<img class="ico ico-avatar" src="icones/assistant-tete.webp" alt="" aria-hidden="true">':`<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${DESSINS[nom]||''}</svg>`;
 
 let bulle=null, cible=null, attente=null, minuterie=0, avaler=null, finAvaler=0, vueA=0;
@@ -58,7 +63,7 @@ function montrer(b){
   bulle.style.top=Math.round(r.bottom+8)+'px';
 }
 function cacher(){ clearTimeout(minuterie); attente=null; if(bulle&&!bulle.hidden){ bulle.hidden=true; vueA=performance.now(); } cible=null; }
-const bouton=e=>e.target instanceof Element?e.target.closest('button.ib[aria-label]'):null;
+const bouton=e=>{ const b=e.target instanceof Element?e.target.closest('button.ib[aria-label]'):null; return b&&!b.closest('#ouvertures-menu')?b:null; };   // menu « Ouvrir » : le nom est déjà écrit
 
 export function initIcones(){
   for(const b of document.querySelectorAll('button[data-icone]')) b.insertAdjacentHTML('afterbegin',svg(b.dataset.icone));

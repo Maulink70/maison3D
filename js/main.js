@@ -30,6 +30,7 @@ import {majReflets} from './reflets.js';
 import {initRealiste, majRealiste, rendreReel} from './realiste.js';
 import {eclatActif, rendreEclate, suivreEclat} from './eclate.js';
 import {initIcones} from './icones.js';
+import {initBarre, ajusterBarre} from './barre.js';
 import {initCompte, initPorte} from './compte.js';
 import {initSynchro, demarrerSynchro} from './synchro.js';
 import {initVariantes} from './variantes.js';
@@ -49,7 +50,7 @@ import {initPointsListe} from './pointsliste.js';
 import {initCreer} from './creer.js';
 import {initAssistant} from './assistant.js';
 
-initIcones(); initCompte(); initSynchro(); initVariantes(); initComparer(); initVues(); initVisite(); initEdition(); initOuvrants3D(); initStores(); initSauvegarde(); initAller(); initPlan(); initCalques(); initRealiste(); initMesure(); initImpression(); initIsoler(); initCameras(); initHistorique(); initPartage(); initAlertes(); initObjets(); initRevetements(); initGalerie(); initCalage(); initRecu(); initPointsVue(); initProduits(); initJeu(); initPointsListe(); initCreer(); initAssistant(); initBlender();
+initIcones(); initBarre(); initCompte(); initSynchro(); initVariantes(); initComparer(); initVues(); initVisite(); initEdition(); initOuvrants3D(); initStores(); initSauvegarde(); initAller(); initPlan(); initCalques(); initRealiste(); initMesure(); initImpression(); initIsoler(); initCameras(); initHistorique(); initPartage(); initAlertes(); initObjets(); initRevetements(); initGalerie(); initCalage(); initRecu(); initPointsVue(); initProduits(); initJeu(); initPointsListe(); initCreer(); initAssistant(); initBlender();
 // tableau des meubles : toucher un nom le montre (sélectionné en Éditer) ; bouton du panneau
 initTableau(it=>{ if(app.edition&&!it.hidden) select(it.name); cadrerObjet(it); }); $('f-tableau').onclick=()=>ouvrirTableau(true);
 
@@ -127,7 +128,7 @@ $('installer').onclick=async()=>{ if(!proposition) return; proposition.prompt();
 // on n'entre (et la maquette ne se charge) qu'une fois connecté (écran d'entrée, compte.js)
 initPorte(()=>chargerModele({
   structurePrete:()=>demarrerVues(),
-  mobilierPret:()=>{ restore(); buildList(); demarrerHistorique(); demarrerSynchro(); traiterRecu(); }
+  mobilierPret:()=>{ restore(); buildList(); demarrerHistorique(); demarrerSynchro(); traiterRecu(); ajusterBarre(); }
 }));
 
 const clock=new THREE.Clock(), barre=document.querySelector('.bar');

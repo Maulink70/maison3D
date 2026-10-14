@@ -9,6 +9,7 @@
 import * as THREE from 'three';
 import {app, $} from './app.js';
 import {etat} from './calques.js';
+import {nommer, poserIcone} from './icones.js';
 
 const CLE='maison3d-lampes', CHAUD=new THREE.Color(0xffd29a), MAX=4, FORCE={soir:1.8,nuit:2.6};
 let choix={}, sources=null, dernier=0, allume=null;
@@ -53,11 +54,24 @@ export function majPanneauLampe(){
   if(!it){ return; } c.checked=estLampe(it); b.hidden=!estLampe(it);
   b.textContent=estAllumee(it)?'Éteindre la lampe (le soir)':'Allumer la lampe (le soir)'; b.setAttribute('aria-pressed',String(estAllumee(it)));
 }
+// menu « Ouvrir » de la barre : tous les éclairages d'un coup (Mauro, 14 octobre 2026 : « éteindre / allumer tous les
+// éclairages ») ; comme une lampe seule, ils brillent le soir et la nuit, d'où « (le soir) » de jour
+const lampesVisibles=()=>Object.values(app.items).filter(it=>!it.hidden&&estLampe(it));
+export function toutesLampes(oui){ for(const it of lampesVisibles()) choix[it.name]={...choix[it.name],allumee:oui}; garder(); dernier=0; allume=null; majPanneauLampe(); majBoutonLampes(); }
+let branche=false;
+function majBoutonLampes(){
+  const b=$('eclairages'); if(!b) return;
+  if(!branche){ branche=true; b.addEventListener('click',()=>toutesLampes(!lampesVisibles().some(estAllumee))); }
+  const l=lampesVisibles(); b.hidden=!l.length; if(!l.length) return;
+  const on=l.some(estAllumee); b.setAttribute('aria-pressed',String(on));
+  poserIcone(b,on?'lightbulb-off':'lightbulb'); nommer(b,(on?'Éteindre':'Allumer')+' tous les éclairages'+(soirOuNuit()?'':' (le soir)'));
+}
+for(const e of ['disposition','meubles','objet-pret']) addEventListener(e,()=>{ if(app.mobilierPret) majBoutonLampes(); });
 // À chaque image (au plus 3 fois par seconde pour les sources) : aspect des lampes, et 4 sources près de ce qu'on regarde
 export function majLampes(){
   if(!app.mobilierPret) return;
   const soir=soirOuNuit(), cle=soir+etat.lumiere;
-  if(cle!==allume){ allume=cle; for(const it of Object.values(app.items)) if(estLampe(it)||it.parties) briller(it,soir&&estAllumee(it)&&!it.hidden); }
+  if(cle!==allume){ allume=cle; for(const it of Object.values(app.items)) if(estLampe(it)||it.parties) briller(it,soir&&estAllumee(it)&&!it.hidden); majBoutonLampes(); }
   if(!soir&&!sources) return;
   if(!sources){ sources=[]; for(let k=0;k<MAX;k++){ const l=new THREE.PointLight(CHAUD,0,8,1.6); app.scene.add(l); sources.push(l); } }
   const t=performance.now(); if(t-dernier<300) return; dernier=t;

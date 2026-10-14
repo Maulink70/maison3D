@@ -13,6 +13,7 @@ import {RoomEnvironment} from 'three/addons/environments/RoomEnvironment.js';
 import {app, $} from './app.js';
 import {etat as calques} from './calques.js';
 import {lesVariantes, varianteCourante, groupeDe} from './synchro.js';
+import {nommer} from './icones.js';
 
 const CLE='maison3d-rendu';
 const choix={rendu:'normal',renduR:'realiste',ao:true};
@@ -94,12 +95,21 @@ export function rendreReel(cam){
 
 // ---------- menu « Calques » (groupe Affichage) ----------
 function majBoutons(){
+  majBoutonBarre();
   const m=$('cq-rendu'); if(!m) return; const reel=renduReel();
   for(const b of m.querySelectorAll('[data-rendu]')) b.setAttribute('aria-pressed',String(b.dataset.rendu===(reel?'realiste':'normal')));
   $('cq-ao-l').hidden=!reel; $('cq-ao').checked=!!choix.ao;
   $('cq-rendu-note').textContent=dansRealisme()?'Base « Réalisme » : « Réaliste » d’office.':'« Réaliste » : lumière d’ambiance, reflets, couleurs « appareil photo ».';
 }
+// bouton « Réaliste » de la barre, à côté de « Affichage » (Mauro, 14 octobre 2026) : même choix que « Rendu : Normal | Réaliste » du menu
+function majBoutonBarre(){
+  const b=$('realiste'); if(!b) return; const reel=renduReel();
+  b.setAttribute('aria-pressed',String(reel)); nommer(b,reel?'Revenir au rendu normal':'Passer au rendu réaliste');
+}
+const basculer=()=>{ choix[cle()]=renduReel()?'normal':'realiste'; garder(); majRealiste(); majBoutons(); };
 export function initRealiste(){
+  $('realiste')?.addEventListener('click',basculer);
+  addEventListener('rendu',()=>majBoutonBarre());
   const lum=$('cq-lum-normale')?.closest('.impr-ligne'); if(!lum) return;
   const l=document.createElement('div'); l.className='impr-ligne'; l.id='cq-rendu';
   l.innerHTML='<span id="cq-t-rendu">Rendu</span><div class="seg" role="group" aria-labelledby="cq-t-rendu">'+
