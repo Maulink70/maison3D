@@ -38,6 +38,7 @@ import {chargerPhotos, lesPhotos, faireMontage, ouvrirGalerie} from './galerie.j
 import {ouvrirPointsVue} from './pointsliste.js';
 import {ouvrirCreer} from './creer.js';
 import {ouvrirPhoto, ouvrirPhotoAvec} from './photo.js';
+import {ouvrirMesObjets, mesObjetsDisponibles} from './mesobjets.js';
 import {ouvrirCatalogue} from './catalogue.js';
 import {ouvrirImport} from './import3d.js';
 import {ouvrirBlender} from './blender.js';
@@ -184,7 +185,7 @@ function parler(t){
 const ch=(l,v,o={})=>({l,v,...o});
 
 // ---------- accueil et premier choix ----------
-const BRANCHES=[['A','Visiter, me promener'],['B','Ajouter un objet'],['L','Créer un objet avec l’IA'],['C','Remplacer un objet'],['D','Modifier un objet'],['E','Enlever un objet'],
+const BRANCHES=[['A','Visiter, me promener'],['B','Ajouter un objet'],['L','Créer un objet d’après une description'],['C','Remplacer un objet'],['D','Modifier un objet'],['E','Enlever un objet'],
   ['F','Changer un sol ou un mur'],['G','Essayer sur une photo de la pièce'],['H','Mesurer, vérifier la place'],['I','Imprimer ou partager'],['J','Mes projets']];
 async function accueil(){
   const a=el('div',{class:'as-accueil'}); a.append(el('img',{src:'icones/assistant.webp',alt:'Mauro, ton assistant',class:'as-buste'}),el('p',{class:'as-bulle'},ACCUEIL));
@@ -297,13 +298,20 @@ function majSuiviTripo(){
 }
 // panneau photo → « L'essayer d'abord sur une photo de la pièce » : le parcours suit le montage au lieu d'attendre un objet
 function suivreMontage(ok){ const f=e=>{ removeEventListener('essai-montage',f); ok({montage:e.detail.nom}); }; addEventListener('essai-montage',f); nettoyages.push(()=>removeEventListener('essai-montage',f)); }
-// d'où vient le nouvel objet ; renvoie le nom de l'objet ajouté (il est déjà dans la maquette)
-const SOURCES=[['forme','Une forme simple','table, armoire, lampe… à tes mesures'],['catalogue','Le catalogue 3D gratuit','Poly Haven, Sketchfab'],['photo','Une photo ou une image','image plate, ou vraie 3D par Tripo'],
-  ['lien','Le lien d’un produit','IKEA, Pfister, Conforama…'],['produits','Un de mes produits','ta liste « Produits »'],['ia','Le générer avec l’IA','d’après ta description'],['blender','Le faire modéliser par Blender','sur le PC : Claude Code le modélise (quelques minutes, gratuit)'],['fichier','Un fichier 3D','.glb, .obj, .fbx…'],['propose','Je ne sais pas, propose-moi','je cherche dans le catalogue']];
+// d'où vient le nouvel objet ; renvoie le nom de l'objet ajouté (il est déjà dans la maquette).
+// Mêmes points de départ, dans le même ordre, que le menu « + » (14 octobre 2026) : les parcours B ajouter, C remplacer
+// et L créer posent tous cette question ; « D'après une description » demande ensuite Blender (PC) ou une image kie.ai.
+const SOURCES=[['mes','Un de mes objets 3D déjà faits','dans tes projets : repris tel quel, sans le refaire'],['photo','Une photo ou une image','Blender sur le PC, Tripo, ou image plate'],
+  ['lien','Le lien d’un produit','IKEA, Pfister, Conforama… : photo, nom et dimensions lus'],['produits','Un de mes produits','ta liste « Produits »'],
+  ['description','D’après une description','Blender le modélise sur le PC, ou kie.ai dessine une image d’abord'],['catalogue','Le catalogue 3D gratuit','Poly Haven, Sketchfab'],
+  ['fichier','Un fichier 3D','.glb, .obj, .fbx…'],['forme','Une forme simple','table, armoire, lampe… à tes mesures'],['propose','Je ne sais pas, propose-moi','je cherche dans le catalogue']];
+const SOURCES_DIRECTES=['ia','blender'];   // déjà choisies (demande libre comprise par n8n, image jointe…) : la question « description » est sautée
 async function source(o){
   let s=o.source;
   if(o.image&&!s) s='photo';
-  if(!s||!SOURCES.some(x=>x[0]===s)){ const r=await demander('source',{titre:'D’où vient le nouvel objet ?',choix:SOURCES.map(([k,l,sous])=>ch(l,k,{sous}))}); s=r.v; }
+  if(!s||!(SOURCES.some(x=>x[0]===s)||SOURCES_DIRECTES.includes(s))){ const r=await demander('source',{titre:'D’où vient le nouvel objet ?',choix:SOURCES.map(([k,l,sous])=>ch(l,k,{sous}))}); s=r.v; }
+  if(s==='description'){ const r=await demander('description-via',{titre:'Qui le fabrique ?',aide:'Blender, sur ton PC, fait une vraie 3D d’après ta description ; kie.ai dessine d’abord une image, que l’on met ensuite en 3D (Blender, Tripo) ou en image plate.',
+    choix:[ch('Blender le modélise sur le PC (gratuit, quelques minutes)','blender',{prim:true}),ch('kie.ai dessine une image d’abord (crédits)','ia')]}); s=r.v; }
   const attendreAjout=(texte,ouvrir)=>etape('ajout-'+s,{titre:texte,aide:'Je t’attends : dès que l’objet est posé, je continue.',attente:true,choix:[ch('Je laisse tomber','stop')]},()=>new Promise(ok=>{
     const f=e=>{ removeEventListener('objet-ajoute',f); ok(e.detail.nom); };
     addEventListener('objet-ajoute',f); nettoyages.push(()=>removeEventListener('objet-ajoute',f)); suivreMontage(ok); ouvrir();
@@ -318,7 +326,7 @@ async function source(o){
     nom=await attendreAjout('Choisis le modèle dans le catalogue, puis « Ajouter »',()=>{ ouvrirCatalogue(true); setTimeout(()=>{ const i=document.querySelector('#cat-q'); if(i&&q){ i.value=q; i.form?.requestSubmit(); } },50); });
   } else if(s==='photo'){
     if(o.image) nom=await avecImage(o.image,{nom:o.description,...(o.dims||{})},o);
-    else nom=await attendreAjout('Ajoute la photo du meuble dans le panneau photo',()=>ouvrirPhoto(true));
+    else nom=await attendreAjout('Ajoute la photo du meuble dans le panneau photo, puis choisis : Tripo, Blender (sur le PC) ou image plate (« Options avancées »)',()=>ouvrirPhoto(true));
   } else if(s==='lien'){
     let u=o.lien; if(!u){ const r=await demander('lien',{titre:'Colle le lien du produit',libre:{ph:'https://www.ikea.com/ch/fr/p/…'},choix:[]}); u=extraireLien(r.texte||'')||r.texte; }
     const p=await etape('lien-lu',{titre:'Je lis la page du produit…',attente:true},async()=>{ const r=await lireProduit(u); return r.ok&&r.image?{image:r.image,nom:r.nom,dims:r.dims||{},site:r.site,lien:u}:{erreur:r.erreur||'page refusée'}; });
@@ -336,13 +344,16 @@ async function source(o){
     if(!b){ dire('L’image du produit n’a pas pu être lue.'); return source({...o,source:null}); }
     nom=await avecImage(b,{nom:p.nom,L:p.L,P:p.P,H:p.H,origine:{produit:true,site:p.boutique||'boutique',titre:String(p.nom||'Produit').slice(0,80),lien:p.lien||''}},o);
   } else if(s==='ia'){
-    nom=await attendreAjout('Décris l’objet dans la fenêtre « Créer avec l’IA » (modèle, nombre de propositions), puis choisis « Image plate » ou « Vraie 3D »',
+    nom=await attendreAjout('Décris l’objet dans la fenêtre « Créer avec l’IA » (modèle, nombre de propositions), puis choisis « Image plate », « Vraie 3D (Tripo) » ou « Vraie 3D (Blender) »',
       ()=>ouvrirCreer({description:o.description||'',nom:o.nomObjet||'',dims:o.dims||null}));
   } else if(s==='blender'){
     nom=await attendreAjout('Dans la fenêtre « Créer avec Blender », décris l’objet (ou ajoute ses images), puis « Envoyer à Blender ». Quand il est prêt (quelques minutes), vérifie ses dimensions et touche « Ajouter »',
       ()=>ouvrirBlender(true,{description:o.description||'',nom:o.nomObjet||'',dims:o.dims||null,images:o.image?[o.image]:[]}));
   } else if(s==='fichier'){
     nom=await attendreAjout('Choisis le fichier 3D dans la fenêtre d’import, puis « Ajouter »',()=>ouvrirImport(true));
+  } else if(s==='mes'){
+    if(!mesObjetsDisponibles()){ dire('Aucun objet 3D déjà fait dans tes projets pour l’instant : choisis un autre point de départ.'); return source({...o,source:null}); }
+    nom=await attendreAjout('Choisis l’objet dans « Mes objets 3D », puis « Ajouter ici » (même fichier, aucun crédit)',()=>ouvrirMesObjets(true));
   }
   if(nom?.abandon){ annulerRemplacement(); dire('D’accord, on laisse tomber.'); nouveau(()=>menu(false)); }
   if(nom?.montage){ annulerRemplacement(); await finir('Le montage s’ouvre',[`Choisis la photo de la pièce : « ${nom.montage} » y sera posé à sa taille. Place-le, puis « Lancer le rendu » (les crédits sont demandés avant).`,
@@ -352,7 +363,7 @@ async function source(o){
 // une image (photo, produit, lien) : image plate tout de suite ou vraie 3D par Tripo
 async function avecImage(blob,info,o){
   const r=await demander('rendu-3d',{titre:'Comment le montrer dans la maquette ?',aide:'L’image plate est prête tout de suite et gratuite, mais n’est juste que de face ; la vraie 3D se voit de tous les côtés.',
-    choix:[ch('En image plate (tout de suite, gratuit)','plat',{prim:true}),ch('En vraie 3D (environ 2 min, 20 à 40 crédits Tripo selon les textures)','3d'),ch('En vraie 3D par Blender, sur le PC (quelques minutes, gratuit)','blender')]});
+    choix:[ch('En image plate (tout de suite, gratuit)','plat',{prim:true}),ch('En vraie 3D par Blender, sur le PC (quelques minutes, gratuit)','blender'),ch('En vraie 3D par Tripo (environ 2 min, 20 à 40 crédits selon les textures)','3d')]});
   const d=o.dims||{}, i={nom:info.nom||'Objet',L:info.L||d.L,P:info.P||d.P,H:info.H||d.H,origine:info.origine};
   if(r.v==='blender') return etape('ajout-image',{titre:'Dans la fenêtre « Créer avec Blender », vérifie le nom et les dimensions, puis « Envoyer à Blender » : Claude Code le modélise sur le PC (quelques minutes)',
     aide:'Je t’attends : dès que l’objet est posé, je continue.',attente:true,choix:[ch('Je laisse tomber','stop')]},()=>new Promise(ok=>{
@@ -478,13 +489,14 @@ async function ajouter(o){
   await projet();
   const nom=await source(o), it=app.items[nom]; if(!it){ dire('Je ne retrouve pas l’objet ajouté.'); nouveau(()=>menu(false)); }
   dire(`« ${it.meta.l} » est dans la maquette.`);
-  const t=await taille(it,{dims:o.source==='ia'||o.source==='photo'||o.source==='lien'||o.source==='produits'?null:o.dims}), pl=await place(it,o), a=await aspect('aspect',o.aspect?o:{aspect:o.couleur||o.matiere?lireAspect([o.matiere,o.couleur].filter(Boolean).join(' '))||(o.couleur?{i:null,c:o.couleur}:null):null});
+  const t=await taille(it,{dims:['ia','blender','photo','lien','produits','mes','description'].includes(o.source)?null:o.dims}), pl=await place(it,o), a=await aspect('aspect',o.aspect?o:{aspect:o.couleur||o.matiere?lireAspect([o.matiere,o.couleur].filter(Boolean).join(' '))||(o.couleur?{i:null,c:o.couleur}:null):null});
   const l=[`Garder « ${it.meta.l} »`,...(t?['Taille '+dimsTexte(t)]:[]),...(textePlace(pl)?[textePlace(pl)[0].toUpperCase()+textePlace(pl).slice(1)]:[]),...(a?['Aspect : '+texteAspect(a)]:[])];
   await recap(l);
   appliquer(it,{taille:t,place:pl,aspect:a}); save();
   await apresAction(it,`C’est fait : « ${it.meta.l} » est ${pieceDe(it)?'dans '+pieceDe(it).nom.toLowerCase():'dans la maquette'}`,`ajouté « ${it.meta.l} »`);
 }
-async function creerIA(o){ await ajouter({...o,source:'ia'}); }
+// L : d'après une description ; n8n peut déjà avoir choisi « ia » ou « blender », sinon la question « Qui le fabrique ? » est posée
+async function creerIA(o){ await ajouter({...o,source:SOURCES_DIRECTES.includes(o.source)?o.source:'description'}); }
 
 // ---------- C. Remplacer ----------
 async function remplacerObjet(o){
