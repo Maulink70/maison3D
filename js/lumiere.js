@@ -18,7 +18,8 @@ const R={
 let posee=null, cielTeinte=null, reelPose=null, bouton=null;
 // bouton « Lumière » de la barre (Mauro, 14 octobre 2026 : « une icône à part ») : son icône dit la lumière choisie, son menu les 5 choix
 const ICONE={normale:'sun-dim',matin:'sunrise',midi:'sun',soir:'sunset',nuit:'moon'};
-for(const b of document.querySelectorAll('#lumiere-menu [data-lumiere]')) b.addEventListener('click',()=>choisirLumiere(b.dataset.lumiere));
+// 4 choix (Mauro, 14 octobre 2026) : retoucher le choix allumé rend la lumière normale (elle reste dans le menu « Affichage »)
+for(const b of document.querySelectorAll('#lumiere-menu [data-lumiere]')) b.addEventListener('click',()=>choisirLumiere(etat.lumiere===b.dataset.lumiere?'normale':b.dataset.lumiere));
 function majBouton(nom){
   const b=document.getElementById('lumiere'); bouton=nom; if(!b) return;
   poserIcone(b,ICONE[nom]); nommer(b,'Lumière : '+LUMIERES.find(l=>l[0]===nom)[1].toLowerCase()); b.setAttribute('aria-pressed',String(nom!=='normale'));

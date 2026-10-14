@@ -34,7 +34,7 @@ export function setEdition(on,demande=true){
   if(on&&verrouillee(varianteCourante())){ if(demande) dispatchEvent(new CustomEvent('base-verrouillee')); on=false; }   // une base ne se modifie pas
   app.edition=on; $('mo-visite').setAttribute('aria-pressed',String(!on)); $('mo-editer').setAttribute('aria-pressed',String(on));
   $('toggle-panel').hidden=!on; $('ajouter-boite').hidden=!on;
-  if(!on){ select(null); openSheet(false); } else openSheet(!petitEcran());
+  if(!on) select(null); openSheet(false);   // fermé à l'entrée en Éditer : il s'ouvre au toucher d'un meuble ou par la poignée (Mauro, 14 octobre 2026)
   dispatchEvent(new CustomEvent('edition'));
   majAide(); memoriser();
 }
