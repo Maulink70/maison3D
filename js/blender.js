@@ -11,6 +11,8 @@
 // Pièce de la demande (Mauro, 14 octobre 2026 : « l'objet doit aller comme maintenant dans le Drive, dans le bon étage et la
 // bonne pièce ») : choisie d'office (objet modifié ou remplacé, place d'une photo calée, sinon là où l'on est ou ce qu'on
 // regarde ; portes, fenêtres, stores et rideaux à part), modifiable ; le PC copie le modèle dans « Objets 3D/Rez/Salon »…
+// Lien d'un produit (Mauro, 14 octobre 2026) : collé dans la fenêtre (champ, Ctrl+V, « Coller ») et lu par n8n comme dans
+// « Produits » : sa photo s'ajoute aux images, nom et dimensions sont remplis, le lien suit dans l'objet.
 import * as THREE from 'three';
 import {app, $} from './app.js';
 import {connecte} from './api.js';
@@ -21,6 +23,7 @@ import {ETAGE_FLOOR} from './config.js';
 import {solSous} from './visite.js';
 import {imageMeuble} from './impression.js';
 import {PIECES, pieceEn} from './pieces.js';
+import {lireProduit, extraireLien} from './boutiques.js';
 import {vuePlan, niveauDuPlan} from './plan.js';
 
 const URL_B='https://n8n.srv1123557.hstgr.cloud/webhook/maison3d-blender', CLE='maison3d-blender', CLE_CHOIX='maison3d-blender-choix';
@@ -150,11 +153,12 @@ function construire(){
       <button type="button" data-mode="modifier" aria-pressed="false">Modifier un objet</button>
     </div>
     <div class="bl-bloc bl-images" hidden>
+      <div class="ph-lien bl-lien"><input type="url" id="bl-lien" placeholder="Lien de la page d’un produit (https://…)" aria-label="Lien du produit"><button type="button" class="btn" id="bl-lire">Lire le lien</button></div>
       <div class="bl-vignettes"></div>
       <div class="ph-boutons petits"><button type="button" class="btn" id="bl-coller">Coller l’image</button>
         <label class="btn">Choisir des images<input type="file" accept="image/*" multiple id="bl-fichiers" hidden></label>
         <button type="button" class="btn" id="bl-produits" aria-expanded="false">Mes produits…</button></div>
-      <p class="mat-aide">Jusqu’à 4 images (plusieurs vues du même objet, c’est mieux). Ctrl+V et glisser-déposer marchent aussi.</p>
+      <p class="mat-aide">Jusqu’à 4 images (plusieurs vues du même objet, c’est mieux). Ctrl+V (image ou lien) et glisser-déposer marchent aussi. Avec un lien, la photo, le nom et les dimensions sont lus sur la page (Galaxus et Maisons du Monde refusent : copiez l’image).</p>
       <div class="bl-produits" hidden></div>
     </div>
     <div class="bl-bloc bl-objet" hidden>
@@ -190,15 +194,22 @@ function construire(){
   for(const b of fen.querySelectorAll('.bl-modes button')) b.onclick=()=>choisirMode(b.dataset.mode);
   q('#bl-fichiers').onchange=e=>{ for(const f of [...(e.target.files||[])]) ajouterImage({blob:f,nom:f.name}); e.target.value=''; };
   q('#bl-coller').onclick=coller;
+  q('#bl-lire').onclick=()=>lireLien(q('#bl-lien').value);
+  q('#bl-lien').addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); lireLien(q('#bl-lien').value); } });
   q('#bl-produits').onclick=mesProduits;
-  fen.addEventListener('paste',e=>{ const f=[...(e.clipboardData?.files||[])].find(x=>/^image\//.test(x.type)); if(f){ e.preventDefault(); ajouterImage({blob:f,nom:'image collée'}); } });
+  fen.addEventListener('paste',e=>{ const f=[...(e.clipboardData?.files||[])].find(x=>/^image\//.test(x.type)); if(f){ e.preventDefault(); ajouterImage({blob:f,nom:'image collée'}); return; }
+    // un lien collé ailleurs que dans un champ de texte (ou dans le champ du lien) : lu aussitôt
+    const u=extraireLien(e.clipboardData?.getData('text')); if(!u) return;
+    // dans la description, un lien seul est lu aussi (premier essai de Mauro : lien collé dans la description, demande nommée « https »)
+    const seul=(e.clipboardData?.getData('text')||'').trim()===u;
+    if(e.target.id==='bl-lien'||(seul&&e.target.id==='bl-desc')||!e.target.closest('input,textarea')){ e.preventDefault(); lireLien(u); } });
   fen.addEventListener('dragover',e=>e.preventDefault());
   fen.addEventListener('drop',e=>{ e.preventDefault(); for(const f of [...(e.dataTransfer?.files||[])].filter(x=>/^image\//.test(x.type))) ajouterImage({blob:f,nom:f.name}); });
   q('#bl-objet').onchange=()=>{ const it=app.items[q('#bl-objet').value]; objet=it?objetDe(it):null; majObjet(); majPiece(); };
   q('#bl-envoyer').onclick=envoyer;
   q('#bl-piece').onchange=()=>{ pieceChoisie=true; majPiece(); };
   for(const i of ['#bl-nom','#bl-desc']) q(i).addEventListener('input',()=>{ if(!pieceChoisie) majPiece(); });
-  for(const i of fen.querySelectorAll('input[type=text],input[type=number],textarea')) i.addEventListener('keydown',e=>e.stopPropagation());
+  for(const i of fen.querySelectorAll('input[type=text],input[type=url],input[type=number],textarea')) i.addEventListener('keydown',e=>e.stopPropagation());
   q('.bl-liste').addEventListener('click',e=>{ const b=e.target.closest('button[data-a]'); if(b) agir(b.dataset.a,b.closest('li').dataset.id); });
   try{ const c=JSON.parse(localStorage.getItem(CLE_CHOIX)||'{}'); if(c.detail) (fen.querySelector(`input[name="bl-detail"][value="${c.detail}"]`)||{}).checked=true; if(c.textures===false) q('#bl-textures').checked=false; }catch{}
 }
@@ -238,8 +249,10 @@ function majImages(){
   if(!images.length) v.append(el('p',{class:'mat-aide'},'Aucune image pour l’instant.'));
 }
 async function coller(){
-  try{ for(const it of await navigator.clipboard.read()){ const t=it.types.find(x=>/^image\//.test(x)); if(t){ ajouterImage({blob:await it.getType(t),nom:'image collée'}); return; } }
-    dire('Le presse-papiers ne contient pas d’image.',true); }
+  try{ const l=await navigator.clipboard.read();
+    for(const it of l){ const t=it.types.find(x=>/^image\//.test(x)); if(t){ ajouterImage({blob:await it.getType(t),nom:'image collée'}); return; } }
+    for(const it of l) if(it.types.includes('text/plain')){ const u=extraireLien(await (await it.getType('text/plain')).text()); if(u){ lireLien(u); return; } }
+    dire('Le presse-papiers ne contient ni image ni lien.',true); }
   catch{ dire('Collez avec Ctrl+V dans cette fenêtre (le navigateur refuse la lecture du presse-papiers).',true); }
 }
 async function mesProduits(){
@@ -250,6 +263,22 @@ async function mesProduits(){
   box.replaceChildren(); if(!l.length){ box.append(el('p',{class:'mat-aide'},'Aucun produit avec une image dans la liste « Produits ».')); return; }
   for(const p of l){ const c=el('button',{type:'button',class:'bl-produit'}), im=el('img',{alt:''}); if(p.vignette) im.src=p.vignette; c.append(im,el('span',{},p.nom||'Produit'));
     c.onclick=()=>{ prendreProduit(p); b.setAttribute('aria-expanded','false'); box.hidden=true; }; box.append(c); }
+}
+// lien de la page d'un produit : lu par n8n (workflow « Maison3D Boutique ») ; la photo rejoint les images
+async function lireLien(brut){
+  const u=extraireLien(brut); if(!u){ dire('Collez le lien complet de la page du produit (https://…).',true); q('#bl-lien').focus(); return; }
+  if(mode!=='images') choisirMode('images');
+  q('#bl-lien').value=u; const b=q('#bl-lire'); b.disabled=true; dire('Lecture de la page du produit…');
+  const p=await lireProduit(u); b.disabled=false;
+  let site=p.site||''; try{ site=site||new URL(u).hostname.replace(/^www\./,''); }catch{}
+  ctx.lien=u; ctx.site=site; ctx.origine={produit:true,site:site||'boutique',titre:String(p.nom||q('#bl-nom').value||'Produit').slice(0,80),lien:u};
+  let image=false;
+  if(p.image){ try{ const bl=await (await fetch(p.image)).blob(); ajouterImage({blob:bl,nom:p.nom||'produit'}); image=true; }catch{} }
+  if(p.nom&&!q('#bl-nom').value) q('#bl-nom').value=String(p.nom).slice(0,60);
+  const d=p.dims||{}; for(const [k,i] of [['L','#bl-l'],['P','#bl-p'],['H','#bl-h']]) if(d[k]&&!q(i).value) q(i).value=String(d[k]);
+  majPiece();
+  if(image) dire('Photo'+(p.nom?', nom':'')+(d.L||d.H?' et dimensions':'')+' lus sur la page.'+(d.L||d.H?'':' Les dimensions n’y sont pas : tapez-les si vous les connaissez.')+' Ajoutez d’autres vues si vous en avez, puis « Envoyer à Blender ».');
+  else dire((p.erreur||'Page illisible')+'. Copiez l’image du produit sur sa page et collez-la ici (Ctrl+V ou « Coller l’image ») : le lien est gardé.',true);
 }
 function prendreProduit(p){
   ajouterImage({fic:{id:p.image.id,n:p.image.n||1,type:p.image.type||'image/jpeg'},vignette:p.vignette,nom:p.nom});
@@ -268,7 +297,11 @@ const cmDe=i=>{ const v=Number(String(q(i).value).replace(',','.')); return Numb
 async function envoyer(){
   if(envoiEnCours) return;
   if(!connecte()){ dire('Connectez-vous d’abord.',true); return; }
-  const desc=q('#bl-desc').value.trim(), nom=(q('#bl-nom').value.trim()||(objet&&mode==='modifier'?objet.nom:'')||desc.split(/[,.;:]/)[0]||'Objet').slice(0,60);
+  // un lien dans la description, sans image : il est d'abord lu (photo, nom, dimensions), on vérifie, puis on renvoie
+  const lienDesc=extraireLien(q('#bl-desc').value);
+  if(lienDesc&&mode!=='modifier'&&!images.length){ q('#bl-desc').value=q('#bl-desc').value.replace(lienDesc,' ').replace(/\s+/g,' ').trim(); await lireLien(lienDesc); return; }
+  const desc=q('#bl-desc').value.trim(), sansLien=desc.replace(/https?:\/\/\S+/gi,' ').trim();
+  const nom=(q('#bl-nom').value.trim()||(objet&&mode==='modifier'?objet.nom:'')||sansLien.split(/[,.;:]/)[0].trim()||'Objet').slice(0,60);
   if(mode==='zero'&&desc.length<3){ dire('Décrivez l’objet (quelques mots suffisent).',true); q('#bl-desc').focus(); return; }
   if(mode==='images'&&!images.length){ dire('Ajoutez au moins une image.',true); return; }
   if(mode==='modifier'&&!objet){ dire('Choisissez l’objet à modifier.',true); return; }
@@ -301,7 +334,7 @@ async function envoyer(){
     if(r.pcs) serveur.pcs=r.pcs;
     const pc=etatPC();
     dire(`Demande envoyée : « ${nom} ». `+(pc.cle==='pret'?'Le PC la prend tout de suite.':pc.cle==='occupe'?'Le PC la fera après la demande en cours.':'Elle attend que le PC soit allumé avec le pont Blender.')+' Vous pouvez fermer cette fenêtre : le modèle s’ouvrira quand il sera prêt.');
-    images=[]; ctx={}; objet=null; pieceChoisie=false; q('#bl-desc').value=''; q('#bl-nom').value=''; for(const i of ['#bl-l','#bl-p','#bl-h']) q(i).value='';
+    images=[]; ctx={}; objet=null; pieceChoisie=false; q('#bl-desc').value=''; q('#bl-nom').value=''; q('#bl-lien').value=''; for(const i of ['#bl-l','#bl-p','#bl-h']) q(i).value='';
     choisirMode('zero'); majImages();
     dispatchEvent(new CustomEvent('blender-demande',{detail:{id,nom}}));
     await rafraichir();
@@ -386,7 +419,7 @@ export function ouvrirBlender(oui=true,o=null){
   if(!oui){ majBandeau(); return; }
   if(o){
     images=[]; pieceChoisie=false; ctx={place:o.place||null,remplace:o.remplace||null,origine:o.origine||null,lien:o.lien||o.origine?.lien||'',site:o.site||o.origine?.site||''};
-    q('#bl-desc').value=o.description||''; q('#bl-nom').value=String(o.nom||'').slice(0,60);
+    q('#bl-desc').value=o.description||''; q('#bl-nom').value=String(o.nom||'').slice(0,60); q('#bl-lien').value=o.lien||o.origine?.lien||'';
     for(const [k,i] of [['L','#bl-l'],['P','#bl-p'],['H','#bl-h']]) q(i).value=o.dims?.[k]?String(o.dims[k]):'';
     if(o.modifier){ objet=objetDe(o.modifier); choisirMode('modifier'); }
     else { objet=null; choisirMode('zero');
