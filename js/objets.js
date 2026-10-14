@@ -10,6 +10,7 @@ import {FORMES, parametres} from './formes_simples.js';
 import {creerAjout, supprimerAjout, nouveauNom} from './ajouts.js';
 import {etatDe, normaliser, appliquerEtat, majApparence, echelonner} from './etats.js';
 import {selecteur, partiesDe, couleurPartie, cleDe} from './bibliotheque.js';
+import {svg} from './icones.js';
 import {select, majAngle, setHidden, sousOnglet, ongletActif, sousActif} from './edition.js';
 import {save} from './sauvegarde.js';
 import {PIECES, pieceEn, bornes} from './pieces.js';
@@ -114,20 +115,32 @@ function finRemplacement(){ remplacement=null; $('bandeau-remplacer').hidden=tru
 export const remplacementEnCours=()=>remplacement&&app.items[remplacement]||null;
 
 // ---------- menu « Ajouter » ----------
+const FORMES_CLE='maison3d-formes';   // formes simples dépliées (« oui ») ou repliées dans le menu « + »
 function ouvrirMenu(oui){
   const m=$('ajouter-menu'); m.hidden=!oui; $('ajouter').setAttribute('aria-expanded',String(oui)); if(!oui) return;
   const ancien=remplacement&&app.items[remplacement];
   m.replaceChildren(el('div',{class:'menu-titre'},ancien?`Remplacer « ${ancien.meta.l} » par`:'N’importe quel objet'));
-  for(const [k,t,d,f] of [['mes','Mes objets 3D…','déjà faits dans vos variantes : sans les refaire',ouvrirMesObjets],['catalogue','Catalogue 3D…','Poly Haven, Sketchfab',ouvrirCatalogue],['ia','Créer avec l’IA…','décrivez-le, l’IA le dessine',()=>ouvrirCreer()],['photo','D’après une photo…','Tripo crée le meuble en 3D',ouvrirPhoto],
-    ['blender','Créer avec Blender…','sur le PC : Claude Code le modélise (zéro, images, produit)',()=>{ const r=remplacement; if(r) finRemplacement(); ouvrirBlender(true,{remplace:r||null}); }],['glb','Fichier 3D…','glb, fbx, obj, dae, stl',ouvrirImport]]){
-    const b=el('button',{type:'button','data-ajout':k}); b.append(el('span',{},t),el('span',{class:'m2'},d)); b.onclick=()=>{ ouvrirMenu(false); f(true); }; m.append(b); }
-  const g=el('div',{class:'menu-groupe'}); g.append(el('div',{class:'menu-titre'},'Formes simples')); m.append(g);
+  // une ligne par source : icône, titre, description dessous (Mauro, 14 octobre 2026 : l'écran était « un peu illisible »,
+  // les descriptions à droite repliaient les titres) ; ordre choisi par lui (Blender avant Tripo)
+  const ligne=(attrs,icone,t,d)=>{ const b=el('button',{type:'button',class:'aj-src',...attrs}); b.insertAdjacentHTML('afterbegin',svg(icone));
+    const x=el('span',{class:'aj-txt'}); x.append(el('span',{class:'aj-t'},t),el('span',{class:'aj-d'},d)); b.append(x); return b; };
+  for(const [k,i,t,d,f] of [['mes','box','Mes objets 3D…','déjà dans vos variantes, sans les refaire',ouvrirMesObjets],
+    ['blender','monitor','Créer avec Blender…','sur votre PC, modélisé par Claude Code',()=>{ const r=remplacement; if(r) finRemplacement(); ouvrirBlender(true,{remplace:r||null}); }],
+    ['photo','camera','D’après une photo…','Tripo crée le meuble en 3D',ouvrirPhoto],['ia','sparkles','Créer avec l’IA…','décrivez-le, l’IA le dessine',()=>ouvrirCreer()],
+    ['catalogue','library','Catalogue 3D…','Poly Haven, Sketchfab',ouvrirCatalogue],['glb','folder','Fichier 3D…','glb, fbx, obj, dae, stl',ouvrirImport]]){
+    const b=ligne({'data-ajout':k},i,t,d); b.onclick=()=>{ ouvrirMenu(false); f(true); }; m.append(b); }
+  // formes simples repliées sous une ligne (Mauro : « j'utiliserai peu cette option ») ; dépliées ou non, choix gardé
+  let ouvertes=false; try{ ouvertes=localStorage.getItem(FORMES_CLE)==='oui'; }catch{}
+  const g=el('div',{class:'menu-groupe'}), liste=el('div',{id:'ajouter-formes-liste'}); liste.hidden=!ouvertes;
+  const bf=ligne({id:'ajouter-formes','aria-expanded':String(ouvertes),'aria-controls':'ajouter-formes-liste'},'shapes','Formes simples','boîte, table, armoire… : un volume à vos mesures');
+  bf.append(el('span',{class:'aj-chevron','aria-hidden':'true'}));
+  bf.onclick=()=>{ ouvertes=!ouvertes; liste.hidden=!ouvertes; bf.setAttribute('aria-expanded',String(ouvertes)); try{ localStorage.setItem(FORMES_CLE,ouvertes?'oui':'non'); }catch{} caler(m); };
   for(const [f,d] of Object.entries(FORMES)){
     const b=el('button',{type:'button','data-forme':f}); b.append(el('span',{},d.nom),el('span',{class:'m2'},d.rond?`⌀ ${cmT(d.L)} × H ${cmT(d.H)} cm`:`${cmT(d.L)} × ${cmT(d.P)} × ${cmT(d.H)} cm`));
-    b.onclick=()=>{ ouvrirMenu(false); ajouterForme(f); }; g.append(b);
+    b.onclick=()=>{ ouvrirMenu(false); ajouterForme(f); }; liste.append(b);
   }
-  m.append(el('div',{class:'menu-pied'},'')); m.lastChild.append(el('p',{},ancien?'Le nouvel objet prend la place et l’orientation de l’ancien (une forme simple prend aussi ses dimensions) ; l’ancien est masqué, « Annuler » le rétablit.'
-    :'L’objet apparaît dans la pièce que vous regardez. Ses dimensions et ses matières se règlent ensuite dans le panneau.'));
+  g.append(bf,liste); m.append(g);
+  m.append(el('div',{class:'menu-pied'},'')); m.lastChild.append(el('p',{},ancien?'Il prend la place de l’ancien, qui est masqué (« Annuler » le rétablit).':'Posé dans la pièce regardée ; réglages dans le panneau.'));
   caler(m);
 }
 

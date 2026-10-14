@@ -35,6 +35,10 @@ const LUCIDE={
   'blinds':'<path d="M3 3h18"/><path d="M20 7H8"/><path d="M20 11H8"/><path d="M10 19h10"/><path d="M8 15h12"/><path d="M4 3v14"/><circle cx="4" cy="19" r="2"/>',
   'lightbulb':'<path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/>',
   'lightbulb-off':'<path d="M16.8 11.2c.8-.9 1.2-2 1.2-3.2a6 6 0 0 0-9.8-4.6"/><path d="M6.3 6.3a4.67 4.67 0 0 0 1.2 5.2c.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/><path d="m2 2 20 20"/>',
+  'monitor':'<rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/>',
+  'library':'<path d="m16 6 4 14"/><path d="M12 6v14"/><path d="M8 8v12"/><path d="M4 4v16"/>',
+  'folder':'<path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/>',
+  'shapes':'<path d="M8.3 10a.7.7 0 0 1-.626-1.079L11.4 3a.7.7 0 0 1 1.198-.043L16.3 8.9a.7.7 0 0 1-.572 1.1Z"/><rect x="3" y="14" width="7" height="7" rx="1"/><circle cx="17.5" cy="17.5" r="3.5"/>',
   'sun':'<circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/>',
   'sun-dim':'<circle cx="12" cy="12" r="4"/><path d="M12 4h.01"/><path d="M20 12h.01"/><path d="M12 20h.01"/><path d="M4 12h.01"/><path d="M17.657 6.343h.01"/><path d="M17.657 17.657h.01"/><path d="M6.343 17.657h.01"/><path d="M6.343 6.343h.01"/>',
   'sunrise':'<path d="M12 2v8"/><path d="m4.93 10.93 1.41 1.41"/><path d="M2 18h2"/><path d="M20 18h2"/><path d="m19.07 10.93-1.41 1.41"/><path d="M22 22H2"/><path d="m8 6 4-4 4 4"/><path d="M16 18a4 4 0 0 0-8 0"/>',
@@ -52,7 +56,7 @@ const pinPhoto='<path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.20
 // stores remontés (ouverts) : le store « blinds » de Lucide replié sous son caisson
 const storeOuvert='<path d="M3 3h18"/><path d="M20 6H8"/><path d="M20 9H8"/><path d="M4 3v14"/><circle cx="4" cy="19" r="2"/>';
 const DESSINS={...LUCIDE,'niv-tout':niveau('tout'),'niv-rez':niveau('rez'),'niv-etage':niveau('etage'),'pin-photo':pinPhoto,'store-ouvert':storeOuvert};
-const svg=nom=>nom==='assistant'?'<img class="ico ico-avatar" src="icones/assistant-tete.webp" alt="" aria-hidden="true">':`<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${DESSINS[nom]||''}</svg>`;
+export const svg=nom=>nom==='assistant'?'<img class="ico ico-avatar" src="icones/assistant-tete.webp" alt="" aria-hidden="true">':`<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${DESSINS[nom]||''}</svg>`;
 
 let bulle=null, cible=null, attente=null, minuterie=0, avaler=null, finAvaler=0, vueA=0;
 // change l'icône d'un bouton (porte ouverte / fermée…)
