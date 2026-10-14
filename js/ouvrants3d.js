@@ -71,7 +71,7 @@ export function lierOuvrants(){
     chercher(it.g);
     if(!noeuds.length) continue;
     const qs=noeuds.map(n=>lier(it,n)).filter(Boolean); if(!qs.length) continue;
-    it.meta={...it.meta,c:'ouverture'}; nouveau=true;
+    it.meta={...it.meta,c:'ouverture'}; it.g.userData.portesBlender=true; nouveau=true;
     // maillages : battants des portes avec les autres battants, le reste (cadre, vitres, ouvrants des fenêtres) avec les fenêtres
     it.g.traverse(o=>{ if(!o.isMesh||o.userData.attente||o.name==='alerte') return; o.userData.copie=true;
       const q=o.userData.porte; if(q&&!q.def.fenetre){ if(!app.battants.includes(o)) app.battants.push(o); }

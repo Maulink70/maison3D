@@ -32,6 +32,15 @@ export function viser(x,y){
   return h;
 }
 const vitreMeuble=o=>!!(o.material?.transparent&&o.material.opacity<0.6&&!o.userData.porte);
+// vitre d'une porte ou d'une fenêtre touchée en Visite, un store juste derrière (40 cm au plus) : le store (le cadre et la
+// poignée ouvrent toujours la fenêtre, comme le bouton « Fenêtres »)
+function storeDerriere(h){
+  if(!h) return null; const it=app.items[h.object.userData.item]; if(storeDe(it)) return storeDe(it);
+  const m=h.object.material; if(!h.object.userData.porte||!(m?.transparent&&m.opacity<0.6)) return null;
+  for(const x of rc.intersectObjects([app.model],true)){ if(x.distance<=h.distance) continue; if(x.distance>h.distance+0.4) break;
+    if(!visibleChain(x.object)) continue; const s=storeDe(app.items[x.object.userData.item]); if(s) return s; }
+  return null;
+}
 function visibleChain(o){ while(o){ if(!o.visible) return false; o=o.parent;} return true; }
 
 // Toucher bref. Visite : une porte s'ouvre ou se ferme, le sol fait avancer (1re personne), le reste ne réagit pas.
@@ -40,7 +49,9 @@ export function toucher(e){
   const h=viser(e.clientX,e.clientY);
   if(!app.edition){
     const lampe=app.items[h?.object.userData.item];
-    if(h?.object.userData.porte) basculerPorte(h.object.userData.porte);
+    const st=storeDerriere(h);
+    if(st) basculerStore(st);   // store juste derrière la vitre touchée (store extérieur vu de dedans) : c'est lui qui bouge
+    else if(h?.object.userData.porte) basculerPorte(h.object.userData.porte);
     else if(h?.object.userData.rideau) basculerRideau(h.object.userData.rideau);   // rideau de douche : tiré ou replié
     else if(storeDe(lampe)) basculerStore(storeDe(lampe));   // store : remonté ou baissé (rideau : ouvert ou tiré)
     else if(lampe&&estLampe(lampe)&&soirOuNuit()) basculerLampe(lampe);   // le soir, toucher une lampe l'allume ou l'éteint

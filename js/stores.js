@@ -14,6 +14,7 @@ import {ouvrantsDe} from './portes.js';
 import {rideauDe} from './etage_pieces.js';
 import {ouvrantsCopies} from './ouvrants3d.js';
 import {nommer} from './icones.js';
+import {invaliderPlan} from './plan.js';
 
 const CLE='maison3d-stores', DUREE=1.6;
 let choix={}; try{ choix=JSON.parse(localStorage.getItem(CLE)||'{}')||{}; }catch{ choix={}; }
@@ -95,7 +96,13 @@ function rattacher(s){
 }
 
 // ---------- liste des stores (à chaque changement des meubles) ----------
+// un store ou rideau ajouté est rangé avec les portes et fenêtres (liste ; ni alertes ni contour de meuble sur le plan : les
+// stores extérieurs sont contre le mur)
+function ranger(it,oui){ const c=oui?'ouverture':'meuble'; if(!it.ajout||it.meta.c===c) return false; it.meta={...it.meta,c}; return true; }
 export function majListeStores(){
+  let change=false;
+  for(const it of Object.values(app.items)) if(it.ajout&&!it.g.userData.portesBlender&&ranger(it,estStore(it))) change=true;
+  if(change){ invaliderPlan(); dispatchEvent(new CustomEvent('meubles')); return; }   // la liste se refait, et revient ici
   for(const [n,s] of [...etats]){ const it=app.items[n], p=it&&pieceDe(it);
     if(!it||!p||p.corps!==s.corps){ etats.delete(n); continue; }   // objet supprimé ou refait (nouvelles dimensions)
     if(!estStore(it)){ poserRepos(s); etats.delete(n); } }
