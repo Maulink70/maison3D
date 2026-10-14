@@ -891,6 +891,9 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
 .bl-txt{display:grid;gap:3px;min-width:0}
 .bl-txt .ph-barre{height:8px}
 .bl-note{font-style:italic}
+.bl-piece-info{margin-top:-6px}
+.bl-choix-piece select,.bl-choix-objet select{font:inherit;font-size:14px;padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--ink);max-width:62%}
+.bl-drive{color:var(--accent)}
 .bl-actions{display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end}
 #bandeau-blender{display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:var(--panel);border:1px solid var(--line);border-left:3px solid #e29a1c;border-radius:var(--r);padding:6px 6px 6px 12px;font-size:13px}
 #bandeau-blender[hidden]{display:none}

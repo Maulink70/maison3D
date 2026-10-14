@@ -18,9 +18,11 @@ const txt=(v,n)=>typeof v==='string'?v.trim().slice(0,n):'';
 const num=v=>{ const x=+v; return isFinite(x)&&x>0&&x<5000?Math.round(x*10)/10:null; };
 const fic=v=>v&&typeof v==='object'&&estId(v.id)?{id:v.id,n:Math.max(1,Math.min(8,v.n|0||1)),type:txt(v.type,40)}:null;
 const idOk=v=>typeof v==='string'&&/^[A-Za-z0-9_-]{6,40}$/.test(v);
+// pièce où ranger le modèle dans le Drive (« Objets 3D/Rez/Salon »…, le PC fait la correspondance)
+const PIECES=['salon','cuisine','entree','degagement','wc','chambre','sdb','portes_rez','mezzanine','dressing','chambre_etage','douche','portes_etage'];
 // une demande telle que le site la voit (sans les champs internes)
 const vue=d=>({id:d.id,qui:d.qui,cree:d.cree,maj:d.maj,etat:d.etat,type:d.type,nom:d.nom,description:d.description,L:d.L,P:d.P,H:d.H,detail:d.detail,textures:d.textures,
-  images:d.images,lien:d.lien,site:d.site,source:d.source,p:d.p||0,texte:d.texte||'',pc:d.pc||'',pris:d.pris||null,resultat:d.resultat||null,erreur:d.erreur||'',essais:d.essais||0,place:d.place||null});
+  images:d.images,lien:d.lien,site:d.site,source:d.source,piece:d.piece||'',p:d.p||0,texte:d.texte||'',pc:d.pc||'',pris:d.pris||null,resultat:d.resultat||null,erreur:d.erreur||'',essais:d.essais||0,place:d.place||null});
 // ménage : 60 demandes au plus, plus de 30 jours effacées (sauf en attente ou en cours)
 function menage(){
   const l=Object.values(s.d).sort((a,b)=>b.cree-a.cree);
@@ -56,7 +58,7 @@ switch(c.action){
     if((s.n||0)>=40) return refus('Limite de 40 demandes à Blender par jour atteinte : réessayez demain.',429);
     s.n=(s.n||0)+1;
     const d={id:c.id,qui:moi.n,cree:now,maj:now,etat:'attente',type,nom,description,L:num(c.L),P:num(c.P),H:num(c.H),
-      detail:['simple','normal','detaille'].includes(c.detail)?c.detail:'normal',textures:c.textures!==false,images,lien:txt(c.lien,500),site:txt(c.site,80),source,
+      detail:['simple','normal','detaille'].includes(c.detail)?c.detail:'normal',textures:c.textures!==false,images,lien:txt(c.lien,500),site:txt(c.site,80),source,piece:PIECES.includes(c.piece)?c.piece:'',
       place:c.place&&typeof c.place==='object'?{x:+c.place.x||0,z:+c.place.z||0,r:+c.place.r||0,niv:c.place.niv==='etage'?'etage':'rez'}:null,p:0,texte:'',essais:0};
     s.d[d.id]=d; menage();
     return rep({ok:true,demande:{...vue(d),position:position(d)},pcs:etatPC()});
@@ -95,7 +97,7 @@ switch(c.action){
     const f=fic(c.fichier); if(!f) return refus('Fichier du modèle manquant');
     d.etat='fini'; d.p=100; d.texte=txt(c.texte,300);
     d.resultat={fic:f,taille:Math.max(0,+c.taille||0),triangles:Math.max(0,c.triangles|0),dims:c.dims&&typeof c.dims==='object'?{L:num(c.dims.L),P:num(c.dims.P),H:num(c.dims.H)}:null,
-      apercu:fic(c.apercu),duree:Math.max(0,c.duree|0),notes:txt(c.notes,1500),fin:now};
+      apercu:fic(c.apercu),duree:Math.max(0,c.duree|0),notes:txt(c.notes,1500),drive:txt(c.drive,300),driveErreur:txt(c.driveErreur,300),fin:now};
     if(s.pcs[agent]) s.pcs[agent].occupe=null;
     return rep({ok:true,etat:d.etat});
   }

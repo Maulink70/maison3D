@@ -5,9 +5,10 @@
 Petit programme qui tourne sur le PC de Mauro, à côté de Blender (ouvert, avec l'extension Blender MCP) et de
 Claude Code. Il demande toutes les 10 secondes au workflow n8n « Maison3D Blender » s'il y a une demande venue de
 l'application (créer un objet d'après une description, une ou plusieurs images, un produit, ou modifier un objet),
-lance Claude Code sans fenêtre (`claude -p`) avec la consigne `consigne_blender.md`, envoie l'avancement à l'application,
-puis le modèle fini (.glb) et son aperçu dans la table Fichiers. L'application ouvre ensuite la fenêtre « Fichier 3D »
-pour l'ajouter.
+ouvre Blender s'il est fermé, lance Claude Code sans fenêtre (`claude -p`) avec la consigne `consigne_blender.md`, envoie
+l'avancement à l'application, puis le modèle fini (.glb) et son aperçu dans la table Fichiers ; il copie aussi le .glb
+dans le Drive, dans le dossier de sa pièce (« Objets 3D/Rez/Salon »…). L'application ouvre ensuite la fenêtre
+« Fichier 3D » pour l'ajouter.
 
 Utilisation (dans une invite de commandes, dans ce dossier) :
   python pont_blender.py --connexion     une fois : nom et mot de passe Maison3D (seul le jeton est gardé)
@@ -17,10 +18,10 @@ Utilisation (dans une invite de commandes, dans ce dossier) :
 Réglages : pont_blender.json (créé au premier lancement, à côté de ce fichier, jamais dans le dépôt).
 Aucune bibliothèque à installer : Python 3.9 ou plus récent suffit.
 """
-import argparse, base64, getpass, json, math, os, shutil, struct, subprocess, sys, threading, time, urllib.request, urllib.error
+import argparse, base64, getpass, glob, json, math, os, re, shutil, socket, struct, subprocess, sys, threading, time, unicodedata, urllib.request, urllib.error
 from pathlib import Path
 
-VERSION = '1.0'
+VERSION = '1.1'
 ICI = Path(__file__).resolve().parent
 REGLAGES = ICI / 'pont_blender.json'
 JOURNAL = ICI / 'pont_blender.log'
@@ -36,6 +37,20 @@ DEFAUT = {
     'minutes_max': 45,
     'pause': 10,
     'simuler': False,                        # essai sans Blender : une simple boîte aux dimensions demandées
+    'ouvrir_blender': True,                  # Blender fermé quand une demande arrive : le pont l'ouvre
+    'blender_exe': '',                       # chemin de blender.exe ; vide = cherché tout seul
+    'fichier_blender': '',                   # fichier .blend à ouvrir avec Blender (vide = scène de départ de Blender)
+    'port_blender': 9876,                    # port de l'extension Blender MCP (« MCP for Blender »)
+    'dossier_drive': '',                     # dossier « Objets 3D » du Drive sur ce PC ; vide = cherché tout seul ; « non » = pas de copie
+    'dossiers_pieces': {},                   # sous-dossiers des pièces s'ils changent de nom, ex. {"salon": "Rez/Salon"}
+    'dossier_miroir': '',                    # copie de plus, sur le PC, au même rangement (vide = aucune)
+}
+# sous-dossiers du Drive (« Maison 3D/Objets 3D/… ») où ranger le modèle d'après la pièce choisie dans l'application
+DOSSIERS = {
+    'salon': 'Rez/Salon', 'cuisine': 'Rez/Cuisine', 'entree': 'Rez/Entrée et réduit', 'degagement': 'Rez/Dégagement',
+    'wc': 'Rez/WC-buanderie', 'chambre': 'Rez/Chambre', 'sdb': 'Rez/Salle de bain', 'portes_rez': 'Rez/Portes-fenêtres-stores',
+    'mezzanine': 'Étage/Mezzanine et coin bureau', 'dressing': 'Étage/Dressing', 'chambre_etage': 'Étage/Chambre',
+    'douche': 'Étage/Douche-WC', 'portes_etage': 'Étage/Portes-fenêtres',
 }
 MORCEAU = int(4.5 * 1024 * 1024)
 
@@ -48,6 +63,12 @@ def lire_reglages():
             r.update(json.loads(REGLAGES.read_text(encoding='utf-8')))
         except Exception as e:
             dire('Réglages illisibles (' + str(e) + ') : valeurs par défaut.')
+            return r
+        try:
+            if any(k not in json.loads(REGLAGES.read_text(encoding='utf-8')) for k in DEFAUT):
+                ecrire_reglages(r)           # nouveaux réglages ajoutés au fichier (les valeurs de Mauro sont gardées)
+        except Exception:
+            pass
     else:
         ecrire_reglages(r)
     return r
@@ -232,6 +253,180 @@ def boite_glb(nom, L, P, H, couleur=(0.75, 0.6, 0.45)):
     return struct.pack('<III', 0x46546C67, 2, total) + struct.pack('<II', len(js), 0x4E4F534A) + js + struct.pack('<II', len(binaire), 0x004E4942) + binaire
 
 
+# ---------------------------------------------------------------- Blender : ouvert tout seul s'il est fermé
+def blender_repond(r, attente=1.0):
+    """Vrai si l'extension Blender MCP écoute (Blender ouvert, serveur démarré)."""
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.settimeout(attente)
+    try:
+        s.connect(('127.0.0.1', int(r.get('port_blender') or 9876)))
+        return True
+    except Exception:
+        return False
+    finally:
+        s.close()
+
+
+def blender_lance():
+    """Vrai si un processus Blender tourne déjà."""
+    try:
+        if os.name == 'nt':
+            o = subprocess.run(['tasklist', '/FI', 'IMAGENAME eq blender.exe', '/NH'], capture_output=True, timeout=20,
+                               creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0)).stdout.decode('utf-8', 'replace').lower()
+            return 'blender.exe' in o
+        return subprocess.run(['pgrep', '-x', 'blender'], capture_output=True, timeout=20).returncode == 0
+    except Exception:
+        return False
+
+
+def trouver_blender(r):
+    c = r.get('blender_exe') or ''
+    if c and Path(c).exists():
+        return c
+    w = shutil.which('blender')
+    if w:
+        return w
+    if os.name == 'nt':
+        cands = []
+        for base in (os.environ.get('ProgramFiles', r'C:\Program Files'), os.environ.get('ProgramFiles(x86)', r'C:\Program Files (x86)'),
+                     os.path.join(os.environ.get('LOCALAPPDATA', ''), 'Programs')):
+            cands += glob.glob(os.path.join(base, 'Blender Foundation', 'Blender*', 'blender.exe'))
+        cands += glob.glob(os.path.join(os.environ.get('ProgramFiles(x86)', r'C:\Program Files (x86)'), 'Steam', 'steamapps', 'common', 'Blender', 'blender.exe'))
+
+        def version(p):
+            m = re.search(r'Blender\s*(\d+)\.(\d+)', p)
+            return (int(m.group(1)), int(m.group(2))) if m else (0, 0)
+        cands.sort(key=version, reverse=True)
+        if cands:
+            return cands[0]
+    return None
+
+
+def assurer_blender(srv, r, d):
+    """Avant une demande : Blender et Blender MCP doivent répondre ; sinon le pont ouvre Blender et attend."""
+    if r.get('simuler') or blender_repond(r):
+        return
+    if blender_lance():
+        # Blender ouvert (peut-être en train de démarrer) mais Blender MCP ne répond pas encore
+        srv.file('avancer', id=d['id'], p=2, texte='Le PC attend que Blender MCP réponde…')
+        for _ in range(45):
+            time.sleep(2)
+            if blender_repond(r):
+                return
+        raise RuntimeError('Blender est ouvert mais Blender MCP ne répond pas : dans Blender, touche N, onglet « MCP for Blender », '
+                           '« Start MCP Server », puis « Relancer » la demande')
+    if not r.get('ouvrir_blender', True):
+        raise RuntimeError('Blender est fermé sur le PC : ouvrez-le, puis « Relancer » la demande')
+    exe = trouver_blender(r)
+    fichier = r.get('fichier_blender') or ''
+    if not exe and not (fichier and os.name == 'nt' and Path(fichier).exists()):
+        raise RuntimeError('Blender est fermé et blender.exe est introuvable (réglage « blender_exe » de pont_blender.json)')
+    dire('Blender est fermé : ouverture…')
+    srv.file('avancer', id=d['id'], p=2, texte='Le PC ouvre Blender…')
+    env = dict(os.environ, M3D_PORT=str(int(r.get('port_blender') or 9876)))
+    if exe:
+        cmd = [exe] + ([fichier] if fichier and Path(fichier).exists() else []) + ['--python', str(ICI / 'demarrer_blender_mcp.py')]
+        drapeaux = getattr(subprocess, 'DETACHED_PROCESS', 0) | getattr(subprocess, 'CREATE_NEW_PROCESS_GROUP', 0)
+        subprocess.Popen(cmd, cwd=str(Path(exe).parent), env=env, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+                         stderr=subprocess.DEVNULL, close_fds=True, creationflags=drapeaux)
+    else:
+        os.startfile(fichier)                # .blend ouvert par Windows avec Blender (l'extension démarre son serveur seule)
+    for _ in range(90):
+        time.sleep(2)
+        if blender_repond(r):
+            time.sleep(4)                    # le temps que Blender finisse de s'ouvrir
+            dire('Blender est ouvert, Blender MCP répond.')
+            return
+    raise RuntimeError('Blender a été ouvert mais Blender MCP ne répond pas (3 min) : vérifiez l’extension « MCP for Blender » '
+                       '(touche N, onglet « MCP for Blender », « Start MCP Server »), puis « Relancer » la demande')
+
+
+# ---------------------------------------------------------------- Drive : copie du modèle dans le dossier de sa pièce
+def simple(t):
+    """Nom sans accents, minuscules, lettres et chiffres seulement (pour comparer des noms de dossiers)."""
+    t = unicodedata.normalize('NFKD', str(t)).encode('ascii', 'ignore').decode().lower()
+    return re.sub(r'[^a-z0-9]+', '', t)
+
+
+def sous_dossier(parent, nom, creer=False):
+    """Sous-dossier de parent au nom proche (accents, majuscules, tirets et espaces ignorés) ; créé si besoin."""
+    p = Path(parent) / nom
+    if p.is_dir():
+        return p
+    try:
+        for x in Path(parent).iterdir():
+            if x.is_dir() and simple(x.name) == simple(nom):
+                return x
+    except Exception:
+        return None
+    if creer:
+        p.mkdir(parents=True, exist_ok=True)
+        return p
+    return None
+
+
+def trouver_drive(r):
+    c = (r.get('dossier_drive') or '').strip()
+    if c.lower() == 'non':
+        return None
+    if c:
+        return Path(c) if Path(c).is_dir() else None
+    racines = []
+    if os.name == 'nt':
+        for l in 'GHIJKLMNOPQRSTUVWXYZDEF':
+            for md in ('Mon Drive', 'My Drive'):
+                racines.append(Path(l + ':\\') / md)
+    for md in ('Mon Drive', 'My Drive', 'Google Drive', 'Google Drive/Mon Drive', 'Google Drive/My Drive'):
+        racines.append(Path.home() / md)
+    for base in racines:
+        if not base.is_dir():
+            continue
+        m = sous_dossier(base, 'Maison 3D')
+        o = m and sous_dossier(m, 'Objets 3D')
+        if o:
+            return o
+    return None
+
+
+def nom_fichier(nom):
+    t = unicodedata.normalize('NFKD', str(nom or 'objet')).encode('ascii', 'ignore').decode().lower()
+    return (re.sub(r'[^a-z0-9]+', '_', t).strip('_') or 'objet')[:60]
+
+
+def ranger(racine, rel, nom, glb):
+    """Copie glb dans racine/rel (sous-dossiers créés au besoin) sous un nom libre (« tabouret_chene_2.glb »)."""
+    dossier = Path(racine)
+    for part in rel.replace('\\', '/').split('/'):
+        dossier = sous_dossier(dossier, part, creer=True)
+    base = nom_fichier(nom)
+    cible = dossier / (base + '.glb')
+    k = 2
+    while cible.exists():
+        cible = dossier / (base + '_' + str(k) + '.glb')
+        k += 1
+    shutil.copyfile(glb, cible)
+    return str(cible.relative_to(racine)).replace('\\', '/')
+
+
+def copier_drive(r, d, glb):
+    """Copie le .glb dans « Objets 3D/<niveau>/<pièce> » du Drive ; renvoie (chemin relatif, None) ou (None, raison).
+    Drive pour ordinateur arrêté (pas de lecteur G:) : pas de copie, une ligne au journal, la demande n'échoue pas."""
+    rel = dict(DOSSIERS, **(r.get('dossiers_pieces') or {})).get(d.get('piece') or '')
+    if rel and r.get('dossier_miroir') and Path(r['dossier_miroir']).is_dir():
+        try:
+            dire('Copie sur le PC :', ranger(r['dossier_miroir'], rel, d.get('nom'), glb))
+        except Exception as e:
+            dire('Copie sur le PC impossible :', e)
+    if (r.get('dossier_drive') or '').strip().lower() == 'non':
+        return None, None
+    if not rel:
+        return None, 'pièce non choisie : pas de copie dans le Drive'
+    racine = trouver_drive(r)
+    if not racine:
+        return None, 'Drive introuvable sur le PC (Google Drive pour ordinateur arrêté ?) : pas de copie dans « Objets 3D »'
+    return ranger(racine, rel, d.get('nom'), glb), None
+
+
 # ---------------------------------------------------------------- une demande
 EXT = {'image/png': '.png', 'image/jpeg': '.jpg', 'image/webp': '.webp', 'model/gltf-binary': '.glb'}
 DETAILS = {'simple': 'simple (formes principales, rapide)', 'normal': 'normal (comme les meubles de la base « Réalisme »)', 'detaille': 'très détaillé (poignées, chanfreins, coutures, matières fines)'}
@@ -328,6 +523,7 @@ def traiter(srv, r, d):
                 (dossier / 'infos.json').write_text(json.dumps({'L': L * 100, 'P': P * 100, 'H': H * 100, 'triangles': 12, 'notes': 'Essai sans Blender : une boîte aux dimensions demandées.'}), encoding='utf-8')
                 resultat['code'], resultat['fin'] = 0, {'texte': 'essai', 'erreur': False}
             else:
+                assurer_blender(srv, r, d)
                 consigne = consigne_pour(d, dossier, images, source_glb, source_image)
                 (dossier / 'consigne.md').write_text(consigne, encoding='utf-8')
                 resultat['code'], resultat['fin'] = lancer_claude(r, consigne, dossier, etat, arret)
@@ -371,9 +567,17 @@ def traiter(srv, r, d):
             apercu = srv.envoyer_fichier((dossier / 'apercu.png').read_bytes(), 'apercu blender ' + (d.get('nom') or 'objet'), 'photo', 'image/png')
         except Exception as e:
             dire('Aperçu non envoyé :', e)
+    try:
+        drive, drive_erreur = copier_drive(r, d, glb)
+    except Exception as e:
+        drive, drive_erreur = None, 'copie dans le Drive impossible (' + str(e)[:200] + ')'
+    if drive:
+        dire('Copié dans le Drive :', drive)
+    elif drive_erreur:
+        dire('Drive :', drive_erreur)
     dims = {k: infos.get(k) for k in ('L', 'P', 'H') if isinstance(infos.get(k), (int, float))}
     corps = dict(id=d['id'], fichier=f, apercu=apercu, taille=len(octets), triangles=int(infos.get('triangles') or 0), dims=dims or None,
-                 notes=str(infos.get('notes') or '')[:1400], duree=int(time.time() - debut), texte='Fini')
+                 notes=str(infos.get('notes') or '')[:1400], duree=int(time.time() - debut), texte='Fini', drive=drive, driveErreur=drive_erreur)
     for essai in range(4):
         rep = srv.file('finir', **corps)
         if rep.get('etat') == 'fini' or rep.get('annule'):
@@ -410,7 +614,20 @@ def verifier(r):
     cmd = commande_claude(r)
     print('Claude Code :', ' '.join(cmd) if cmd else 'INTROUVABLE')
     ok &= bool(cmd)
-    if cmd and not r.get('simuler'):
+    exe = trouver_blender(r)
+    print('Blender :', exe or 'blender.exe INTROUVABLE (réglage « blender_exe ») : il ne pourra pas être ouvert tout seul',
+          '· ouvert tout seul s’il est fermé' if exe and r.get('ouvrir_blender', True) else '')
+    print('Blender MCP (port', str(r.get('port_blender') or 9876) + ') :', 'répond' if blender_repond(r) else 'ne répond pas (Blender fermé ?)')
+    dd = trouver_drive(r)
+    if (r.get('dossier_drive') or '').strip().lower() == 'non':
+        print('Drive : copie désactivée (réglage « dossier_drive » = « non »)')
+    else:
+        print('Drive :', str(dd) + ' (les modèles y sont copiés, dans le dossier de leur pièce)' if dd else
+              'dossier « Maison 3D/Objets 3D » INTROUVABLE (réglage « dossier_drive ») : les modèles ne seront pas copiés')
+    if cmd and not r.get('simuler') and not blender_repond(r):
+        print('Blender MCP ne répond pas : ouvrez Blender pour l’essai (le pont, lui, l’ouvrira tout seul).')
+        ok = False
+    elif cmd and not r.get('simuler'):
         cwd = r.get('dossier_blender') or str(ICI)
         print('Essai de Blender MCP (dossier', cwd, ')…')
         try:

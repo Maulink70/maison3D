@@ -8,6 +8,9 @@
 // résultat prend alors sa place (l'ancien est masqué). PC éteint : la demande attend qu'il soit allumé. Rien à payer.
 // Ouvert par le menu « + », le panneau photo, « Créer avec l'IA », la liste « Produits », l'onglet « Plus » de l'objet et
 // l'assistant. Demandes de cet appareil gardées (clé maison3d-blender) : suivies même page rechargée.
+// Pièce de la demande (Mauro, 14 octobre 2026 : « l'objet doit aller comme maintenant dans le Drive, dans le bon étage et la
+// bonne pièce ») : choisie d'office (objet modifié ou remplacé, place d'une photo calée, sinon là où l'on est ou ce qu'on
+// regarde ; portes, fenêtres, stores et rideaux à part), modifiable ; le PC copie le modèle dans « Objets 3D/Rez/Salon »…
 import * as THREE from 'three';
 import {app, $} from './app.js';
 import {connecte} from './api.js';
@@ -17,6 +20,8 @@ import {setEdition} from './vues.js';
 import {ETAGE_FLOOR} from './config.js';
 import {solSous} from './visite.js';
 import {imageMeuble} from './impression.js';
+import {PIECES, pieceEn} from './pieces.js';
+import {vuePlan, niveauDuPlan} from './plan.js';
 
 const URL_B='https://n8n.srv1123557.hstgr.cloud/webhook/maison3d-blender', CLE='maison3d-blender', CLE_CHOIX='maison3d-blender-choix';
 const el=(nom,attrs={},texte)=>{ const n=document.createElement(nom); for(const [k,v] of Object.entries(attrs)) if(v!=null) n.setAttribute(k,v); if(texte!==undefined) n.textContent=texte; return n; };
@@ -25,7 +30,40 @@ const cm=v=>Math.round(v*1000)/10;
 const duree=s=>{ s=Math.max(0,Math.round(s)); return s<60?s+' s':s<3600?Math.floor(s/60)+' min '+String(s%60).padStart(2,'0'):Math.floor(s/3600)+' h '+String(Math.floor(s%3600/60)).padStart(2,'0'); };
 const ilYa=s=>s<90?'à l’instant':s<3600?'il y a '+Math.round(s/60)+' min':s<86400?'il y a '+Math.round(s/3600)+' h':'il y a '+Math.round(s/86400)+' j';
 
-let fen=null, mode='zero', images=[], objet=null, ctx={}, serveur={pcs:[],demandes:[],recu:0,ecart:0}, minuterie=0, envoiEnCours=false, aSuppr=null;
+let fen=null, mode='zero', images=[], objet=null, ctx={}, serveur={pcs:[],demandes:[],recu:0,ecart:0}, minuterie=0, envoiEnCours=false, aSuppr=null, pieceChoisie=false;
+
+// ---------- pièce : dossier du Drive où le PC range le modèle (« Objets 3D/Rez/Salon »…) ----------
+const RANGEMENT=[...PIECES.filter(p=>p.niveau==='rez').map(p=>({id:p.id,niv:'rez',nom:p.nom})),{id:'portes_rez',niv:'rez',nom:'Portes, fenêtres et stores'},
+  ...PIECES.filter(p=>p.niveau==='etage').map(p=>({id:p.id,niv:'etage',nom:p.nom})),{id:'portes_etage',niv:'etage',nom:'Portes et fenêtres'}];
+const DRIVE={salon:'Rez / Salon',cuisine:'Rez / Cuisine',entree:'Rez / Entrée et réduit',degagement:'Rez / Dégagement',wc:'Rez / WC-buanderie',chambre:'Rez / Chambre',
+  sdb:'Rez / Salle de bain',portes_rez:'Rez / Portes-fenêtres-stores',mezzanine:'Étage / Mezzanine et coin bureau',dressing:'Étage / Dressing',
+  chambre_etage:'Étage / Chambre',douche:'Étage / Douche-WC',portes_etage:'Étage / Portes-fenêtres'};
+// portes, fenêtres, stores, rideaux (pas un porte-serviettes ni un porte-manteau)
+const OUVRANT=/(^|[^a-zà-ÿ_])(portes?|fen[eê]tres?|stores?|volets?|velux|rideaux?|baies?|jalousies?|pliss[eé]s?)(?![a-zà-ÿ_-])/i;
+// pièce d'un point : celle qui le contient, sinon la plus proche à moins de 80 cm (renfoncements, épaisseur d'un mur)
+function piecePres(x,z,niv){
+  let p=pieceEn(x,z,niv); if(p) return p; let best=0.8;
+  for(const q of PIECES.filter(q=>q.niveau===niv)) for(const [x0,z0,x1,z1] of q.rects){ const d=Math.hypot(Math.max(x0-x,0,x-x1),Math.max(z0-z,0,z-z1)); if(d<best){ best=d; p=q; } }
+  return p;
+}
+// là où l'on est (1re personne) ou ce que l'on regarde (maquette, plan)
+function ici(){
+  if(app.mode==='walk'){ const c=app.camera.position; return {x:c.x,z:c.z,niv:c.y>ETAGE_FLOOR+0.5?'etage':'rez'}; }
+  if(app.mode==='plan'){ const v=vuePlan(); return {x:v.cx,z:v.cz,niv:niveauDuPlan()==='etage'?'etage':'rez'}; }
+  const c=app.orbit.target; return {x:c.x,z:c.z,niv:app.level==='etage'?'etage':'rez'};
+}
+function pieceDefaut(){
+  const it=mode==='modifier'&&objet?app.items[objet.name]:ctx.remplace?app.items[ctx.remplace]:null;
+  const o=it?{x:it.g.position.x,z:it.g.position.z,niv:it.lvl==='Étage'?'etage':'rez'}:ctx.place?{x:ctx.place.x,z:ctx.place.z,niv:ctx.place.niv==='etage'?'etage':'rez'}:ici();
+  const nom=q('#bl-nom').value+' '+(mode==='modifier'&&objet?objet.nom:'')+' '+(mode==='zero'?q('#bl-desc').value.split(/[,.;:]/)[0]:'');
+  if(it?.meta.c==='ouverture'||OUVRANT.test(nom)) return o.niv==='etage'?'portes_etage':'portes_rez';
+  return piecePres(o.x,o.z,o.niv)?.id||(o.niv==='etage'?'mezzanine':'salon');
+}
+function majPiece(){
+  if(!fen) return; const s=q('#bl-piece');
+  if(!pieceChoisie) s.value=pieceDefaut();
+  q('.bl-piece-info').textContent='Le modèle fini sera aussi copié sur le Drive : Objets 3D / '+(DRIVE[s.value]||'?')+(pieceChoisie?'.':' (choisi d’après '+(mode==='modifier'||ctx.remplace?'l’objet remplacé':ctx.place?'la photo':'là où vous êtes')+').');
+}
 const apercus=new Map();   // id du fichier d'aperçu → adresse d'objet
 
 // ---------- demandes de cet appareil (où poser le résultat, quoi remplacer, de quoi renvoyer une demande perdue) ----------
@@ -130,6 +168,10 @@ function construire(){
       <label class="dimrow"><span>Profondeur</span><input type="number" id="bl-p" min="1" max="2000" step="0.5"><span class="unite">cm</span></label>
       <label class="dimrow"><span>Hauteur</span><input type="number" id="bl-h" min="1" max="2000" step="0.5"><span class="unite">cm</span></label>
     </div>
+    <label class="dimrow bl-choix-piece"><span>Pièce</span><select id="bl-piece">
+      <optgroup label="Rez">${RANGEMENT.filter(p=>p.niv==='rez').map(p=>`<option value="${p.id}">${p.nom}</option>`).join('')}</optgroup>
+      <optgroup label="Étage">${RANGEMENT.filter(p=>p.niv==='etage').map(p=>`<option value="${p.id}">${p.nom}</option>`).join('')}</optgroup></select></label>
+    <p class="mat-aide bl-piece-info"></p>
     <fieldset class="ph-textures"><legend>Niveau de détail</legend>
       <label><input type="radio" name="bl-detail" value="simple"><span><strong>Simple</strong> : les formes principales · quelques minutes</span></label>
       <label><input type="radio" name="bl-detail" value="normal" checked><span><strong>Normal</strong> : comme les meubles de la base « Réalisme »</span></label>
@@ -152,8 +194,10 @@ function construire(){
   fen.addEventListener('paste',e=>{ const f=[...(e.clipboardData?.files||[])].find(x=>/^image\//.test(x.type)); if(f){ e.preventDefault(); ajouterImage({blob:f,nom:'image collée'}); } });
   fen.addEventListener('dragover',e=>e.preventDefault());
   fen.addEventListener('drop',e=>{ e.preventDefault(); for(const f of [...(e.dataTransfer?.files||[])].filter(x=>/^image\//.test(x.type))) ajouterImage({blob:f,nom:f.name}); });
-  q('#bl-objet').onchange=()=>{ const it=app.items[q('#bl-objet').value]; objet=it?objetDe(it):null; majObjet(); };
+  q('#bl-objet').onchange=()=>{ const it=app.items[q('#bl-objet').value]; objet=it?objetDe(it):null; majObjet(); majPiece(); };
   q('#bl-envoyer').onclick=envoyer;
+  q('#bl-piece').onchange=()=>{ pieceChoisie=true; majPiece(); };
+  for(const i of ['#bl-nom','#bl-desc']) q(i).addEventListener('input',()=>{ if(!pieceChoisie) majPiece(); });
   for(const i of fen.querySelectorAll('input[type=text],input[type=number],textarea')) i.addEventListener('keydown',e=>e.stopPropagation());
   q('.bl-liste').addEventListener('click',e=>{ const b=e.target.closest('button[data-a]'); if(b) agir(b.dataset.a,b.closest('li').dataset.id); });
   try{ const c=JSON.parse(localStorage.getItem(CLE_CHOIX)||'{}'); if(c.detail) (fen.querySelector(`input[name="bl-detail"][value="${c.detail}"]`)||{}).checked=true; if(c.textures===false) q('#bl-textures').checked=false; }catch{}
@@ -165,6 +209,7 @@ function choisirMode(m){
   q('#bl-desc').placeholder=m==='zero'?'ex. : fauteuil club en cuir cognac, accoudoirs ronds, pieds en noyer':m==='images'?'ex. : le même en chêne clair, sans le coussin':'ex. : pieds plus fins en laiton, plateau en marbre blanc';
   q('.bl-dims').hidden=false;
   if(m==='modifier') remplirObjets();
+  majPiece();
 }
 const objetDe=it=>({name:it.name,nom:it.meta.l,fic:it.ajout?.t==='glb'?it.ajout.fic:null,dims:{L:cm(it.size.x),P:cm(it.size.z),H:cm(it.size.y)}});
 function remplirObjets(){
@@ -247,7 +292,7 @@ async function envoyer(){
     }
     const id='bl'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
     const payload={id,type:mode==='modifier'?'modifier':'creer',nom,description:desc,L:cmDe('#bl-l'),P:cmDe('#bl-p'),H:cmDe('#bl-h'),detail,textures,images:fics,
-      lien:ctx.lien||'',site:ctx.site||'',source,place:ctx.place||null};
+      lien:ctx.lien||'',site:ctx.site||'',source,place:ctx.place||null,piece:q('#bl-piece').value};
     dire('Envoi de la demande…');
     const r=await poster({action:'creer',...payload});
     if(!r.ok){ dire(r.erreur||'Demande refusée.',true); return; }
@@ -256,7 +301,7 @@ async function envoyer(){
     if(r.pcs) serveur.pcs=r.pcs;
     const pc=etatPC();
     dire(`Demande envoyée : « ${nom} ». `+(pc.cle==='pret'?'Le PC la prend tout de suite.':pc.cle==='occupe'?'Le PC la fera après la demande en cours.':'Elle attend que le PC soit allumé avec le pont Blender.')+' Vous pouvez fermer cette fenêtre : le modèle s’ouvrira quand il sera prêt.');
-    images=[]; ctx={}; objet=null; q('#bl-desc').value=''; q('#bl-nom').value=''; for(const i of ['#bl-l','#bl-p','#bl-h']) q(i).value='';
+    images=[]; ctx={}; objet=null; pieceChoisie=false; q('#bl-desc').value=''; q('#bl-nom').value=''; for(const i of ['#bl-l','#bl-p','#bl-h']) q(i).value='';
     choisirMode('zero'); majImages();
     dispatchEvent(new CustomEvent('blender-demande',{detail:{id,nom}}));
     await rafraichir();
@@ -286,6 +331,7 @@ function majFenetre(){
     if(d.etat==='en_cours'&&d.texte) txt.append(el('span',{class:'mat-aide bl-note'},d.texte));
     if(d.etat==='en_cours'){ const br=el('span',{class:'ph-barre','aria-hidden':'true'}); const i=el('i'); i.style.width=(d.p||0)+'%'; br.append(i); txt.append(br); }
     if(d.etat==='fini'&&d.resultat?.notes) txt.append(el('span',{class:'mat-aide bl-note'},d.resultat.notes));
+    if(d.etat==='fini'&&(d.resultat?.drive||d.resultat?.driveErreur)) txt.append(el('span',{class:'mat-aide bl-drive'},d.resultat.drive?'Rangé sur le Drive : Objets 3D / '+d.resultat.drive.split('/').join(' / '):'Drive : '+d.resultat.driveErreur));
     const bt=el('span',{class:'bl-actions'}), b=(t,act,prim)=>bt.append(el('button',{type:'button',class:'btn'+(prim?' primary':''),'data-a':act},t));
     if(d.etat==='fini') b(o.d[d.id]?.importe?'Rouvrir':'Ajouter à la maquette','ajouter',!o.d[d.id]?.importe);
     if(['attente','en_cours'].includes(d.etat)) b('Annuler','annuler');
@@ -339,7 +385,7 @@ export function ouvrirBlender(oui=true,o=null){
   fen.hidden=!oui;
   if(!oui){ majBandeau(); return; }
   if(o){
-    images=[]; ctx={place:o.place||null,remplace:o.remplace||null,origine:o.origine||null,lien:o.lien||o.origine?.lien||'',site:o.site||o.origine?.site||''};
+    images=[]; pieceChoisie=false; ctx={place:o.place||null,remplace:o.remplace||null,origine:o.origine||null,lien:o.lien||o.origine?.lien||'',site:o.site||o.origine?.site||''};
     q('#bl-desc').value=o.description||''; q('#bl-nom').value=String(o.nom||'').slice(0,60);
     for(const [k,i] of [['L','#bl-l'],['P','#bl-p'],['H','#bl-h']]) q(i).value=o.dims?.[k]?String(o.dims[k]):'';
     if(o.modifier){ objet=objetDe(o.modifier); choisirMode('modifier'); }
@@ -348,6 +394,7 @@ export function ouvrirBlender(oui=true,o=null){
       if(o.produit) prendreProduit(o.produit); }
     majImages(); dire('');
   } else if(!images.length) majImages();
+  majPiece();
   majFenetre(); rafraichir();
   setTimeout(()=>q('#bl-desc').focus());
 }
