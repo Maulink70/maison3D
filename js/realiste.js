@@ -58,14 +58,20 @@ async function preparer(){
   const J='three/addons/postprocessing/';
   const [{EffectComposer},{RenderPass},{GTAOPass},{OutputPass}]=await Promise.all([
     import(J+'EffectComposer.js'),import(J+'RenderPass.js'),import(J+'GTAOPass.js'),import(J+'OutputPass.js')]);
-  // vitres et objets transparents (verre, voiles, poignées de l'outil de déplacement) : pas d'ombre de contact autour
+  // vitres et objets transparents (verre, voiles, poignées de l'outil de déplacement) : pas d'ombre de contact autour ;
+  // le dehors (ciel, montagnes, collines, arbres) non plus : loin, il n'a pas d'ombre de contact, et derrière un mur absent
+  // du calcul il venait se peindre sur le mur (Mauro, 14 octobre 2026 : silhouette des montagnes sur un mur du salon)
   class Contact extends GTAOPass{
     overrideVisibility(){ const cache=this._visibilityCache;
-      this.scene.traverse(o=>{ cache.set(o,o.visible); if(o.isPoints||o.isLine||o.isSprite){ o.visible=false; return; }
+      this.scene.traverse(o=>{ cache.set(o,o.visible); if(o.isPoints||o.isLine||o.isSprite||o.name==='ciel'){ o.visible=false; return; }
         if(o.isMesh&&[].concat(o.material).every(m=>!m||m.depthWrite===false||(m.transparent&&m.opacity<0.95))) o.visible=false; }); }
   }
   const c=new EffectComposer(app.renderer); c.renderTarget1.samples=c.renderTarget2.samples=4;   // bords lissés comme sans effet
   const g=new Contact(app.scene,app.camera,1,1);
+  // relief de la pièce (profondeur et normales) avec les deux faces de chaque surface : le matériau de remplacement du
+  // calcul ne dessinait que l'avant des faces, et une surface vue par son envers (pièce d'un objet de Blender à deux
+  // faces, dos des murs) disparaissait du calcul : l'ombre de ce qu'il y a derrière se posait dessus
+  g.normalMaterial.side=THREE.DoubleSide;
   g.updatePdMaterial({lumaPhi:10,depthPhi:2,normalPhi:3,radius:6,rings:2,samples:tablette?8:16});
   c.addPass(new RenderPass(app.scene,app.camera)); c.addPass(g); c.addPass(new OutputPass());
   comp=c; gtao=g; reglerOmbres();

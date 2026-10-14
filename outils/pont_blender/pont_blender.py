@@ -21,7 +21,7 @@ Aucune bibliothèque à installer : Python 3.9 ou plus récent suffit.
 import argparse, base64, getpass, glob, json, math, os, re, shutil, socket, struct, subprocess, sys, threading, time, unicodedata, urllib.request, urllib.error
 from pathlib import Path
 
-VERSION = '1.1'
+VERSION = '1.2'
 ICI = Path(__file__).resolve().parent
 REGLAGES = ICI / 'pont_blender.json'
 JOURNAL = ICI / 'pont_blender.log'
@@ -432,7 +432,7 @@ EXT = {'image/png': '.png', 'image/jpeg': '.jpg', 'image/webp': '.webp', 'model/
 DETAILS = {'simple': 'simple (formes principales, rapide)', 'normal': 'normal (comme les meubles de la base « Réalisme »)', 'detaille': 'très détaillé (poignées, chanfreins, coutures, matières fines)'}
 
 
-def consigne_pour(d, dossier, images, source_glb, source_image):
+def consigne_pour(d, dossier, images, source_glb, source_image, reprise=''):
     modele = (ICI / 'consigne_blender.md').read_text(encoding='utf-8')
     dims = [('largeur', d.get('L')), ('profondeur', d.get('P')), ('hauteur', d.get('H'))]
     dims_txt = ', '.join(f'{k} {v:g} cm' for k, v in dims if v) or 'non données : choisis des dimensions réalistes pour cet objet'
@@ -464,6 +464,8 @@ def consigne_pour(d, dossier, images, source_glb, source_image):
         '{{IMAGES}}': '\n'.join(f'  - `{p}`' for p in images) if images else '  (aucune)',
         '{{LIEN}}': d.get('lien') or '(aucun)',
         '{{SOURCE}}': source,
+        '{{REPRISE}}': reprise,
+        '{{SCRIPT}}': str(dossier / 'modele.py'),
         '{{SCENE}}': 'M3D_' + d['id'],
         '{{SORTIE_GLB}}': str(dossier / 'resultat.glb'),
         '{{SORTIE_APERCU}}': str(dossier / 'apercu.png'),
@@ -523,10 +525,33 @@ def traiter(srv, r, d):
                 (dossier / 'infos.json').write_text(json.dumps({'L': L * 100, 'P': P * 100, 'H': H * 100, 'triangles': 12, 'notes': 'Essai sans Blender : une boîte aux dimensions demandées.'}), encoding='utf-8')
                 resultat['code'], resultat['fin'] = 0, {'texte': 'essai', 'erreur': False}
             else:
-                assurer_blender(srv, r, d)
-                consigne = consigne_pour(d, dossier, images, source_glb, source_image)
-                (dossier / 'consigne.md').write_text(consigne, encoding='utf-8')
-                resultat['code'], resultat['fin'] = lancer_claude(r, consigne, dossier, etat, arret)
+                reprise = ''
+                for tentative in (1, 2):
+                    assurer_blender(srv, r, d)
+                    consigne = consigne_pour(d, dossier, images, source_glb, source_image, reprise)
+                    (dossier / ('consigne.md' if tentative == 1 else 'consigne_reprise.md')).write_text(consigne, encoding='utf-8')
+                    resultat['code'], resultat['fin'] = lancer_claude(r, consigne, dossier, etat, arret)
+                    glb = dossier / 'resultat.glb'
+                    if arret.is_set() or (glb.exists() and glb.stat().st_size >= 200) or tentative == 2:
+                        break
+                    # Blender s'est fermé (plantage) pendant la demande : on le rouvre et on reprend une fois
+                    if blender_repond(r, 3):
+                        break
+                    raison = ''
+                    try:
+                        raison = json.loads((dossier / 'infos.json').read_text(encoding='utf-8')).get('erreur') or ''
+                    except Exception:
+                        pass
+                    dire('Blender s’est fermé pendant la demande : reprise (Blender rouvert).')
+                    srv.file('avancer', id=d['id'], p=estimer(d, time.time() - debut), texte='Blender s’est fermé : le PC le rouvre et reprend la demande…')
+                    (dossier / 'infos.json').unlink(missing_ok=True)
+                    script = dossier / 'modele.py'
+                    reprise = ('## Reprise après un plantage de Blender\n'
+                               '- À la tentative précédente, Blender s’est fermé brutalement' + (f' ({raison})' if raison else '') + '. Il vient d’être rouvert.\n'
+                               + (f'- Le script de modélisation de la tentative précédente est dans `{script}` : ne remodélise pas ; vérifie-le, '
+                                  'exécute-le dans une scène neuve, regarde l’aperçu, puis exporte.\n' if script.exists() else '')
+                               + '- Garde ta scène affichée dans la fenêtre (`bpy.context.window_manager.windows[0].scene = scene`) et fais `bpy.context.view_layer.update()` avant l’export ; désélectionne tout, '
+                                 'sélectionne seulement les objets de l’objet, puis exporte. Si Blender se ferme encore, écris l’erreur dans infos.json.\n')
         except Exception as e:
             resultat['erreur'] = str(e)
     t = threading.Thread(target=travailler, daemon=True)
