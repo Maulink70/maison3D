@@ -5,6 +5,7 @@
 import * as THREE from 'three';
 import {app} from './app.js';
 import {etat} from './calques.js';
+import {renduReel, BAISSE} from './realiste.js';
 
 export const LUMIERES=[['normale','Normale'],['matin','Matin'],['midi','Midi'],['soir','Soir'],['nuit','Nuit']];
 const R={
@@ -13,12 +14,13 @@ const R={
   midi:{ciel:[0xffffff,0xe2ddd2,2.25],soleil:[0xfffaf0,1.6,[6,50,22]],appoint:0.4,teinte:0xffffff},
   soir:{ciel:[0xffd9bc,0xb39a88,1.45],soleil:[0xff9d55,1.45,[-40,11,6]],appoint:0.28,teinte:0xffc9a0},
   nuit:{ciel:[0x5a6c94,0x231f1c,0.55],soleil:[0x9db2e0,0.18,[-10,40,-20]],appoint:0.06,teinte:0x2a3352}};   // lune, lampes allumées (lampes.js)
-let posee=null, cielTeinte=null;
+let posee=null, cielTeinte=null, reelPose=null;
 export function majLumiere(){
-  const nom=R[etat.lumiere]?etat.lumiere:'normale';
-  if(nom!==posee){ posee=nom; const r=R[nom], {hemi,sun,fill}=app.lumieres;
-    hemi.color.set(r.ciel[0]); hemi.groundColor.set(r.ciel[1]); hemi.intensity=r.ciel[2];
-    sun.color.set(r.soleil[0]); sun.intensity=r.soleil[1]; sun.position.set(...r.soleil[2]); fill.intensity=r.appoint; cielTeinte=null; }
+  const nom=R[etat.lumiere]?etat.lumiere:'normale', reel=renduReel();
+  // rendu réaliste (realiste.js) : l'éclairage d'ambiance éclaire déjà, les lumières sont baissées d'autant
+  if(nom!==posee||reel!==reelPose){ posee=nom; reelPose=reel; const r=R[nom], {hemi,sun,fill}=app.lumieres, k=reel?BAISSE:{ciel:1,soleil:1,appoint:1};
+    hemi.color.set(r.ciel[0]); hemi.groundColor.set(r.ciel[1]); hemi.intensity=r.ciel[2]*k.ciel;
+    sun.color.set(r.soleil[0]); sun.intensity=r.soleil[1]*k.soleil; sun.position.set(...r.soleil[2]); fill.intensity=r.appoint*k.appoint; cielTeinte=null; }
   // ciel et montagnes (peints, sans éclairage) : teintés une fois qu'ils existent
   if(app.ciel&&cielTeinte!==posee){ cielTeinte=posee;
     app.ciel.traverse(o=>{ if(o.isMesh&&o.material?.isMeshBasicMaterial&&o.material.map){ o.material.color.set(R[posee].teinte); } }); }

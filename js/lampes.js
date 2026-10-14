@@ -16,7 +16,7 @@ try{ choix=JSON.parse(localStorage.getItem(CLE)||'{}')||{}; }catch{ choix={}; }
 const garder=()=>{ try{ localStorage.setItem(CLE,JSON.stringify(choix)); }catch{} };
 const base=o=>o.userData.orig||o.material;   // matériau d'origine (avant recoloration ou allumage)
 const LUMINEUX=['lumiere','cristal'];   // abat-jours, globes, réglettes, bandeaux ; pampilles du lustre
-const parNature=it=>it.mats.some(o=>LUMINEUX.includes(base(o)?.name))||/lustre|lampe|lampadaire|suspension|plafonnier|applique/i.test(it.name)
+const parNature=it=>it.mats.some(o=>LUMINEUX.includes(base(o)?.name))||/lustre|lampe|lampadaire|suspension|plafonnier|applique/i.test(it.name)||(!!it.ajout&&/lustre|lampe|lampadaire|suspension|plafonnier|applique/i.test(it.meta?.l||''))
   ||['lampe','lampadaire'].includes(it.ajout?.f);   // formes « Lampe à poser » et « Lampadaire » (étape 4)
 export const estLampe=it=>!!it&&(choix[it.name]?.lampe??parNature(it));
 export const estAllumee=it=>estLampe(it)&&choix[it.name]?.allumee!==false;

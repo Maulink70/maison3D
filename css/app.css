@@ -305,6 +305,8 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
 .menu .case.eclat input{width:auto;height:auto;flex:1;min-width:0}
 .menu .case.eclat output{font-family:var(--font-data);font-size:11.5px;color:var(--muted);min-width:5.5em;text-align:right}
 .menu .case.eclat span{flex:none}
+/* Rendu réaliste (14 octobre 2026) : même groupe, sous la lumière du jour */
+.menu .cq-note{margin:0 10px 6px;font-size:11.5px;color:var(--muted);line-height:1.35}
 /* Comptes, variantes (étape 3) : bouton de la variante avec son nom ; bouton du compte avec une pastille d'état
    (verte : tout est enregistré, orange : envoi en attente, grise : hors connexion) */
 .ib.avec-texte{width:auto;grid-auto-flow:column;gap:7px;padding:0 12px 0 10px;color:var(--ink)}

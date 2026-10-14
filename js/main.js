@@ -24,6 +24,7 @@ import {initAlertes, majAlertes} from './alertes.js';
 import {majLumiere} from './lumiere.js';
 import {majLampes} from './lampes.js';
 import {majReflets} from './reflets.js';
+import {initRealiste, majRealiste, rendreReel} from './realiste.js';
 import {eclatActif, rendreEclate, suivreEclat} from './eclate.js';
 import {initIcones} from './icones.js';
 import {initCompte, initPorte} from './compte.js';
@@ -45,7 +46,7 @@ import {initPointsListe} from './pointsliste.js';
 import {initCreer} from './creer.js';
 import {initAssistant} from './assistant.js';
 
-initIcones(); initCompte(); initSynchro(); initVariantes(); initComparer(); initVues(); initVisite(); initEdition(); initSauvegarde(); initAller(); initPlan(); initCalques(); initMesure(); initImpression(); initIsoler(); initCameras(); initHistorique(); initPartage(); initAlertes(); initObjets(); initRevetements(); initGalerie(); initCalage(); initRecu(); initPointsVue(); initProduits(); initJeu(); initPointsListe(); initCreer(); initAssistant();
+initIcones(); initCompte(); initSynchro(); initVariantes(); initComparer(); initVues(); initVisite(); initEdition(); initSauvegarde(); initAller(); initPlan(); initCalques(); initRealiste(); initMesure(); initImpression(); initIsoler(); initCameras(); initHistorique(); initPartage(); initAlertes(); initObjets(); initRevetements(); initGalerie(); initCalage(); initRecu(); initPointsVue(); initProduits(); initJeu(); initPointsListe(); initCreer(); initAssistant();
 // tableau des meubles : toucher un nom le montre (sélectionné en Éditer) ; bouton du panneau
 initTableau(it=>{ if(app.edition&&!it.hidden) select(it.name); cadrerObjet(it); }); $('f-tableau').onclick=()=>ouvrirTableau(true);
 
@@ -129,7 +130,7 @@ initPorte(()=>chargerModele({
 const clock=new THREE.Clock(), barre=document.querySelector('.bar');
 // rendu de l'image : pièce isolée (plusieurs passes), vue éclatée ou rendu simple ; comparaison de deux variantes
 // (barre ou fondu) : ce rendu est fait pour chacune
-function rendreBase(cam){ if(isolementActif()) rendreIsole(cam); else if(eclatActif()) rendreEclate(cam); else app.renderer.render(app.scene,cam); }
+function rendreBase(cam){ if(isolementActif()) rendreIsole(cam); else if(eclatActif()) rendreEclate(cam); else if(!rendreReel(cam)) app.renderer.render(app.scene,cam); }   // rendu réaliste : ombres de contact (realiste.js)
 function rendre(){
   const cam=app.mode==='plan'?camPlan:app.camera;
   if(comparaisonActive()) rendreComparaison(cam,rendreBase); else rendreBase(cam);
@@ -137,7 +138,7 @@ function rendre(){
 app.renderer.setAnimationLoop(()=>{
   const dt=Math.min(clock.getDelta(),0.1);
   if(app.mode==='walk') walk(dt); else if(app.mode==='plan') majPlan(dt); else { majCadrage(dt); suivreEclat(); app.orbit.update(); }
-  majPortes(dt); majRideaux(dt); majCouvercles(); majTransparence(); majRevetements(); majAlertes(); majLumiere(); majLampes(); majReflets();
+  majPortes(dt); majRideaux(dt); majCouvercles(); majTransparence(); majRevetements(); majAlertes(); majRealiste(); majLumiere(); majLampes(); majReflets();
   if(app.selected&&eclatActif()) select(null);   // vue éclatée : pas de sélection (la poignée suivrait mal le meuble soulevé)
   if(app.selBox&&app.tc.object) app.selBox.update();
   app.camera.updateMatrixWorld();   // calques, mesures et points de vue à la place de la caméra de cette image (sinon ils traînaient d'une image en tournant)

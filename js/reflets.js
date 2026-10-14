@@ -4,18 +4,15 @@
 // Seule la part « reflet » de cet environnement est gardée (shader : l'éclairage diffus qu'il ajouterait est retiré) :
 // l'objet reste éclairé comme les autres meubles, le métal reflète, une surface mate gagne à peine un lustre. Les parties
 // métalliques sont celles que le modèle déclare (texture « métal / brillance » des modèles PBR). Force selon la lumière du jour.
+// En rendu réaliste (realiste.js, 14 octobre 2026), toute la maquette reçoit cet environnement, diffus compris : les objets
+// importés le prennent alors comme les autres (plus de reflet propre, sinon ils seraient plus sombres que le reste).
 import * as THREE from 'three';
-import {RoomEnvironment} from 'three/addons/environments/RoomEnvironment.js';
 import {app} from './app.js';
 import {etat} from './calques.js';
+import {environnement as carte, FORCE, renduReel} from './realiste.js';
 
-const FORCE={normale:1,matin:0.85,midi:1,soir:0.65,nuit:0.2};
-let env=null, force=null;
-function carte(){
-  if(!env){ const p=new THREE.PMREMGenerator(app.renderer), piece=new RoomEnvironment();
-    env=p.fromScene(piece,0.04).texture; piece.traverse(o=>{ o.geometry?.dispose(); o.material?.dispose?.(); }); p.dispose(); }
-  return env;
-}
+let force=null;
+const DEFAUT=THREE.Material.prototype.onBeforeCompile;
 const CHUNK=THREE.ShaderChunk.lights_fragment_maps.replace('iblIrradiance += getIBLIrradiance( geometryNormal );','');
 function sansDiffus(shader){ shader.fragmentShader=shader.fragmentShader.replace('#include <lights_fragment_maps>',CHUNK); }
 const forceDu=()=>FORCE[etat.lumiere]??1;
@@ -24,15 +21,17 @@ export const estImporte=it=>it?.ajout?.t==='glb';
 // matériaux affichés d'un objet importé (une copie de matériau perd onBeforeCompile : on le remet)
 export function refleter(it){
   if(!estImporte(it)) return;
-  const f=forceDu();
+  const f=forceDu(), reel=renduReel();
   for(const o of it.mats){ const m=o.material;
     if(!m?.isMeshStandardMaterial) continue;
+    if(reel){ if(m.envMap===carte()||m.onBeforeCompile===sansDiffus){ m.envMap=null; m.onBeforeCompile=DEFAUT; m.envMapIntensity=1; m.needsUpdate=true; } continue; }
     if(m.envMap!==carte()||m.onBeforeCompile!==sansDiffus){ m.envMap=carte(); m.onBeforeCompile=sansDiffus; m.needsUpdate=true; }
     m.envMapIntensity=f; }
 }
 addEventListener('apparence',e=>refleter(e.detail.it));   // objet prêt, couleur, matières, comparaison
+addEventListener('rendu',()=>{ force=null; for(const it of Object.values(app.items)) refleter(it); });   // rendu normal ↔ réaliste
 // à chaque image : force qui suit la lumière du jour (rien à faire tant qu'elle ne change pas)
 export function majReflets(){
   const f=forceDu(); if(f===force) return; force=f;
-  for(const it of Object.values(app.items)) if(estImporte(it)) for(const o of it.mats) if(o.material?.envMap===env&&env) o.material.envMapIntensity=f;
+  for(const it of Object.values(app.items)) if(estImporte(it)) for(const o of it.mats) if(o.material?.envMap===carte()) o.material.envMapIntensity=f;
 }
