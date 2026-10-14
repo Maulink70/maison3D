@@ -16,7 +16,10 @@ try{ choix=JSON.parse(localStorage.getItem(CLE)||'{}')||{}; }catch{ choix={}; }
 const garder=()=>{ try{ localStorage.setItem(CLE,JSON.stringify(choix)); }catch{} };
 const base=o=>o.userData.orig||o.material;   // matériau d'origine (avant recoloration ou allumage)
 const LUMINEUX=['lumiere','cristal'];   // abat-jours, globes, réglettes, bandeaux ; pampilles du lustre
-const parNature=it=>it.mats.some(o=>LUMINEUX.includes(base(o)?.name))||/lustre|lampe|lampadaire|suspension|plafonnier|applique/i.test(it.name)||(!!it.ajout&&/lustre|lampe|lampadaire|suspension|plafonnier|applique/i.test(it.meta?.l||''))
+// objets 3D importés (Blender…) : parties lumineuses d'après le nom d'origine de leur matière (gardé à l'import)
+const LUMIERE_IMPORT=/opale|abat.?jour|ampoule|lumi|spot|diffus|interieur_lampe|lampe_boule_interieur|cristal/i;
+const lumineuseImport=o=>LUMIERE_IMPORT.test(base(o)?.userData?.nom||'');
+const parNature=it=>it.mats.some(o=>LUMINEUX.includes(base(o)?.name))||(!!it.ajout&&it.mats.some(lumineuseImport))||/lustre|lampe|lampadaire|suspension|plafonnier|applique/i.test(it.name)||(!!it.ajout&&/lustre|lampe|lampadaire|suspension|plafonnier|applique/i.test(it.meta?.l||''))
   ||['lampe','lampadaire'].includes(it.ajout?.f);   // formes « Lampe à poser » et « Lampadaire » (étape 4)
 export const estLampe=it=>!!it&&(choix[it.name]?.lampe??parNature(it));
 export const estAllumee=it=>estLampe(it)&&choix[it.name]?.allumee!==false;
@@ -24,7 +27,7 @@ export const soirOuNuit=()=>etat.lumiere==='soir'||etat.lumiere==='nuit';
 // parties qui brillent : matière « lumiere », sinon les parties claires et non métalliques
 function parties(it){
   if(it.parties) return it.parties;
-  let l=it.mats.filter(o=>LUMINEUX.includes(base(o)?.name)||base(o)?.name==='abatjour');
+  let l=it.mats.filter(o=>LUMINEUX.includes(base(o)?.name)||base(o)?.name==='abatjour'||(!!it.ajout&&lumineuseImport(o)));
   if(!l.length) l=it.mats.filter(o=>{ const m=base(o); if(!m?.color||(m.metalness||0)>0.5) return false; const c=m.color; return 0.2126*c.r+0.7152*c.g+0.0722*c.b>0.55; });
   return it.parties=l;
 }

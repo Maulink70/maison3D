@@ -9,7 +9,7 @@ import * as THREE from 'three';
 import {app} from './app.js';
 import {etat} from './calques.js';
 
-const EXCLUS=['rez__escalier','rez__decor_entree','etage__garde_corps'], OPACITE=0.3;
+const EXCLUS=['rez__escalier','etage__garde_corps'], OPACITE=0.3;
 let prets=null, actif=false;
 const exclu=o=>{ for(;o;o=o.parent) if(EXCLUS.includes(o.name)) return true; return false; };
 const clones=new Map();

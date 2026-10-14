@@ -81,7 +81,7 @@ function passages(it,pose,occ,g){
 // angle d'ouverture possible de chaque porte (degrés), et le meuble qui l'arrête
 function ouvertures(occ,liste,niv){
   const out=new Map();
-  for(const pt of app.portes){ const d=pt.def; if(d.fenetre||d.charniere===undefined||(d.y0>1)!==(niv==='etage')) continue;
+  for(const pt of app.portes){ const d=pt.def; if(pt.copie||d.fenetre||d.charniere===undefined||(d.y0>1)!==(niv==='etage')) continue;   // porte de Blender : celle de la maquette compte
     const h=d.axe==='x'?[d.plan,d.charniere]:[d.charniere,d.plan], autre=d.charniere===d.a0?d.a1:d.a0, f=d.axe==='x'?[d.plan,autre]:[autre,d.plan];
     const vx=f[0]-h[0], vz=f[1]-h[1], A=pt.ouvert, n=Math.ceil(Math.abs(A)/(3*Math.PI/180));
     let max=Math.abs(A), par=null;

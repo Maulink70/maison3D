@@ -82,7 +82,7 @@ function installerStructure(root){
   for(const child of [...root.children]) ajouterFixe(child,child.name!=='rez__escalier');
   let peint=null, peintRez=null; root.traverse(o=>{ if(!o.isMesh||o.material.side!==THREE.FrontSide) return;
     if(!peint&&o.material.name==='Material_363') peint=o.material; if(!peintRez&&o.material.name==='Material_6') peintRez=o.material; });
-  root.add(gardeCorps(),toitSud(),fusionner(decorEntree()),plafondsPin(),fusionner(murAubergine()));
+  root.add(gardeCorps(),toitSud(),plafondsPin(),fusionner(murAubergine()));
   if(peint) root.add(faitage(peint));   // fente au faîte fermée
   if(peintRez) root.add(jointsToitSud(peintRez));   // haut des murs est et ouest du salon, sous le pan sud
   habillerConstruits(root); poserCoordonnees(root);   // marches en pierre, nez de marche, faces refaites
@@ -159,7 +159,7 @@ function installerMobilier(root){
   const etagere=root.getObjectByName('rez__armoire'); if(etagere) remplacerEtagere(etagere,root);
   const buffet=root.getObjectByName('rez__meuble_salon'); if(buffet) remplacerBuffet(buffet,root);
   deplacer(root); separerMachine(root);
-  for(const n of [...construireBuanderie(root),...construireCuisine(),...construireSalon(),...construirePieces(root),...construireEtage(root)]) root.add(fusionner(n));
+  for(const n of [...construireBuanderie(root),...construireCuisine(),...construireSalon(),...construirePieces(root),...construireEtage(root),...decorEntree()]) root.add(fusionner(n));
   installerPortes(root); installerFenetres(root);
   const tapis=root.getObjectByName('rez__tapis_salon'); if(tapis) tapis.scale.y=1.75;   // poils longs : 3,5 cm d'épaisseur au lieu de 2
   habillerModele(root,MATIERES); habillerConstruits(root); poserCoordonnees(root);

@@ -16,7 +16,7 @@ import {save} from './sauvegarde.js';
 import {select, ongletPanneau} from './edition.js';
 import {css} from './app.js';
 
-const EXCLUS=['rez__escalier','rez__decor_entree','etage__garde_corps','toit_sud'];
+const EXCLUS=['rez__escalier','etage__garde_corps','toit_sud'];
 const DECAL=0.003, MURS=0.25, SOLS=0.12;
 const etats={};          // nom → état normalisé ({m:{…}}) ou absent
 const poses=new Map();   // nom → maillage du revêtement

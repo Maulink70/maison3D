@@ -3,7 +3,8 @@
 // affiche la taille trouvée dans le fichier (et son unité supposée), on saisit les vraies dimensions (proportions gardées
 // par défaut) ; avant l'envoi, le modèle est allégé dans le navigateur pour rester fluide sur la tablette : textures
 // réduites à 2048 px (1024 jusqu'au 11 octobre 2026), maillages trop détaillés simplifiés (120 000 triangles au plus, meshoptimizer), recentré (origine au
-// centre du dessous), matériaux renommés « Partie n » (matières choisies partie par partie). Gardé dans Airtable
+// centre du dessous), matériaux renommés « Partie n » (matières choisies partie par partie ; nom d'origine gardé dans
+// userData.nom). Gardé dans Airtable
 // (fichiers.js) ; à l'affichage, une boîte d'attente le temps de le relire, puis le modèle aux dimensions voulues.
 import * as THREE from 'three';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
@@ -75,7 +76,9 @@ async function preparer(scene,dire){
   separer(racine); standardiser(racine);   // un matériau « standard » par maillage
   const mats=new Map(); let n=0;
   scene.traverse(o=>{ if(!o.isMesh) return;
-    if(!mats.has(o.material)){ o.material.name='Partie '+(++n); mats.set(o.material,1); } o.skeleton=null; o.morphTargetInfluences=undefined; });
+    if(!mats.has(o.material)){   // nom d'origine gardé (opale, abat-jour… : parties lumineuses des lampes, 14 octobre 2026)
+      if(o.material.name&&!/^Partie \d+$/.test(o.material.name)) o.material.userData.nom=o.material.name;
+      o.material.name='Partie '+(++n); mats.set(o.material,1); } o.skeleton=null; o.morphTargetInfluences=undefined; });
   const triangles=await simplifier(racine,dire); reduireTextures(racine);
   dire('Préparation du fichier…');
   const {GLTFExporter}=await import('three/addons/exporters/GLTFExporter.js');

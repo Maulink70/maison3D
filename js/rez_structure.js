@@ -77,11 +77,12 @@ export function jointsToitSud(mat){
   return g;
 }
 
-// Détails muraux de l'entrée : tableau électrique et cache bas (mur ouest, x = 11,45)
+// Détails muraux de l'entrée : tableau électrique et cache bas (mur ouest, x = 11,45) ; éléments de la liste depuis le
+// 14 octobre 2026 (masquables : la base « Réalisme » les remplace par ceux faits dans Blender)
 export function decorEntree(){
-  const g=new THREE.Group(); g.name='rez__decor_entree';
-  boite(g,11.45,11.47,1.10,1.82,-21.72,-21.13,MAT.blanc,true);       // place et taille relevées sur deux photos calées (12 octobre 2026)
-  boite(g,11.45,11.465,0.03,0.555,-22.21,-21.30,MAT.blanc,true);
-  g.traverse(o=>{ o.raycast=()=>{}; });
-  return g;
+  const t=new THREE.Group(); t.name='rez__tableau_electrique';
+  boite(t,11.45,11.47,1.10,1.82,-21.72,-21.13,MAT.blanc,true);       // place et taille relevées sur deux photos calées (12 octobre 2026)
+  const c=new THREE.Group(); c.name='rez__cache_entree';
+  boite(c,11.45,11.465,0.03,0.555,-22.21,-21.30,MAT.blanc,true);
+  return [t,c];
 }

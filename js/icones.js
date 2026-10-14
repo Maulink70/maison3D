@@ -32,6 +32,7 @@ const LUCIDE={
   'ruler':'<path d="M21.3 15.3a2.4 2.4 0 0 1 0 3.4l-2.6 2.6a2.4 2.4 0 0 1-3.4 0L2.7 8.7a2.41 2.41 0 0 1 0-3.4l2.6-2.6a2.41 2.41 0 0 1 3.4 0Z"/><path d="m14.5 12.5 2-2"/><path d="m11.5 9.5 2-2"/><path d="m8.5 6.5 2-2"/><path d="m17.5 15.5 2-2"/>',
   'plus':'<path d="M5 12h14"/><path d="M12 5v14"/>',
   'rotate-cw':'<path d="M20 12.5a8 8 0 1 1-5.26-7.52" stroke-width="2.4"/><path d="M18.1 6.2 13.4 8.3l1.9-5.6z" fill="currentColor" stroke-width="1.2"/>',
+  'blinds':'<path d="M3 3h18"/><path d="M20 7H8"/><path d="M20 11H8"/><path d="M10 19h10"/><path d="M8 15h12"/><path d="M4 3v14"/><circle cx="4" cy="19" r="2"/>',
   'wind':'<path d="M12.8 19.6A2 2 0 1 0 14 16H2"/><path d="M17.5 8a2.5 2.5 0 1 1 2 4H2"/><path d="M9.8 4.4A2 2 0 1 1 11 8H2"/>',
 };
 // maison à deux étages : toit, étage (haut), rez (bas) ; « Tout » remplit les deux

@@ -8,6 +8,7 @@
 // Glisser = se déplacer, molette ou pincement = zoom ; en Éditer, on attrape un meuble pour le déplacer.
 // Repère : x vers la droite, −z (le nord) vers le haut, échelle s en pixels par mètre.
 import * as THREE from 'three';
+import {habillee} from './ouvrants3d.js';
 import {aimanter} from './aimant.js';
 import {app, $, css} from './app.js';
 import {ETAGE_FLOOR, REZ_CUT, ROOF_CUT, ETAGE_CUT, GARDE_CORPS} from './config.js';
@@ -220,7 +221,7 @@ function remplir(m,niv){
   }
   // fenêtres (cadre et vitre) ; Velux au-dessus de la coupe : en pointillé
   for(const it of Object.values(app.items)){
-    if(it.meta.c!=='ouverture'||it.hidden||it.lvl!==(niv==='etage'?'Étage':'Rez')||!/fenetre|baie|velux|element_mural/i.test(it.name)) continue;
+    if(it.meta.c!=='ouverture'||it.ajout||(it.hidden&&!habillee(it))||it.lvl!==(niv==='etage'?'Étage':'Rez')||!/fenetre|baie|velux|element_mural/i.test(it.name)) continue;   // masquée mais habillée par une fenêtre de Blender : dessinée
     const b=new THREE.Box3().setFromObject(it.g), lx=b.max.x-b.min.x, lz=b.max.z-b.min.z;
     if(/velux/i.test(it.name)){ el('rect',{class:'velux',x:f3(b.min.x),y:f3(b.min.z),width:f3(lx),height:f3(lz)},archi); continue; }
     el('rect',{class:'fen',x:f3(b.min.x),y:f3(b.min.z),width:f3(lx),height:f3(lz)},archi);
@@ -231,7 +232,7 @@ function remplir(m,niv){
   for(const it of meublesDuNiveau(niv)){ const p=el('path',{class:'meuble','data-item':it.name,d:silhouette(it)},gm); p.append(Object.assign(document.createElementNS(NS,'title'),{textContent:it.meta.l})); meubles.set(it,{p,cle:''}); }
   // portes : battant ouvert et arc d'ouverture (porte d'entrée et porte-fenêtre comprises)
   for(const pt of app.portes){
-    const d=pt.def; if(d.fenetre||(d.y0>1)!==(niv==='etage')) continue;
+    const d=pt.def; if(pt.copie||d.fenetre||(d.y0>1)!==(niv==='etage')) continue;   // une porte faite dans Blender reprend celle de la maquette : dessinée une fois
     const h=d.axe==='x'?[d.plan,d.charniere]:[d.charniere,d.plan], autre=d.charniere===d.a0?d.a1:d.a0;
     const f=d.axe==='x'?[d.plan,autre]:[autre,d.plan], vx=f[0]-h[0], vz=f[1]-h[1], a=pt.ouvert, c=Math.cos(a), s=Math.sin(a);
     const o=[h[0]+vx*c+vz*s, h[1]-vx*s+vz*c], w=Math.hypot(vx,vz), sens=(vx*(o[1]-h[1])-vz*(o[0]-h[0]))>0?1:0;

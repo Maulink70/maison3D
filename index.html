@@ -95,6 +95,7 @@
       <button class="ib" id="portes" data-nom="Portes" data-icone="door-open" aria-label="Ouvrir les portes" aria-pressed="false"></button>
       <button class="ib" id="auto" data-nom="Auto" data-icone="radar" aria-label="Portes automatiques : oui" aria-pressed="true"></button>
       <button class="ib" id="fenetres" data-nom="Fenêtres" data-icone="wind" aria-label="Ouvrir les fenêtres" aria-pressed="false"></button>
+      <button class="ib" id="stores" data-nom="Stores" data-icone="blinds" aria-label="Baisser les stores" aria-pressed="false" hidden></button>
     </div>
     <div class="aller" id="ajouter-boite" hidden>
       <button class="ib seul" id="ajouter" data-nom="Ajouter" data-icone="plus" aria-label="Ajouter un objet" aria-haspopup="true" aria-expanded="false" aria-controls="ajouter-menu"></button>
@@ -180,6 +181,7 @@
           <button class="btn danger" id="t-suppr" hidden>Supprimer cet objet</button>
           <label class="crans"><input type="checkbox" id="t-lampe"> C’est une lampe (s’allume le soir et la nuit)</label>
           <button class="btn wide" id="t-allumer" hidden>Éteindre la lampe (le soir)</button>
+          <label class="crans" id="t-store-l"><input type="checkbox" id="t-store"> Store ou rideau (monte et descend, ou se tire)</label>
         </div>
         <label class="ajout-nom" id="t-nom-ligne" hidden><span>Nom</span><input type="text" id="t-nom" maxlength="60" autocomplete="off"></label>
         <p class="mat-aide" id="t-origine" hidden></p>

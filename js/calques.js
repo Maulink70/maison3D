@@ -91,7 +91,7 @@ function aDessiner(niveaux,seule=null,cotes=true){
         out.push({type:'cote',id:`mu:${p.id}:${k}`,y,a,b,dedans:[cx,cz],decal:13,texte:m(L)}); } }
   }
   if(cotes&&etat.cOuv){
-    for(const pt of app.portes){ const d=pt.def; if(d.fenetre) continue; const niv=d.y0>1?'etage':'rez'; if(!niveaux.includes(niv)) continue;
+    for(const pt of app.portes){ const d=pt.def; if(pt.copie||d.fenetre) continue; const niv=d.y0>1?'etage':'rez'; if(!niveaux.includes(niv)) continue;
       const h=d.axe==='x'?[d.plan,d.charniere]:[d.charniere,d.plan], autre=d.charniere===d.a0?d.a1:d.a0, f=d.axe==='x'?[d.plan,autre]:[autre,d.plan];
       const vx=f[0]-h[0], vz=f[1]-h[1], c=Math.cos(pt.ouvert), s=Math.sin(pt.ouvert), ov=[vx*c+vz*s,-vx*s+vz*c];
       out.push({type:'cote',id:'po:'+pt.nom,y:sol(niv)+0.05,a:h,b:f,dedans:[h[0]-ov[0],h[1]-ov[1]],decal:10,texte:m(Math.abs(d.a1-d.a0))}); }

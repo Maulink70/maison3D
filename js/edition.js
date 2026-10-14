@@ -6,6 +6,7 @@ import {save} from './sauvegarde.js';
 import {glisserVers} from './visite.js';
 import {basculerPorte, basculerElement, ouvrantsDe} from './portes.js';
 import {rideauDe, basculerRideau} from './etage_pieces.js';
+import {storeDe, basculerStore, texteStore, majPanneauStore} from './stores.js';
 import {dansIsolement} from './isoler.js';
 import {estLampe, soirOuNuit, basculerLampe, marquerLampe, majPanneauLampe} from './lampes.js';
 import {majApparence, appliquerEtat, origineDe} from './etats.js';
@@ -41,6 +42,7 @@ export function toucher(e){
     const lampe=app.items[h?.object.userData.item];
     if(h?.object.userData.porte) basculerPorte(h.object.userData.porte);
     else if(h?.object.userData.rideau) basculerRideau(h.object.userData.rideau);   // rideau de douche : tiré ou replié
+    else if(storeDe(lampe)) basculerStore(storeDe(lampe));   // store : remonté ou baissé (rideau : ouvert ou tiré)
     else if(lampe&&estLampe(lampe)&&soirOuNuit()) basculerLampe(lampe);   // le soir, toucher une lampe l'allume ou l'éteint
     else if(h&&app.mode==='walk') glisserVers(h.point);
     return;
@@ -70,8 +72,9 @@ function modeOutil(m){ const {tc}=app;
   $('t-move').textContent=m==='translate'?'Terminer le déplacement':app.mode==='plan'?'Glissez-le sur le plan':'Déplacer';
   $('t-poignee').textContent=m==='rotate'?'Terminer la rotation':app.mode==='plan'?'Tournez-le par sa poignée':'Tourner à la main';
   $('t-poignee').setAttribute('aria-pressed',String(m==='rotate')); }
-function majPorte(){ const r=app.selected&&rideauDe(app.selected.name);
+function majPorte(){ const r=app.selected&&rideauDe(app.selected.name), st=storeDe(app.selected);
   if(r){ $('t-porte').hidden=false; $('t-porte').textContent=r.cible?'Replier le rideau':'Tirer le rideau'; return; }
+  if(st){ $('t-porte').hidden=false; $('t-porte').textContent=texteStore(st); return; }
   const l=app.selected?ouvrantsDe(app.selected.name):[]; $('t-porte').hidden=!l.length; if(!l.length) return;
   const quoi=l[0].def.fenetre?'la fenêtre':'la porte'; $('t-porte').textContent=(l.some(p=>!p.cible)?'Ouvrir ':'Fermer ')+quoi; }
 
@@ -93,7 +96,7 @@ export function select(name){
   // sur le plan, on déplace en faisant glisser le meuble et on le tourne par sa poignée (pas de poignée 3D) ; ailleurs,
   // la poignée de déplacement vient d'elle-même (Mauro, 12 octobre 2026), sauf pour les portes et fenêtres
   modeOutil(app.mode!=='plan'&&it.meta.c!=='ouverture'?'translate':null); $('t-move').disabled=$('t-poignee').disabled=app.mode==='plan';
-  majAngle(); majPorte(); majPanneauLampe();
+  majAngle(); majPorte(); majPanneauLampe(); majPanneauStore();
   $('ps-taille').disabled=it.meta.c==='ouverture'; if(sous==='taille'&&it.meta.c==='ouverture') sousOnglet('placer');   // portes et fenêtres : pas de dimensions
   ongletPanneau('objet'); openSheet(true);
   document.querySelector('.row.sel')?.scrollIntoView({block:'nearest'});
@@ -187,7 +190,8 @@ export function initEdition(){
   $('t-rotr').onclick=()=>app.selected&&tourner(deg(app.selected.g.rotation.y)-90);
   $('t-angle').oninput=e=>tourner(+e.target.value);
   $('t-angle-num').onchange=e=>{ const a=Number(String(e.target.value).replace(',','.')); if(Number.isFinite(a)) tourner(deg(a*Math.PI/180)); else majAngle(); };
-  $('t-porte').onclick=()=>{ if(app.selected){ const r=rideauDe(app.selected.name); if(r) basculerRideau(r); else basculerElement(app.selected.name); majPorte(); } };
+  $('t-porte').onclick=()=>{ if(app.selected){ const r=rideauDe(app.selected.name), st=storeDe(app.selected); if(r) basculerRideau(r); else if(st) basculerStore(st); else basculerElement(app.selected.name); majPorte(); } };
+  $('t-store')?.addEventListener('change',()=>setTimeout(majPorte));
   $('t-lampe').onchange=e=>{ if(app.selected) marquerLampe(app.selected,e.target.checked); };
   $('t-allumer').onclick=()=>{ if(app.selected) basculerLampe(app.selected); };
   $('t-color').oninput=e=>{ if(!app.selected) return; paint(app.selected,e.target.value); save(); };
