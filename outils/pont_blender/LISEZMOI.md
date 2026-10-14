@@ -14,6 +14,12 @@ Le programme copie aussi le modèle dans le Drive, dans le dossier de sa pièce 
 
 Rien n'est payé en crédits. Seul l'abonnement Claude de Mauro est utilisé.
 
+**Ajout aux plans Blender** : chaque objet fini est aussi ajouté, avec ses vraies matières, à `meubles_rez.blend` (pièces du rez, et portes, fenêtres et stores du rez) ou à `meubles_etage.blend` (étage). Ces deux fichiers sont dans le dossier `dossier_blender`. L'objet est rangé dans la collection « Créés depuis l’application / <pièce> », sous un repère vide qui porte son nom :
+- **Place** : à sa vraie place si on la connaît (objet remplacé, photo calée) et si le repère du plan est réglé (`repere_plans`) ; sinon au milieu de la pièce, ou au centre du plan, à placer à la main.
+- **Sauvegarde** : avant chaque ajout, une copie du plan est faite dans `sauvegardes_pont` (les 5 dernières sont gardées).
+- **Plan ouvert** : si le plan est ouvert dans une fenêtre Blender, rien n'y est écrit. L'objet attend dans `travail\plans_en_attente.json` et il est ajouté dès que le plan est fermé. L'application l'indique : « Plan Blender : en attente… », puis « Ajouté à meubles_rez.blend ».
+- **Objet ajouté à la main** (plan ouvert, par la session BLENDER) : mettez `"fait": true` à sa ligne dans `plans_en_attente.json`. Sinon il est reconnu à la propriété `m3d_id` du repère, et il n'est jamais ajouté deux fois.
+
 ## Ce qu'il faut sur le PC
 
 1. **Blender** installé avec l'extension **« MCP for Blender »** activée. Elle démarre son serveur toute seule à l'ouverture de Blender. Le pont a **son propre Blender** : une deuxième fenêtre, sans fichier, ouverte à la première demande et réservée au pont (port 9877). Votre Blender (port 9876) n'est jamais utilisé par le pont : si celui du pont plante, votre travail n'est pas touché, et le pont rouvre le sien et reprend la demande. Le Blender du pont se ferme seul après 10 minutes sans demande.
@@ -47,6 +53,10 @@ Dans `D:\ClaudeCode\maison3D`, faites `git pull`. Fermez ensuite la fenêtre noi
 - `dossier_drive` : dossier « Objets 3D » du Drive. Vide = cherché tout seul (`G:\Mon Drive\Maison 3D\Objets 3D`). `"non"` = pas de copie.
 - `dossiers_pieces` : à remplir seulement si un dossier de pièce change de nom, par exemple `{"salon": "Rez/Séjour"}`.
 - `dossier_miroir` : une copie de plus sur le PC, au même rangement. Vide = aucune.
+- `ajouter_aux_plans` : `true` pour ajouter chaque objet au plan de son niveau.
+- `plans` : `{"rez": "chemin", "etage": "chemin"}`. Vide = `meubles_rez.blend` et `meubles_etage.blend` du `dossier_blender`.
+- `repere_plans` : `{"rez": [ox, oz, sol], "etage": [...]}`, pour passer des coordonnées du site (x, z en mètres) à celles du plan : X = x − ox, Y = −(z − oz). Vide = objets posés au centre du plan.
+- `plans_intervalle` : toutes les combien de secondes le pont regarde si un plan en attente est fermé (60).
 - `py -3 pont_blender.py --verifier` affiche le Blender trouvé et le dossier du Drive.
 
 ## Utilisation

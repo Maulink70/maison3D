@@ -21,7 +21,7 @@ Aucune bibliothèque à installer : Python 3.9 ou plus récent suffit.
 import argparse, base64, getpass, glob, json, math, os, re, shutil, socket, struct, subprocess, sys, threading, time, unicodedata, urllib.request, urllib.error
 from pathlib import Path
 
-VERSION = '1.3'
+VERSION = '1.4'
 ICI = Path(__file__).resolve().parent
 REGLAGES = ICI / 'pont_blender.json'
 JOURNAL = ICI / 'pont_blender.log'
@@ -47,7 +47,19 @@ DEFAUT = {
     'dossier_drive': '',                     # dossier « Objets 3D » du Drive sur ce PC ; vide = cherché tout seul ; « non » = pas de copie
     'dossiers_pieces': {},                   # sous-dossiers des pièces s'ils changent de nom, ex. {"salon": "Rez/Salon"}
     'dossier_miroir': '',                    # copie de plus, sur le PC, au même rangement (vide = aucune)
+    'ajouter_aux_plans': True,               # chaque objet fini est aussi ajouté au plan Blender de son niveau
+    'plans': {},                             # {"rez": chemin, "etage": chemin} ; vide = meubles_rez.blend / meubles_etage.blend du dossier_blender
+    'plans_intervalle': 60,                  # toutes les combien de secondes regarder si un plan en attente est fermé
+    'repere_plans': {},                      # {"rez": [ox, oz, sol], …} : site (x, z) → plan X = x − ox, Y = −(z − oz), Z = y − sol ; vide = pas de repère connu
 }
+# centre de chaque pièce (x, z du site, mètres) : place d'un objet dans le plan quand on ne connaît pas mieux
+CENTRES = {
+    'salon': (16.16, -17.73), 'cuisine': (17.22, -23.02), 'entree': (12.64, -21.85), 'degagement': (13.98, -23.76),
+    'chambre': (17.16, -26.41), 'sdb': (13.03, -26.96), 'wc': (12.16, -23.28), 'portes_rez': (15.40, -21.00),
+    'mezzanine': (15.40, -23.82), 'dressing': (12.64, -24.68), 'chambre_etage': (18.11, -24.68), 'douche': (18.11, -21.97),
+    'portes_etage': (15.40, -21.00),
+}
+ETAGE = {'mezzanine', 'dressing', 'chambre_etage', 'douche', 'portes_etage'}
 # sous-dossiers du Drive (« Maison 3D/Objets 3D/… ») où ranger le modèle d'après la pièce choisie dans l'application
 DOSSIERS = {
     'salon': 'Rez/Salon', 'cuisine': 'Rez/Cuisine', 'entree': 'Rez/Entrée et réduit', 'degagement': 'Rez/Dégagement',
@@ -484,6 +496,149 @@ def copier_drive(r, d, glb):
     return ranger(racine, rel, d.get('nom'), glb), None
 
 
+# ---------------------------------------------------------------- plans Blender : objets ajoutés à meubles_rez / meubles_etage
+def chemin_plan(r, niv):
+    c = (r.get('plans') or {}).get(niv) or ''
+    if c:
+        return Path(c)
+    base = r.get('dossier_blender') or ''
+    return Path(base) / ('meubles_etage.blend' if niv == 'etage' else 'meubles_rez.blend') if base else None
+
+
+def file_plans(r):
+    return Path(r.get('dossier_travail') or (ICI / 'travail')) / 'plans_en_attente.json'
+
+
+def lire_file_plans(r):
+    try:
+        return json.loads(file_plans(r).read_text(encoding='utf-8'))
+    except Exception:
+        return []
+
+
+def ecrire_file_plans(r, l):
+    f = file_plans(r)
+    f.parent.mkdir(parents=True, exist_ok=True)
+    f.write_text(json.dumps(l, ensure_ascii=False, indent=1), encoding='utf-8')
+
+
+def plan_ouvert(plan):
+    """Vrai si le plan est ouvert dans une fenêtre de Blender (titre « meubles_rez [chemin] - Blender »)."""
+    nom = plan.stem.lower()
+    try:
+        if os.name == 'nt':
+            o = subprocess.run(['tasklist', '/v', '/fo', 'csv', '/fi', 'IMAGENAME eq blender.exe'], capture_output=True, timeout=20,
+                               creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0)).stdout.decode('utf-8', 'replace').lower()
+            return any(nom in ligne.split('","')[-1] for ligne in o.splitlines()[1:])
+        o = subprocess.run(['ps', '-eo', 'args'], capture_output=True, timeout=20).stdout.decode('utf-8', 'replace')
+        return any(str(plan) in l and 'blender' in l and ' -b ' not in l for l in o.splitlines())
+    except Exception:
+        return False
+
+
+def sauvegarder_plan(plan):
+    """Copie du plan avant d'y toucher (les 5 dernières gardées dans « sauvegardes_pont »)."""
+    d = plan.parent / 'sauvegardes_pont'
+    d.mkdir(exist_ok=True)
+    shutil.copy2(plan, d / (plan.stem + '_' + time.strftime('%Y%m%d_%H%M%S') + '.blend'))
+    for vieux in sorted(d.glob(plan.stem + '_*.blend'))[:-5]:
+        try:
+            vieux.unlink()
+        except Exception:
+            pass
+
+
+def mettre_en_attente_plan(r, d, dossier, glb):
+    """Après une demande finie : l'objet attend d'être ajouté au plan de son niveau."""
+    if not r.get('ajouter_aux_plans', True) or r.get('simuler'):
+        return
+    piece = d.get('piece') or ''
+    place = d.get('place') or {}
+    niv = 'etage' if (piece in ETAGE or (not piece and place.get('niv') == 'etage')) else 'rez'
+    if chemin_plan(r, niv) is None:
+        return                               # aucun plan connu sur ce PC (dossier_blender vide)
+    blend = dossier / 'objet.blend'
+    l = [x for x in lire_file_plans(r) if x.get('id') != d['id']]
+    l.append({'id': d['id'], 'nom': d.get('nom') or 'Objet', 'piece': piece, 'niv': niv, 'place': place or None,
+              'blend': str(blend) if blend.exists() else '', 'glb': str(glb), 'quand': time.strftime('%Y-%m-%d %H:%M'), 'fait': False, 'essais': 0})
+    ecrire_file_plans(r, l)
+
+
+def position_plan(r, item):
+    """Place et rotation dans le repère du plan : place connue (remplacement, photo calée), sinon centre de la pièce."""
+    rep_ = (r.get('repere_plans') or {}).get(item['niv'])
+    if not rep_:
+        return [0, 0, 0], 0, 'origine'
+    ox, oz, sol = (list(rep_) + [0, 0, 0])[:3]
+    p = item.get('place') or {}
+    x, z = (p.get('x'), p.get('z')) if p.get('x') is not None else CENTRES.get(item.get('piece'), CENTRES['salon'])
+    return [round(x - ox, 4), round(-(z - oz), 4), 0.0], float(p.get('r') or 0), ('exacte' if p.get('x') is not None else 'piece')
+
+
+def ajouter_aux_plans(srv, r):
+    """Ajoute aux plans les objets en attente dont le plan n'est pas ouvert dans Blender."""
+    l = lire_file_plans(r)
+    if not any(not x.get('fait') for x in l):
+        return
+    exe = trouver_blender(r)
+    change = False
+    for item in l:
+        if item.get('fait'):
+            continue
+        plan = chemin_plan(r, item['niv'])
+        nomp = plan.name if plan else 'plan'
+        if not plan or not plan.exists():
+            item.update(fait=True, erreur='plan introuvable : ' + str(plan))
+            srv.file('plan', id=item['id'], etat='echec', texte='Plan Blender introuvable (' + nomp + ') : objet non ajouté.')
+            change = True
+            continue
+        if not exe:
+            return
+        if plan_ouvert(plan):
+            if not item.get('annonce'):
+                item['annonce'] = True
+                change = True
+                srv.file('plan', id=item['id'], etat='attente',
+                         texte=f'En attente : {nomp} est ouvert dans Blender. Il y sera ajouté dès qu’il sera fermé.')
+            continue
+        dossier = Path(item['glb']).parent
+        pos, rot, mode = position_plan(r, item)
+        args = {'id': item['id'], 'nom': item['nom'], 'blend': item.get('blend') or '', 'glb': item['glb'],
+                'collection': NOMS_PIECES.get(item.get('piece'), 'Divers'), 'parent': 'Créés depuis l’application',
+                'position': pos, 'rotation': rot, 'sortie': str(dossier / 'plan_resultat.json')}
+        (dossier / 'plan_demande.json').write_text(json.dumps(args, ensure_ascii=False), encoding='utf-8')
+        (dossier / 'plan_resultat.json').unlink(missing_ok=True)
+        try:
+            sauvegarder_plan(plan)
+            subprocess.run([exe, '-b', '--factory-startup', str(plan), '--python', str(ICI / 'ajouter_au_plan.py'), '--',
+                            str(dossier / 'plan_demande.json')], cwd=str(Path(exe).parent), capture_output=True, timeout=300,
+                           creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0))
+            res = json.loads((dossier / 'plan_resultat.json').read_text(encoding='utf-8'))
+        except Exception as e:
+            res = {'ok': False, 'erreur': str(e)[:300]}
+        change = True
+        if res.get('ok'):
+            item.update(fait=True, ajoute=time.strftime('%Y-%m-%d %H:%M'))
+            ou = res.get('collection') or ''
+            txt = (f'Déjà dans {nomp}.' if res.get('deja') else f'Ajouté à {nomp} (collection {ou})'
+                   + {'exacte': ', à sa place', 'piece': ', au milieu de la pièce : à placer', 'origine': ', au centre du plan : à placer'}[mode] + '.')
+            dire('Plan :', item['nom'], '→', nomp, ou)
+            srv.file('plan', id=item['id'], etat='ajoute', texte=txt)
+        else:
+            item['essais'] = item.get('essais', 0) + 1
+            dire('Plan : échec pour', item['nom'], ':', res.get('erreur'))
+            if item['essais'] >= 3:
+                item.update(fait=True, erreur=res.get('erreur'))
+                srv.file('plan', id=item['id'], etat='echec', texte='Ajout à ' + nomp + ' impossible : ' + str(res.get('erreur'))[:200])
+    if change:
+        ecrire_file_plans(r, l)
+
+
+NOMS_PIECES = {'salon': 'Salon', 'cuisine': 'Cuisine', 'entree': 'Entrée et réduit', 'degagement': 'Dégagement', 'wc': 'WC-buanderie',
+               'chambre': 'Chambre', 'sdb': 'Salle de bain', 'portes_rez': 'Portes-fenêtres-stores', 'mezzanine': 'Mezzanine et coin bureau',
+               'dressing': 'Dressing', 'chambre_etage': 'Chambre', 'douche': 'Douche-WC', 'portes_etage': 'Portes-fenêtres'}
+
+
 # ---------------------------------------------------------------- une demande
 EXT = {'image/png': '.png', 'image/jpeg': '.jpg', 'image/webp': '.webp', 'model/gltf-binary': '.glb'}
 DETAILS = {'simple': 'simple (formes principales, rapide)', 'normal': 'normal (comme les meubles de la base « Réalisme »)', 'detaille': 'très détaillé (poignées, chanfreins, coutures, matières fines)'}
@@ -527,6 +682,7 @@ def consigne_pour(d, dossier, images, source_glb, source_image, reprise=''):
         '{{SORTIE_GLB}}': str(dossier / 'resultat.glb'),
         '{{SORTIE_APERCU}}': str(dossier / 'apercu.png'),
         '{{SORTIE_INFOS}}': str(dossier / 'infos.json'),
+        '{{SORTIE_BLEND}}': str(dossier / 'objet.blend'),
         '{{DOSSIER}}': str(dossier),
     }
     for k, v in remplacer.items():
@@ -566,7 +722,7 @@ def traiter(srv, r, d):
         if b:
             source_image = dossier / ('element_actuel' + EXT.get(s['image'].get('type') or '', '.png'))
             source_image.write_bytes(b)
-    for f in ('resultat.glb', 'apercu.png', 'infos.json'):
+    for f in ('resultat.glb', 'apercu.png', 'infos.json', 'objet.blend'):
         (dossier / f).unlink(missing_ok=True)
 
     etat = {'actions': 0, 'texte': '', 'outil': ''}
@@ -670,6 +826,10 @@ def traiter(srv, r, d):
         if any(x.get('id') == d['id'] and x.get('etat') == 'fini' for x in e.get('demandes') or []):
             break
     dire('Fini en', int(time.time() - debut), 's :', len(octets) // 1024, 'Ko')
+    try:
+        mettre_en_attente_plan(r, d, dossier, glb)
+    except Exception as e:
+        dire('Plan : mise en attente impossible :', e)
 
 
 # ---------------------------------------------------------------- commandes
@@ -763,10 +923,20 @@ def boucle(r, une_fois=False):
                     dire('Échec :', e)
                     srv.file('echouer', id=d['id'], erreur=str(e)[:500])
                 PROCESSUS['fin'] = time.time()
+                try:
+                    ajouter_aux_plans(srv, r)
+                except Exception as e:
+                    dire('Plans :', e)
                 if une_fois:
                     return 0
                 continue
             fermer_si_inactif(r)
+            if time.time() - PROCESSUS.get('plans', 0) > float(r.get('plans_intervalle') or 60):
+                PROCESSUS['plans'] = time.time()
+                try:
+                    ajouter_aux_plans(srv, r)
+                except Exception as e:
+                    dire('Plans :', e)
             time.sleep(r['pause'])
         except KeyboardInterrupt:
             dire('Arrêt demandé.')

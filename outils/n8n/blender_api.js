@@ -87,6 +87,13 @@ switch(c.action){
     for(const [n,q] of Object.entries(s.pcs)) if(now-q.t>14*JOUR) delete s.pcs[n];
     return rep({ok:true,demande:d?vue(d):null,annulees:Object.values(s.d).filter(x=>x.etat==='annule'&&x.pc===agent&&now-x.maj<3600000).map(x=>x.id)});
   }
+  // ajout de l'objet fini au plan Blender de son niveau (meubles_rez / meubles_etage) : attente (plan ouvert), ajouté, échec
+  case 'plan': {
+    const d=idOk(c.id)&&s.d[c.id]; if(!d) return refus('Demande inconnue',404);
+    if(d.resultat) d.resultat.plan={etat:['attente','ajoute','echec'].includes(c.etat)?c.etat:'attente',texte:txt(c.texte,300),maj:now};
+    const agent=txt(c.agent,40); if(agent&&s.pcs[agent]) s.pcs[agent].t=now;
+    return rep({ok:true});
+  }
   case 'avancer': case 'finir': case 'echouer': {
     const d=idOk(c.id)&&s.d[c.id]; if(!d) return refus('Demande inconnue',404);
     if(d.etat==='annule') return rep({ok:true,annule:true});

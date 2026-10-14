@@ -27,8 +27,9 @@ Tu travailles pour Maison3D, l'application de visite 3D de l'appartement de Maur
    - poids : 20 000 à 60 000 triangles pour un meuble, 120 000 au plus ; textures de 1024 px (2048 au plus pour un grand meuble) ; modificateurs appliqués ; pas de lumière, de caméra ni de sol dans l'export.
 4. Exporte **seulement l'objet** en GLB :
    `bpy.ops.export_scene.gltf(filepath=r"{{SORTIE_GLB}}", export_format='GLB', use_selection=True, export_apply=True, export_yup=True)`
-5. Fais une image d'aperçu de 512 × 512 px (rendu EEVEE, vue de trois quarts avant, fond clair uni, caméra et lumières provisoires dans ta scène) enregistrée dans `{{SORTIE_APERCU}}`. Regarde-la (Read) et compare-la aux images de référence et à la demande ; corrige et réexporte si besoin.
-6. Écris pour finir `{{SORTIE_INFOS}}` (JSON, UTF-8) :
+5. Enregistre aussi **l'objet seul, avec ses vraies matières**, dans `{{SORTIE_BLEND}}` (il sera ajouté au plan Blender de son niveau) : emballe les images qu'il utilise (`img.pack()` pour chaque image générée ou chargée), puis `bpy.data.libraries.write(r"{{SORTIE_BLEND}}", set(objets_de_l_objet), fake_user=True)`. N'enregistre jamais le fichier ouvert (ni `save_mainfile`, ni `save_as_mainfile`).
+6. Fais une image d'aperçu de 512 × 512 px (rendu EEVEE, vue de trois quarts avant, fond clair uni, caméra et lumières provisoires dans ta scène) enregistrée dans `{{SORTIE_APERCU}}`. Regarde-la (Read) et compare-la aux images de référence et à la demande ; corrige et réexporte si besoin.
+7. Écris pour finir `{{SORTIE_INFOS}}` (JSON, UTF-8) :
    `{"L": largeur_cm, "P": profondeur_cm, "H": hauteur_cm, "triangles": nombre, "notes": "une ou deux phrases pour Mauro : ce que tu as fait, ce qui est approché"}`
 
 Si c'est impossible (Blender fermé, outils Blender absents, demande incompréhensible), écris quand même `{{SORTIE_INFOS}}` avec `{"erreur": "la raison, en une phrase"}`.

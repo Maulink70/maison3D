@@ -62,6 +62,9 @@ function pieceDefaut(){
   if(it?.meta.c==='ouverture'||OUVRANT.test(nom)) return o.niv==='etage'?'portes_etage':'portes_rez';
   return piecePres(o.x,o.z,o.niv)?.id||(o.niv==='etage'?'mezzanine':'salon');
 }
+// place de l'objet remplacé ou modifié (le PC pose le nouvel objet au même endroit dans le plan Blender de son niveau)
+function placeDe(nom){ const it=nom&&app.items[nom]; if(!it) return null;
+  return {x:+it.g.position.x.toFixed(3),z:+it.g.position.z.toFixed(3),r:+it.g.rotation.y.toFixed(4),niv:it.lvl==='Étage'?'etage':'rez'}; }
 function majPiece(){
   if(!fen) return; const s=q('#bl-piece');
   if(!pieceChoisie) s.value=pieceDefaut();
@@ -325,7 +328,7 @@ async function envoyer(){
     }
     const id='bl'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
     const payload={id,type:mode==='modifier'?'modifier':'creer',nom,description:desc,L:cmDe('#bl-l'),P:cmDe('#bl-p'),H:cmDe('#bl-h'),detail,textures,images:fics,
-      lien:ctx.lien||'',site:ctx.site||'',source,place:ctx.place||null,piece:q('#bl-piece').value};
+      lien:ctx.lien||'',site:ctx.site||'',source,place:ctx.place||placeDe(mode==='modifier'?objet.name:ctx.remplace),piece:q('#bl-piece').value};
     dire('Envoi de la demande…');
     const r=await poster({action:'creer',...payload});
     if(!r.ok){ dire(r.erreur||'Demande refusée.',true); return; }
@@ -365,6 +368,7 @@ function majFenetre(){
     if(d.etat==='en_cours'){ const br=el('span',{class:'ph-barre','aria-hidden':'true'}); const i=el('i'); i.style.width=(d.p||0)+'%'; br.append(i); txt.append(br); }
     if(d.etat==='fini'&&d.resultat?.notes) txt.append(el('span',{class:'mat-aide bl-note'},d.resultat.notes));
     if(d.etat==='fini'&&(d.resultat?.drive||d.resultat?.driveErreur)) txt.append(el('span',{class:'mat-aide bl-drive'},d.resultat.drive?'Rangé sur le Drive : Objets 3D / '+d.resultat.drive.split('/').join(' / '):'Drive : '+d.resultat.driveErreur));
+    if(d.etat==='fini'&&d.resultat?.plan) txt.append(el('span',{class:'mat-aide bl-drive'},'Plan Blender : '+d.resultat.plan.texte));
     const bt=el('span',{class:'bl-actions'}), b=(t,act,prim)=>bt.append(el('button',{type:'button',class:'btn'+(prim?' primary':''),'data-a':act},t));
     if(d.etat==='fini') b(o.d[d.id]?.importe?'Rouvrir':'Ajouter à la maquette','ajouter',!o.d[d.id]?.importe);
     if(['attente','en_cours'].includes(d.etat)) b('Annuler','annuler');
