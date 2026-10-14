@@ -22,7 +22,7 @@ Rien n'est payé en crédits. Seul l'abonnement Claude de Mauro est utilisé.
 
 ## Ce qu'il faut sur le PC
 
-1. **Blender** installé avec l'extension **« MCP for Blender »** activée. Elle démarre son serveur toute seule à l'ouverture de Blender. Le pont a **son propre Blender** : une deuxième fenêtre, sans fichier, ouverte à la première demande et réservée au pont (port 9877). Votre Blender (port 9876) n'est jamais utilisé par le pont : si celui du pont plante, votre travail n'est pas touché, et le pont rouvre le sien et reprend la demande. Le Blender du pont se ferme seul après 10 minutes sans demande.
+1. **Blender** installé avec l'extension **« MCP for Blender »** activée. Elle démarre son serveur toute seule à l'ouverture de Blender. Si elle n'est pas enregistrée dans les préférences, le pont l'active quand même dans son Blender (pour cette session seulement : vos préférences ne changent pas). Le pont a **son propre Blender** : une deuxième fenêtre, sans fichier, ouverte à la première demande et réservée au pont (port 9877). Votre Blender (port 9876) n'est jamais utilisé par le pont : si celui du pont plante, votre travail n'est pas touché, et le pont rouvre le sien et reprend la demande. Le Blender du pont se ferme seul après 10 minutes sans demande.
 2. **Claude Code** installé et connecté au compte de Mauro. La commande `claude` doit marcher dans une invite de commandes.
 3. **Python 3** (3.9 ou plus récent). Aucune bibliothèque à installer.
 4. **Google Drive pour ordinateur** (lecteur `G:`), pour la copie dans le Drive. S'il ne tourne pas, la demande se termine quand même, sans copie. La raison s'affiche dans l'application.
@@ -55,7 +55,7 @@ Dans `D:\ClaudeCode\maison3D`, faites `git pull`. Fermez ensuite la fenêtre noi
 - `dossier_miroir` : une copie de plus sur le PC, au même rangement. Vide = aucune.
 - `ajouter_aux_plans` : `true` pour ajouter chaque objet au plan de son niveau.
 - `plans` : `{"rez": "chemin", "etage": "chemin"}`. Vide = `meubles_rez.blend` et `meubles_etage.blend` du `dossier_blender`.
-- `repere_plans` : `{"rez": [ox, oz, sol], "etage": [...]}`, pour passer des coordonnées du site (x, z en mètres) à celles du plan : X = x − ox, Y = −(z − oz). Vide = objets posés au centre du plan.
+- `repere_plans` : `{"rez": [ox, oz, sol], "etage": [...]}`, pour passer des coordonnées du site (x, z en mètres) à celles du plan : X = x − ox, Y = −(z − oz), Z = hauteur du sol du niveau (0 au rez, 2,74 à l'étage) − sol. Pour les plans de Mauro (hauteurs absolues du site) : `{"rez": [15.5, -21.5, 0], "etage": [15.5, -21.5, 0]}`. Vide = objets posés au centre du plan.
 - `plans_intervalle` : toutes les combien de secondes le pont regarde si un plan en attente est fermé (60).
 - `py -3 pont_blender.py --verifier` affiche le Blender trouvé et le dossier du Drive.
 

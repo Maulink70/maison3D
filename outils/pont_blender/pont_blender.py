@@ -21,7 +21,7 @@ Aucune bibliothèque à installer : Python 3.9 ou plus récent suffit.
 import argparse, base64, getpass, glob, json, math, os, re, shutil, socket, struct, subprocess, sys, threading, time, unicodedata, urllib.request, urllib.error
 from pathlib import Path
 
-VERSION = '1.4'
+VERSION = '1.5'
 ICI = Path(__file__).resolve().parent
 REGLAGES = ICI / 'pont_blender.json'
 JOURNAL = ICI / 'pont_blender.log'
@@ -50,7 +50,8 @@ DEFAUT = {
     'ajouter_aux_plans': True,               # chaque objet fini est aussi ajouté au plan Blender de son niveau
     'plans': {},                             # {"rez": chemin, "etage": chemin} ; vide = meubles_rez.blend / meubles_etage.blend du dossier_blender
     'plans_intervalle': 60,                  # toutes les combien de secondes regarder si un plan en attente est fermé
-    'repere_plans': {},                      # {"rez": [ox, oz, sol], …} : site (x, z) → plan X = x − ox, Y = −(z − oz), Z = y − sol ; vide = pas de repère connu
+    'repere_plans': {},                      # {"rez": [ox, oz, sol], …} : site (x, y, z) → plan X = x − ox, Y = −(z − oz), Z = y − sol
+                                             # (y = sol du niveau : 0 au rez, 2,74 à l'étage) ; vide = pas de repère connu
 }
 # centre de chaque pièce (x, z du site, mètres) : place d'un objet dans le plan quand on ne connaît pas mieux
 CENTRES = {
@@ -565,14 +566,16 @@ def mettre_en_attente_plan(r, d, dossier, glb):
 
 
 def position_plan(r, item):
-    """Place et rotation dans le repère du plan : place connue (remplacement, photo calée), sinon centre de la pièce."""
+    """Place et rotation dans le repère du plan : place connue (remplacement, photo calée), sinon centre de la pièce.
+    Hauteur : le sol du niveau (0 au rez, 2,74 à l'étage), les plans gardant les hauteurs du site (session BLENDER)."""
     rep_ = (r.get('repere_plans') or {}).get(item['niv'])
     if not rep_:
         return [0, 0, 0], 0, 'origine'
     ox, oz, sol = (list(rep_) + [0, 0, 0])[:3]
     p = item.get('place') or {}
     x, z = (p.get('x'), p.get('z')) if p.get('x') is not None else CENTRES.get(item.get('piece'), CENTRES['salon'])
-    return [round(x - ox, 4), round(-(z - oz), 4), 0.0], float(p.get('r') or 0), ('exacte' if p.get('x') is not None else 'piece')
+    y = 2.74 if item.get('niv') == 'etage' else 0.0
+    return [round(x - ox, 4), round(-(z - oz), 4), round(y - sol, 4)], float(p.get('r') or 0), ('exacte' if p.get('x') is not None else 'piece')
 
 
 def ajouter_aux_plans(srv, r):

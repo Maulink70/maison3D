@@ -3,6 +3,7 @@
 # L'extension « MCP for Blender » démarre son serveur toute seule, une fois l'interface prête, sur le port de la scène
 # (propriété blendermcp_port) : on règle ce port tout de suite, avant elle. Si, 15 secondes plus tard, rien n'écoute
 # encore sur ce port (ou si le serveur a démarré sur un autre), on le (re)démarre : bouton « Connect to Claude ».
+# Si l'extension n'est pas activée dans les préférences, elle est activée pour cette session seulement.
 # Ne touche à aucun fichier.
 import os
 import socket
@@ -54,5 +55,36 @@ def _demarrer():
     return 5.0 if essais[0] < 6 else None
 
 
+def _activer_extension():
+    """Le Blender du pont ne charge que les extensions enregistrées dans les préférences : si « MCP for Blender » n'y est
+    pas (activée seulement dans une session ouverte), on l'active pour cette session seulement (préférences inchangées).
+    Nom du module : « blender_mcp » (extension installée à la main), « bl_ext.<dépôt>.blender_mcp » (extensions.blender.org)."""
+    if hasattr(bpy.types.Scene, 'blendermcp_port'):
+        return
+    try:
+        import addon_utils
+    except Exception:
+        return
+    noms = ['blender_mcp', 'mcp_for_blender']
+    try:
+        for m in addon_utils.modules():
+            nom = m.__name__
+            titre = str((getattr(m, 'bl_info', None) or {}).get('name', ''))
+            if nom.split('.')[-1] in ('blender_mcp', 'mcp_for_blender') or 'mcp' in titre.lower():
+                if nom not in noms:
+                    noms.insert(0, nom)
+    except Exception:
+        pass
+    for nom in noms:
+        try:
+            if addon_utils.enable(nom, default_set=False) and hasattr(bpy.types.Scene, 'blendermcp_port'):
+                print('Pont Blender : extension', nom, 'activée pour cette session.')
+                return
+        except Exception:
+            pass
+    print('Pont Blender : extension « MCP for Blender » introuvable.')
+
+
+_activer_extension()
 _regler_port()
 bpy.app.timers.register(_demarrer, first_interval=15.0)
