@@ -16,7 +16,7 @@ Rien n'est payé en crédits. Seul l'abonnement Claude de Mauro est utilisé.
 
 ## Ce qu'il faut sur le PC
 
-1. **Blender** installé avec l'extension **« MCP for Blender »** activée. Elle démarre son serveur toute seule à l'ouverture de Blender. Blender n'a pas besoin d'être ouvert : le pont l'ouvre au besoin, sans fichier, et le laisse ouvert ensuite.
+1. **Blender** installé avec l'extension **« MCP for Blender »** activée. Elle démarre son serveur toute seule à l'ouverture de Blender. Le pont a **son propre Blender** : une deuxième fenêtre, sans fichier, ouverte à la première demande et réservée au pont (port 9877). Votre Blender (port 9876) n'est jamais utilisé par le pont : si celui du pont plante, votre travail n'est pas touché, et le pont rouvre le sien et reprend la demande. Le Blender du pont se ferme seul après 10 minutes sans demande.
 2. **Claude Code** installé et connecté au compte de Mauro. La commande `claude` doit marcher dans une invite de commandes.
 3. **Python 3** (3.9 ou plus récent). Aucune bibliothèque à installer.
 4. **Google Drive pour ordinateur** (lecteur `G:`), pour la copie dans le Drive. S'il ne tourne pas, la demande se termine quand même, sans copie. La raison s'affiche dans l'application.
@@ -37,10 +37,13 @@ Dans `D:\ClaudeCode\maison3D`, faites `git pull`. Fermez ensuite la fenêtre noi
 
 ## Réglages (`pont_blender.json`)
 
-- `ouvrir_blender` : `true` pour ouvrir Blender s'il est fermé.
+- `blender_a_part` : `true` (conseillé) pour que le pont ait son propre Blender ; `false` pour qu'il travaille dans le vôtre.
+- `port_pont` : port de Blender MCP dans le Blender du pont, 9877. Claude Code le reçoit par la variable `BLENDER_PORT`. Votre `mcp_blender.json` ne doit donc pas fixer le port.
+- `fermer_apres_min` : le Blender du pont se ferme après ce nombre de minutes sans demande (10 ; 0 = jamais).
+- `ouvrir_blender` : sert seulement avec `blender_a_part` à `false` : `true` pour ouvrir Blender s'il est fermé.
 - `blender_exe` : chemin de `blender.exe`. Vide = cherché dans `C:\Program Files\Blender Foundation`.
-- `fichier_blender` : fichier .blend à ouvrir. Vide = la scène de départ, ce qui est conseillé.
-- `port_blender` : port de l'extension, 9876.
+- `fichier_blender` : fichier .blend à ouvrir, seulement avec `blender_a_part` à `false`. Vide = la scène de départ.
+- `port_blender` : port de l'extension dans votre Blender, 9876.
 - `dossier_drive` : dossier « Objets 3D » du Drive. Vide = cherché tout seul (`G:\Mon Drive\Maison 3D\Objets 3D`). `"non"` = pas de copie.
 - `dossiers_pieces` : à remplir seulement si un dossier de pièce change de nom, par exemple `{"salon": "Rez/Séjour"}`.
 - `dossier_miroir` : une copie de plus sur le PC, au même rangement. Vide = aucune.
@@ -48,7 +51,7 @@ Dans `D:\ClaudeCode\maison3D`, faites `git pull`. Fermez ensuite la fenêtre noi
 
 ## Utilisation
 
-- Double-cliquez sur **« Lancer le pont Blender.bat »** et laissez la fenêtre noire ouverte. Blender peut rester fermé : le pont l'ouvre à la première demande.
+- Double-cliquez sur **« Lancer le pont Blender.bat »** et laissez la fenêtre noire ouverte. Pas besoin d'ouvrir Blender : le pont ouvre le sien à la première demande. Une fenêtre Blender vide apparaît alors : laissez-la travailler et ne vous en servez pas.
 - Dans l'application, la pastille de la fenêtre « Créer avec Blender » devient verte : « allumé et prêt (Blender) ».
 - Pour arrêter le pont : Ctrl+C dans la fenêtre noire, ou fermez-la. Les demandes faites pendant ce temps attendent dans la file. Elles partent dès que le pont est relancé.
 - **Pour un démarrage automatique** avec Windows : touche Windows + R, tapez `shell:startup`, puis Entrée. Dans le dossier qui s'ouvre, faites un clic droit → « Nouveau » → « Raccourci », vers « Lancer le pont Blender.bat ».
@@ -56,7 +59,7 @@ Dans `D:\ClaudeCode\maison3D`, faites `git pull`. Fermez ensuite la fenêtre noi
 ## Bon à savoir
 
 - **Une demande à la fois.** Les autres attendent leur tour, et l'application affiche leur place dans la file.
-- **Chaque demande travaille dans une scène neuve** de Blender (`M3D_…`), supprimée à la fin. Rien d'autre n'est touché dans le fichier ouvert. Évitez quand même de faire travailler la session « BLENDER » au même moment.
+- **Chaque demande travaille dans une scène neuve** de Blender (`M3D_…`), affichée pendant le travail puis supprimée à la fin. Rien n'est enregistré. Avec le Blender à part, vous et la session « BLENDER » pouvez continuer à travailler dans votre Blender pendant ce temps.
 - **Où sont les fichiers d'une demande.** Ils sont gardés dans `travail\<numéro>` : images reçues, consigne, `resultat.glb`, `apercu.png`, `infos.json`. Le journal est dans `pont_blender.log`.
 - **Ce que Claude Code a le droit d'utiliser.** Seulement les outils Blender, la lecture et l'écriture de fichiers (réglage `"outils"`). Il n'a pas le droit de lancer de commandes.
 - **Limites.** Une demande est arrêtée après 45 minutes (réglage `"minutes_max"`). Le serveur accepte 40 demandes par jour au plus.

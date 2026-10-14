@@ -21,7 +21,7 @@ Aucune bibliothèque à installer : Python 3.9 ou plus récent suffit.
 import argparse, base64, getpass, glob, json, math, os, re, shutil, socket, struct, subprocess, sys, threading, time, unicodedata, urllib.request, urllib.error
 from pathlib import Path
 
-VERSION = '1.2'
+VERSION = '1.3'
 ICI = Path(__file__).resolve().parent
 REGLAGES = ICI / 'pont_blender.json'
 JOURNAL = ICI / 'pont_blender.log'
@@ -40,7 +40,10 @@ DEFAUT = {
     'ouvrir_blender': True,                  # Blender fermé quand une demande arrive : le pont l'ouvre
     'blender_exe': '',                       # chemin de blender.exe ; vide = cherché tout seul
     'fichier_blender': '',                   # fichier .blend à ouvrir avec Blender (vide = scène de départ de Blender)
-    'port_blender': 9876,                    # port de l'extension Blender MCP (« MCP for Blender »)
+    'port_blender': 9876,                    # port de l'extension Blender MCP (« MCP for Blender ») du Blender de Mauro
+    'blender_a_part': True,                  # le pont a son propre Blender (fenêtre à part) : un plantage n'emporte pas celui de Mauro
+    'port_pont': 9877,                       # port de Blender MCP dans le Blender du pont
+    'fermer_apres_min': 10,                  # le Blender du pont se ferme seul après tant de minutes sans demande (0 = jamais)
     'dossier_drive': '',                     # dossier « Objets 3D » du Drive sur ce PC ; vide = cherché tout seul ; « non » = pas de copie
     'dossiers_pieces': {},                   # sous-dossiers des pièces s'ils changent de nom, ex. {"salon": "Rez/Salon"}
     'dossier_miroir': '',                    # copie de plus, sur le PC, au même rangement (vide = aucune)
@@ -179,8 +182,9 @@ def lancer_claude(r, consigne, dossier, etat, arret):
     if r.get('modele'):
         cmd += ['--model', r['modele']]
     cwd = r.get('dossier_blender') or str(dossier)
+    # Blender MCP (« uvx mcp-for-blender », lancé par Claude Code) lit son port dans BLENDER_PORT
     p = subprocess.Popen(cmd, cwd=cwd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                         creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0))
+                         env=dict(os.environ, BLENDER_PORT=str(port_actif(r))), creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0))
     p.stdin.write(consigne.encode('utf-8'))
     p.stdin.close()
     fin = {'texte': '', 'erreur': False}
@@ -254,12 +258,20 @@ def boite_glb(nom, L, P, H, couleur=(0.75, 0.6, 0.45)):
 
 
 # ---------------------------------------------------------------- Blender : ouvert tout seul s'il est fermé
+def port_actif(r):
+    """Port de Blender MCP utilisé par le pont : celui de son propre Blender, ou celui du Blender de Mauro."""
+    return int(r.get('port_pont') or 9877) if r.get('blender_a_part', True) else int(r.get('port_blender') or 9876)
+
+
+PROCESSUS = {}                               # le Blender ouvert par le pont (Popen), s'il y en a un
+
+
 def blender_repond(r, attente=1.0):
     """Vrai si l'extension Blender MCP écoute (Blender ouvert, serveur démarré)."""
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.settimeout(attente)
     try:
-        s.connect(('127.0.0.1', int(r.get('port_blender') or 9876)))
+        s.connect(('127.0.0.1', port_actif(r)))
         return True
     except Exception:
         return False
@@ -302,9 +314,31 @@ def trouver_blender(r):
     return None
 
 
+def avancer(srv, d, texte):
+    if srv and d:
+        srv.file('avancer', id=d['id'], p=2, texte=texte)
+
+
 def assurer_blender(srv, r, d):
-    """Avant une demande : Blender et Blender MCP doivent répondre ; sinon le pont ouvre Blender et attend."""
+    """Avant une demande : Blender et Blender MCP doivent répondre ; sinon le pont ouvre Blender et attend.
+    Blender à part (réglage par défaut) : le pont ouvre son propre Blender, à côté de celui de Mauro, sur un autre port."""
     if r.get('simuler') or blender_repond(r):
+        return
+    if r.get('blender_a_part', True):
+        p = PROCESSUS.get('blender')
+        if p and p.poll() is None:
+            # notre Blender tourne (il démarre encore, ou son serveur s'est arrêté) : on attend un peu, sinon on le relance
+            avancer(srv, d, 'Le PC attend que son Blender réponde…')
+            for _ in range(30):
+                time.sleep(2)
+                if blender_repond(r):
+                    return
+            dire('Le Blender du pont ne répond plus : fermé et rouvert.')
+            try:
+                p.kill()
+            except Exception:
+                pass
+        ouvrir_blender(srv, r, d)
         return
     if blender_lance():
         # Blender ouvert (peut-être en train de démarrer) mais Blender MCP ne répond pas encore
@@ -317,18 +351,41 @@ def assurer_blender(srv, r, d):
                            '« Start MCP Server », puis « Relancer » la demande')
     if not r.get('ouvrir_blender', True):
         raise RuntimeError('Blender est fermé sur le PC : ouvrez-le, puis « Relancer » la demande')
+    ouvrir_blender(srv, r, d)
+
+
+def fermer_si_inactif(r):
+    """Le Blender ouvert par le pont (à part) se ferme après « fermer_apres_min » minutes sans demande."""
+    p, m = PROCESSUS.get('blender'), float(r.get('fermer_apres_min') or 0)
+    if not p or p.poll() is not None or not m or not r.get('blender_a_part', True):
+        return
+    if time.time() - PROCESSUS.get('fin', time.time()) > 60 * m:
+        dire('Aucune demande depuis', int(m), 'min : le Blender du pont est fermé (il se rouvrira à la prochaine).')
+        try:
+            p.terminate()
+        except Exception:
+            pass
+        PROCESSUS.pop('blender', None)
+
+
+def ouvrir_blender(srv, r, d):
     exe = trouver_blender(r)
     fichier = r.get('fichier_blender') or ''
     if not exe and not (fichier and os.name == 'nt' and Path(fichier).exists()):
         raise RuntimeError('Blender est fermé et blender.exe est introuvable (réglage « blender_exe » de pont_blender.json)')
-    dire('Blender est fermé : ouverture…')
-    srv.file('avancer', id=d['id'], p=2, texte='Le PC ouvre Blender…')
-    env = dict(os.environ, M3D_PORT=str(int(r.get('port_blender') or 9876)))
+    a_part = r.get('blender_a_part', True)
+    dire('Ouverture du Blender du pont (port ' + str(port_actif(r)) + ')…' if a_part else 'Blender est fermé : ouverture…')
+    avancer(srv, d, 'Le PC ouvre son Blender…' if a_part else 'Le PC ouvre Blender…')
+    env = dict(os.environ, M3D_PORT=str(port_actif(r)))
     if exe:
-        cmd = [exe] + ([fichier] if fichier and Path(fichier).exists() else []) + ['--python', str(ICI / 'demarrer_blender_mcp.py')]
+        # Blender à part : sans fichier (le réglage « fichier_blender » ne sert qu'au Blender partagé)
+        cmd = [exe] + ([fichier] if fichier and not a_part and Path(fichier).exists() else []) + ['--python', str(ICI / 'demarrer_blender_mcp.py')]
         drapeaux = getattr(subprocess, 'DETACHED_PROCESS', 0) | getattr(subprocess, 'CREATE_NEW_PROCESS_GROUP', 0)
-        subprocess.Popen(cmd, cwd=str(Path(exe).parent), env=env, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
-                         stderr=subprocess.DEVNULL, close_fds=True, creationflags=drapeaux)
+        PROCESSUS['fin'] = time.time()
+        PROCESSUS['blender'] = subprocess.Popen(cmd, cwd=str(Path(exe).parent), env=env, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+                                                stderr=subprocess.DEVNULL, close_fds=True, creationflags=drapeaux)
+    elif a_part:
+        raise RuntimeError('blender.exe introuvable : le pont ne peut pas ouvrir son Blender (réglage « blender_exe » de pont_blender.json)')
     else:
         os.startfile(fichier)                # .blend ouvert par Windows avec Blender (l'extension démarre son serveur seule)
     for _ in range(90):
@@ -642,7 +699,14 @@ def verifier(r):
     exe = trouver_blender(r)
     print('Blender :', exe or 'blender.exe INTROUVABLE (réglage « blender_exe ») : il ne pourra pas être ouvert tout seul',
           '· ouvert tout seul s’il est fermé' if exe and r.get('ouvrir_blender', True) else '')
-    print('Blender MCP (port', str(r.get('port_blender') or 9876) + ') :', 'répond' if blender_repond(r) else 'ne répond pas (Blender fermé ?)')
+    if r.get('blender_a_part', True) and exe and not r.get('simuler') and not blender_repond(r):
+        print('Blender du pont : ouverture pour l’essai (port', str(port_actif(r)) + ')…')
+        try:
+            ouvrir_blender(None, r, None)
+        except Exception as e:
+            print('Ouverture impossible :', e)
+    print(('Blender du pont' if r.get('blender_a_part', True) else 'Blender MCP') + ' (port', str(port_actif(r)) + ') :',
+          'répond' if blender_repond(r) else 'ne répond pas')
     dd = trouver_drive(r)
     if (r.get('dossier_drive') or '').strip().lower() == 'non':
         print('Drive : copie désactivée (réglage « dossier_drive » = « non »)')
@@ -650,13 +714,13 @@ def verifier(r):
         print('Drive :', str(dd) + ' (les modèles y sont copiés, dans le dossier de leur pièce)' if dd else
               'dossier « Maison 3D/Objets 3D » INTROUVABLE (réglage « dossier_drive ») : les modèles ne seront pas copiés')
     if cmd and not r.get('simuler') and not blender_repond(r):
-        print('Blender MCP ne répond pas : ouvrez Blender pour l’essai (le pont, lui, l’ouvrira tout seul).')
+        print('Blender MCP ne répond pas : ' + ('son Blender n’a pas démarré Blender MCP.' if r.get('blender_a_part', True) else 'ouvrez Blender pour l’essai (le pont, lui, l’ouvrira tout seul).'))
         ok = False
     elif cmd and not r.get('simuler'):
         cwd = r.get('dossier_blender') or str(ICI)
         print('Essai de Blender MCP (dossier', cwd, ')…')
         try:
-            p = subprocess.run(cmd + ['-p', '--allowedTools', 'mcp__blender', '--max-turns', '4'], input=(
+            p = subprocess.run(cmd + ['-p', '--allowedTools', 'mcp__blender', '--max-turns', '4'], env=dict(os.environ, BLENDER_PORT=str(port_actif(r))), input=(
                 'Appelle l’outil mcp__blender__get_scene_info, puis réponds en une ligne : « BLENDER OK : <nom de la scène>, <nombre d’objets> objets ». '
                 'Si l’outil est absent ou ne répond pas, réponds « BLENDER ABSENT : <raison> ».').encode('utf-8'),
                 cwd=cwd, capture_output=True, timeout=240, creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0))
@@ -698,9 +762,11 @@ def boucle(r, une_fois=False):
                 except Exception as e:
                     dire('Échec :', e)
                     srv.file('echouer', id=d['id'], erreur=str(e)[:500])
+                PROCESSUS['fin'] = time.time()
                 if une_fois:
                     return 0
                 continue
+            fermer_si_inactif(r)
             time.sleep(r['pause'])
         except KeyboardInterrupt:
             dire('Arrêt demandé.')
