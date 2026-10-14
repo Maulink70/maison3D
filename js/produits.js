@@ -164,7 +164,8 @@ function carte(p){
   const b=el('div',{class:'ph-boutons petits'});
   const essai=el('button',{type:'button',class:'btn primary','data-a':'photo'},'Essayer en photo'), d3=el('button',{type:'button',class:'btn','data-a':'3d'},'Mettre en 3D');
   essai.disabled=d3.disabled=!p.image; if(!p.image) essai.title=d3.title='Ajoutez d’abord une image (« Modifier »)';
-  b.append(essai,d3);
+  const bl=el('button',{type:'button',class:'btn','data-a':'blender'},'Blender'); bl.disabled=!p.image; bl.title=p.image?'Le faire modéliser dans Blender, sur le PC':'Ajoutez d’abord une image (« Modifier »)';
+  b.append(essai,d3,bl);
   if(p.lien) b.append(el('a',{class:'btn',href:p.lien,target:'_blank',rel:'noopener'},'Page'));
   b.append(el('button',{type:'button',class:'btn','data-a':'modifier'},'Modifier'),el('button',{type:'button',class:'btn danger','data-a':'suppr','aria-label':'Supprimer '+(p.nom||'ce produit')},aSuppr===p.id?'Supprimer ?':'×'));
   c.append(b);
@@ -194,6 +195,7 @@ export function montrerProduit(id,texte){ mis=id; majListe(); if(texte) dire(tex
 async function action(p,a,cible){
   if(a==='photo') return essayer(p);
   if(a==='3d') return en3D(p);
+  if(a==='blender'){ const {ouvrirBlender}=await import('./blender.js'); ouvrirProduits(false); ouvrirBlender(true,{produit:p}); return; }
   if(a==='modifier'){ edite=edite===p.id?null:p.id; majListe(); return; }
   if(a==='annuler'){ edite=null; majListe(); return; }
   if(a==='suppr'){

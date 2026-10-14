@@ -25,6 +25,7 @@ import {majLumiere} from './lumiere.js';
 import {majLampes} from './lampes.js';
 import {initOuvrants3D} from './ouvrants3d.js';
 import {initStores, majStores} from './stores.js';
+import {initBlender} from './blender.js';
 import {majReflets} from './reflets.js';
 import {initRealiste, majRealiste, rendreReel} from './realiste.js';
 import {eclatActif, rendreEclate, suivreEclat} from './eclate.js';
@@ -48,7 +49,7 @@ import {initPointsListe} from './pointsliste.js';
 import {initCreer} from './creer.js';
 import {initAssistant} from './assistant.js';
 
-initIcones(); initCompte(); initSynchro(); initVariantes(); initComparer(); initVues(); initVisite(); initEdition(); initOuvrants3D(); initStores(); initSauvegarde(); initAller(); initPlan(); initCalques(); initRealiste(); initMesure(); initImpression(); initIsoler(); initCameras(); initHistorique(); initPartage(); initAlertes(); initObjets(); initRevetements(); initGalerie(); initCalage(); initRecu(); initPointsVue(); initProduits(); initJeu(); initPointsListe(); initCreer(); initAssistant();
+initIcones(); initCompte(); initSynchro(); initVariantes(); initComparer(); initVues(); initVisite(); initEdition(); initOuvrants3D(); initStores(); initSauvegarde(); initAller(); initPlan(); initCalques(); initRealiste(); initMesure(); initImpression(); initIsoler(); initCameras(); initHistorique(); initPartage(); initAlertes(); initObjets(); initRevetements(); initGalerie(); initCalage(); initRecu(); initPointsVue(); initProduits(); initJeu(); initPointsListe(); initCreer(); initAssistant(); initBlender();
 // tableau des meubles : toucher un nom le montre (sélectionné en Éditer) ; bouton du panneau
 initTableau(it=>{ if(app.edition&&!it.hidden) select(it.name); cadrerObjet(it); }); $('f-tableau').onclick=()=>ouvrirTableau(true);
 

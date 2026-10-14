@@ -859,3 +859,43 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
   .assistant{top:auto!important;left:0;right:0;bottom:0;width:auto;max-width:none;max-height:62%;border-radius:14px 14px 0 0;border-left:0;border-right:0;border-bottom:0;padding-bottom:env(safe-area-inset-bottom,0px)}
   .as-buste{width:96px;height:96px}
 }
+/* « Créer avec Blender » (pont Blender, 14 octobre 2026) */
+#blender-fenetre{z-index:58}
+#blender-fenetre .fenetre-carte{display:grid;gap:10px}
+.bl-pc{display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-size:13px}
+.bl-pastille{flex:none;width:12px;height:12px;border-radius:50%;background:#9aa3ab}
+.bl-pc[data-etat="pret"] .bl-pastille{background:#2f9e55}
+.bl-pc[data-etat="occupe"] .bl-pastille{background:#e29a1c}
+.bl-pc[data-etat="eteint"] .bl-pastille,.bl-pc[data-etat="jamais"] .bl-pastille{background:#9aa3ab}
+.bl-modes{display:flex;flex-wrap:wrap;gap:6px}
+.bl-modes button{flex:1 1 auto;font:inherit;font-size:13px;padding:7px 10px;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--ink);cursor:pointer}
+.bl-modes button[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft);color:var(--accent);font-weight:600}
+.bl-bloc{display:grid;gap:8px}
+.bl-bloc[hidden],.bl-produits[hidden],.bl-dims[hidden]{display:none}
+.bl-vignettes{display:flex;flex-wrap:wrap;gap:8px}
+.bl-vignette{position:relative;margin:0;width:88px;height:88px;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:#fff}
+.bl-vignette img{width:100%;height:100%;object-fit:contain;display:block}
+.bl-vignette button{position:absolute;top:2px;right:2px;min-height:0;padding:0 7px;line-height:22px}
+.bl-produits{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px;max-height:240px;overflow:auto}
+.bl-produit{display:grid;gap:4px;padding:4px;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--ink);font:inherit;font-size:12px;cursor:pointer;text-align:center}
+.bl-produit img{width:100%;aspect-ratio:1;object-fit:contain;background:#fff;border-radius:6px}
+.bl-dims{display:grid;gap:6px}
+.bl-titre-liste{margin:6px 0 0;font-size:14px}
+.bl-titre-liste[hidden]{display:none}
+.bl-liste{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.bl-liste li{display:grid;grid-template-columns:56px 1fr auto;gap:10px;align-items:center;border:1px solid var(--line);border-radius:10px;padding:8px}
+.bl-liste li[data-etat="fini"]{border-color:var(--accent)}
+.bl-liste li[data-etat="echec"] .bl-txt>.mat-aide:first-of-type{color:var(--danger,#b3261e)}
+.bl-apercu{width:56px;height:56px;border-radius:8px;background:var(--accent-soft);display:grid;place-items:center;overflow:hidden;font-size:22px;color:var(--accent)}
+.bl-apercu img{width:100%;height:100%;object-fit:cover}
+.bl-txt{display:grid;gap:3px;min-width:0}
+.bl-txt .ph-barre{height:8px}
+.bl-note{font-style:italic}
+.bl-actions{display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end}
+#bandeau-blender{display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:var(--panel);border:1px solid var(--line);border-left:3px solid #e29a1c;border-radius:var(--r);padding:6px 6px 6px 12px;font-size:13px}
+#bandeau-blender[hidden]{display:none}
+#bandeau-blender .ph-barre{width:120px;height:8px}
+#bandeau-blender .ph-barre[hidden]{display:none}
+#bandeau-blender .bt-temps{font-family:var(--font-data);color:var(--muted);font-size:12px}
+#bandeau-blender .actions{margin-left:auto;display:flex;gap:6px}
+@media (max-width:560px){.bl-liste li{grid-template-columns:44px 1fr}.bl-liste .bl-actions{grid-column:1/-1}.bl-apercu{width:44px;height:44px}}

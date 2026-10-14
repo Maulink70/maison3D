@@ -40,6 +40,7 @@ import {ouvrirCreer} from './creer.js';
 import {ouvrirPhoto, ouvrirPhotoAvec} from './photo.js';
 import {ouvrirCatalogue} from './catalogue.js';
 import {ouvrirImport} from './import3d.js';
+import {ouvrirBlender} from './blender.js';
 import {imageMeuble} from './impression.js';
 
 const ASSISTANT='https://n8n.srv1123557.hstgr.cloud/webhook/maison3d-assistant';
@@ -285,11 +286,12 @@ async function parListe(cle,o){
 // l'assistant attend l'objet ; le panneau photo peut être fermé pendant ce temps (Mauro, 13 octobre 2026)
 let tripo=null;
 addEventListener('tripo-progres',e=>{ tripo=e.detail; majSuiviTripo(); });
+addEventListener('blender-progres',e=>{ if(!e.detail.actif&&e.detail.phase!=='pret'&&tripo&&tripo.source!=='blender') return; tripo={...e.detail,source:'blender'}; majSuiviTripo(); });
 function majSuiviTripo(){
   const sv=carte?.querySelector('.as-suivi'); if(!sv) return;
   const d=tripo, voir=!!d&&(d.actif||d.phase==='pret'); sv.hidden=!voir; if(!voir) return;
   sv.querySelector('.as-suivi-t').textContent=d.phase==='pret'?`« ${d.nom} » est prêt : vérifie ses dimensions dans la fenêtre « Fichier 3D », puis touche « Ajouter ».`
-    :d.titre+(d.phase==='creation'?' · '+d.p+' %':'')+'. Tu peux fermer le panneau photo : je te tiens au courant ici.';
+    :d.titre+(d.phase==='creation'&&d.source!=='blender'?' · '+d.p+' %':'')+(d.source==='blender'?'. Tu peux fermer la fenêtre Blender : je te tiens au courant ici.':'. Tu peux fermer le panneau photo : je te tiens au courant ici.');
   const b=sv.querySelector('.ph-barre'); b.querySelector('i').style.width=d.p+'%'; b.classList.toggle('indetermine',d.phase==='envoi'||d.phase==='attente');
   sv.querySelector('.as-suivi-temps').textContent=d.phase==='pret'?'':d.temps;
 }
@@ -297,7 +299,7 @@ function majSuiviTripo(){
 function suivreMontage(ok){ const f=e=>{ removeEventListener('essai-montage',f); ok({montage:e.detail.nom}); }; addEventListener('essai-montage',f); nettoyages.push(()=>removeEventListener('essai-montage',f)); }
 // d'où vient le nouvel objet ; renvoie le nom de l'objet ajouté (il est déjà dans la maquette)
 const SOURCES=[['forme','Une forme simple','table, armoire, lampe… à tes mesures'],['catalogue','Le catalogue 3D gratuit','Poly Haven, Sketchfab'],['photo','Une photo ou une image','image plate, ou vraie 3D par Tripo'],
-  ['lien','Le lien d’un produit','IKEA, Pfister, Conforama…'],['produits','Un de mes produits','ta liste « Produits »'],['ia','Le générer avec l’IA','d’après ta description'],['fichier','Un fichier 3D','.glb, .obj, .fbx…'],['propose','Je ne sais pas, propose-moi','je cherche dans le catalogue']];
+  ['lien','Le lien d’un produit','IKEA, Pfister, Conforama…'],['produits','Un de mes produits','ta liste « Produits »'],['ia','Le générer avec l’IA','d’après ta description'],['blender','Le faire modéliser par Blender','sur le PC : Claude Code le modélise (quelques minutes, gratuit)'],['fichier','Un fichier 3D','.glb, .obj, .fbx…'],['propose','Je ne sais pas, propose-moi','je cherche dans le catalogue']];
 async function source(o){
   let s=o.source;
   if(o.image&&!s) s='photo';
@@ -336,6 +338,9 @@ async function source(o){
   } else if(s==='ia'){
     nom=await attendreAjout('Décris l’objet dans la fenêtre « Créer avec l’IA » (modèle, nombre de propositions), puis choisis « Image plate » ou « Vraie 3D »',
       ()=>ouvrirCreer({description:o.description||'',nom:o.nomObjet||'',dims:o.dims||null}));
+  } else if(s==='blender'){
+    nom=await attendreAjout('Dans la fenêtre « Créer avec Blender », décris l’objet (ou ajoute ses images), puis « Envoyer à Blender ». Quand il est prêt (quelques minutes), vérifie ses dimensions et touche « Ajouter »',
+      ()=>ouvrirBlender(true,{description:o.description||'',nom:o.nomObjet||'',dims:o.dims||null,images:o.image?[o.image]:[]}));
   } else if(s==='fichier'){
     nom=await attendreAjout('Choisis le fichier 3D dans la fenêtre d’import, puis « Ajouter »',()=>ouvrirImport(true));
   }
@@ -347,8 +352,14 @@ async function source(o){
 // une image (photo, produit, lien) : image plate tout de suite ou vraie 3D par Tripo
 async function avecImage(blob,info,o){
   const r=await demander('rendu-3d',{titre:'Comment le montrer dans la maquette ?',aide:'L’image plate est prête tout de suite et gratuite, mais n’est juste que de face ; la vraie 3D se voit de tous les côtés.',
-    choix:[ch('En image plate (tout de suite, gratuit)','plat',{prim:true}),ch('En vraie 3D (environ 2 min, 20 à 40 crédits Tripo selon les textures)','3d')]});
+    choix:[ch('En image plate (tout de suite, gratuit)','plat',{prim:true}),ch('En vraie 3D (environ 2 min, 20 à 40 crédits Tripo selon les textures)','3d'),ch('En vraie 3D par Blender, sur le PC (quelques minutes, gratuit)','blender')]});
   const d=o.dims||{}, i={nom:info.nom||'Objet',L:info.L||d.L,P:info.P||d.P,H:info.H||d.H,origine:info.origine};
+  if(r.v==='blender') return etape('ajout-image',{titre:'Dans la fenêtre « Créer avec Blender », vérifie le nom et les dimensions, puis « Envoyer à Blender » : Claude Code le modélise sur le PC (quelques minutes)',
+    aide:'Je t’attends : dès que l’objet est posé, je continue.',attente:true,choix:[ch('Je laisse tomber','stop')]},()=>new Promise(ok=>{
+    const f=e=>{ removeEventListener('objet-ajoute',f); ok(e.detail.nom); };
+    addEventListener('objet-ajoute',f); nettoyages.push(()=>removeEventListener('objet-ajoute',f));
+    ouvrirBlender(true,{images:[blob],nom:i.nom,dims:{L:i.L,P:i.P,H:i.H},origine:i.origine,description:o.description||''});
+  }));
   return etape('ajout-image',{titre:r.v==='plat'?(i.L&&i.P&&i.H?'Je le pose…':'Complète ses dimensions dans le panneau photo, puis « Ajouter en photo »'):'Dans le panneau photo, choisis les textures et confirme « Oui, créer en 3D » : Tripo crée le modèle (1 à 3 min)',
     aide:'Je t’attends : dès que l’objet est posé, je continue.',attente:true,choix:[ch('Je laisse tomber','stop')]},()=>new Promise(ok=>{
     const f=e=>{ removeEventListener('objet-ajoute',f); ok(e.detail.nom); };

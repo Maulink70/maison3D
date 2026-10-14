@@ -206,6 +206,7 @@ function construireFenetre(){
       </div>
       <div class="ph-final">
         <button type="button" class="btn primary wide" id="ph-tripo">Mettre en 3D (Tripo)</button>
+        <button type="button" class="btn wide" id="ph-blender">Créer en 3D avec Blender (sur le PC)</button>
         <button type="button" class="btn wide" id="ph-montage">L’essayer d’abord sur une photo de la pièce (montage)</button>
       </div>
     </div></div>`;
@@ -255,6 +256,7 @@ function construireFenetre(){
   q('#ph-tripo-ok').onclick=lancerTripo;
   q('#ph-suivi-fermer').onclick=()=>ouvrirPhoto(false);
   q('#ph-montage').onclick=essayerSurPhoto;
+  q('#ph-blender').onclick=versBlender;
   q('#ph-recents').onclick=montrerRecents;
 }
 function majHauteur(){ if(!src||!fen.querySelector('#ph-ratio').checked) return; const r=rogner(src); ratio=r.height/r.width; const L=lireCm('#ph-l'); if(L) fen.querySelector('#ph-h').value=String(Math.round(L*ratio*2)/2); }
@@ -370,6 +372,15 @@ async function essayerSurPhoto(){
   ouvrirPhoto(false);
   dispatchEvent(new CustomEvent('essai-montage',{detail:{nom}}));   // l'assistant, s'il attendait l'objet, suit le montage
   choisirPhoto(ph=>faireMontage(ph,{image,nom,dims:{L:lireCm('#ph-l'),P:lireCm('#ph-p'),H:lireCm('#ph-h')},lien:og?.lien,site:og?.site}),`Choisissez la photo de la pièce où essayer « ${nom} ».`);
+}
+// l'image (retouchée, rognée à sa partie visible) envoyée au pont Blender : Claude Code la modélise sur le PC ; nom,
+// dimensions, lien du produit et place (montage d'une photo calée) suivent
+async function versBlender(){
+  if(!src) return;
+  const fin=rogner(src), blob=await new Promise(ok=>fin.toBlob(ok,'image/png')), {ouvrirBlender}=await import('./blender.js');
+  const nom=fen.querySelector('#ph-nom').value.trim().slice(0,60), L=largeurSaisie?lireCm('#ph-l'):null;
+  ouvrirPhoto(false);
+  ouvrirBlender(true,{images:[blob],nom,dims:{L,P:L?lireCm('#ph-p'):null,H:L?lireCm('#ph-h'):null},place,origine:produit});
 }
 async function ajouter(){
   if(!src) return;

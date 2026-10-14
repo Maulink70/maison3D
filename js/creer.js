@@ -160,6 +160,7 @@ function majResultats(){
   else {
     bouton('Image plate (gratuit)',()=>plat(),true);
     bouton('Vraie 3D (Tripo)',()=>en3D());
+    bouton('Vraie 3D (Blender)',()=>enBlender());
     bouton('L’essayer sur une photo',()=>surPhoto());
   }
 }
@@ -192,6 +193,10 @@ async function plat(){
 async function en3D(){
   const {ouvrirPhotoAvec}=await import('./photo.js'), i=info(), b=await enBlob(choisie.image);
   fermer(); await ouvrirPhotoAvec(b,i,false,opts.place);
+}
+async function enBlender(){
+  const {ouvrirBlender}=await import('./blender.js'), i=info(), b=await enBlob(choisie.image), desc=(avant??q('#cr-desc').value).trim();
+  fermer(); ouvrirBlender(true,{images:[b],nom:i.nom,description:desc,dims:{L:i.L,P:i.P,H:i.H},place:opts.place});
 }
 async function surPhoto(){
   const {choisirPhoto,faireMontage}=await import('./galerie.js'), i=info(), image=await versDataURL(await sansFond(choisie.image));

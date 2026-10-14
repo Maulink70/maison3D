@@ -23,6 +23,7 @@ import {ouvrirImport, texteOrigine, texteFichier} from './import3d.js';
 import {ouvrirCatalogue} from './catalogue.js';
 import {ouvrirCreer} from './creer.js';
 import {ouvrirMesObjets} from './mesobjets.js';
+import {ouvrirBlender} from './blender.js';
 
 const el=(nom,attrs={},texte)=>{ const n=document.createElement(nom); for(const [k,v] of Object.entries(attrs)) n.setAttribute(k,v); if(texte!==undefined) n.textContent=texte; return n; };
 const cm=v=>Math.round(v*1000)/10;   // mètres → cm, au mm
@@ -117,7 +118,8 @@ function ouvrirMenu(oui){
   const m=$('ajouter-menu'); m.hidden=!oui; $('ajouter').setAttribute('aria-expanded',String(oui)); if(!oui) return;
   const ancien=remplacement&&app.items[remplacement];
   m.replaceChildren(el('div',{class:'menu-titre'},ancien?`Remplacer « ${ancien.meta.l} » par`:'N’importe quel objet'));
-  for(const [k,t,d,f] of [['mes','Mes objets 3D…','déjà faits dans vos variantes : sans les refaire',ouvrirMesObjets],['catalogue','Catalogue 3D…','Poly Haven, Sketchfab',ouvrirCatalogue],['ia','Créer avec l’IA…','décrivez-le, l’IA le dessine',()=>ouvrirCreer()],['photo','D’après une photo…','Tripo crée le meuble en 3D',ouvrirPhoto],['glb','Fichier 3D…','glb, fbx, obj, dae, stl',ouvrirImport]]){
+  for(const [k,t,d,f] of [['mes','Mes objets 3D…','déjà faits dans vos variantes : sans les refaire',ouvrirMesObjets],['catalogue','Catalogue 3D…','Poly Haven, Sketchfab',ouvrirCatalogue],['ia','Créer avec l’IA…','décrivez-le, l’IA le dessine',()=>ouvrirCreer()],['photo','D’après une photo…','Tripo crée le meuble en 3D',ouvrirPhoto],
+    ['blender','Créer avec Blender…','sur le PC : Claude Code le modélise (zéro, images, produit)',()=>{ const r=remplacement; if(r) finRemplacement(); ouvrirBlender(true,{remplace:r||null}); }],['glb','Fichier 3D…','glb, fbx, obj, dae, stl',ouvrirImport]]){
     const b=el('button',{type:'button','data-ajout':k}); b.append(el('span',{},t),el('span',{class:'m2'},d)); b.onclick=()=>{ ouvrirMenu(false); f(true); }; m.append(b); }
   const g=el('div',{class:'menu-groupe'}); g.append(el('div',{class:'menu-titre'},'Formes simples')); m.append(g);
   for(const [f,d] of Object.entries(FORMES)){
@@ -203,7 +205,7 @@ function majPanneau(){
   // modèle du catalogue : titre, auteur, licence et lien vers la page d'origine
   const og=$('t-origine'); og.hidden=!a?.o; og.replaceChildren(); if(a?.o){ og.append(texteOrigine(a.o)+' '); if(/^https:\/\//.test(a.o.lien||'')){ const l=el('a',{href:a.o.lien,target:'_blank',rel:'noopener'},'voir la page'); og.append(l); } }
   majFichier();
-  $('t-remplacer').hidden=it.meta.c==='ouverture';
+  $('t-remplacer').hidden=it.meta.c==='ouverture'; $('t-blender').hidden=it.meta.c==='ouverture';
   $('t-pose').hidden=it.meta.c==='ouverture';   // portes et fenêtres : leurs ouvrants sont réglés sur le modèle (Taille grisé : edition.js)
   $('t-suppr').hidden=!a; $('t-reset').hidden=!!a; $('t-suppr').textContent='Supprimer cet objet'; $('t-suppr').classList.remove('arme');
   partie=null; majDimensions(); majMatieres();
@@ -221,6 +223,7 @@ export function initObjets(){
   $('t-nom').onkeydown=e=>{ e.stopPropagation(); if(e.key==='Enter') e.target.blur(); };
   $('t-nom').onchange=e=>{ const it=app.selected; if(!it?.ajout) return; const n=e.target.value.trim().slice(0,60)||FORMES[it.ajout.f]?.nom||'Objet'; changerAjout(it,{...it.ajout,n}); };
   $('t-remplacer').onclick=()=>{ if(app.selected) remplacer(app.selected); };
+  $('t-blender').onclick=()=>{ if(app.selected) ouvrirBlender(true,{modifier:app.selected}); };   // modifier (objet 3D) ou refaire (meuble de la maquette) dans Blender
   $('remplacer-annuler').onclick=()=>finRemplacement();
   $('remplacer-choisir').onclick=()=>ouvrirMenu(true);
   addEventListener('edition',()=>{ if(!app.edition&&remplacement) finRemplacement(); });

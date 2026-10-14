@@ -1,3 +1,8 @@
 node_modules/
 *.tmp
 __pycache__/
+
+# pont Blender : réglages (jeton) et demandes traitées sur le PC
+outils/pont_blender/pont_blender.json
+outils/pont_blender/pont_blender.log
+outils/pont_blender/travail/

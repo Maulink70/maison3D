@@ -325,3 +325,23 @@ if exA:
 else:
   iA=req('POST',B,wfA)['id']
 r=req('POST',B+'/'+iA+'/activate'); print('workflow',iA,'(assistant) actif',r.get('active'))
+
+# ---------- workflow « Maison3D Blender » (14 octobre 2026) : file d'attente du pont Blender (PC de Mauro) ----------
+# POST /webhook/maison3d-blender (texte JSON) : site → etat, creer, annuler, relancer, supprimer ; programme du PC
+# (outils/pont_blender/pont_blender.py) → prendre, avancer, finir, echouer. Aucune clé : jeton de connexion exigé,
+# demandes gardées dans les données statiques du workflow (pas d'appel à Airtable à chaque battement du PC).
+idbl=lambda nom:str(uuid.uuid5(uuid.NAMESPACE_DNS,'m3dblender-'+nom))
+nodesBl=[
+ {'id':idbl('webhook'),'name':'Demande','type':'n8n-nodes-base.webhook','typeVersion':2,'position':[0,0],'webhookId':'4a2f5d0e-6c1b-4c8e-9f3a-maison3d0010',
+  'parameters':{'httpMethod':'POST','path':'maison3d-blender','responseMode':'responseNode','options':{'allowedOrigins':ORIGINES}}},
+ {'id':idbl('file'),'name':'File d’attente','type':'n8n-nodes-base.code','typeVersion':2,'position':[220,0],'parameters':{'jsCode':(lib+lire('blender_api.js')).replace('__SECRET__',sec)}},
+ {'id':idbl('reponse'),'name':'Réponse','type':'n8n-nodes-base.respondToWebhook','typeVersion':1.1,'position':[440,0],
+  'parameters':{'respondWith':'json','responseBody':'={{ JSON.stringify($json.reponse) }}','options':{'responseHeaders':{'entries':[{'name':'Cache-Control','value':'no-store'}]}}}}]
+conBl={'Demande':{'main':[[mm('File d’attente')]]},'File d’attente':{'main':[[mm('Réponse')]]}}
+wfBl={'name':'Maison3D Blender','nodes':nodesBl,'connections':conBl,'settings':{'executionOrder':'v1','saveDataSuccessExecution':'none','saveDataErrorExecution':'all'}}
+exBl=[w for w in req('GET',B+'?limit=200')['data'] if w['name']=='Maison3D Blender']
+if exBl:
+  iBl=exBl[0]['id']; req('POST',B+'/'+iBl+'/deactivate'); req('PUT',B+'/'+iBl,wfBl)
+else:
+  iBl=req('POST',B,wfBl)['id']
+r=req('POST',B+'/'+iBl+'/activate'); print('workflow',iBl,'(blender) actif',r.get('active'))
