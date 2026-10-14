@@ -15,7 +15,7 @@ Tu travailles pour Maison3D, l'application de visite 3D de l'appartement de Maur
 ## Ce que tu fais, dans Blender (outils mcp__blender__…)
 
 1. Crée une **scène neuve** nommée `{{SCENE}}` (`bpy.data.scenes.new`) et travailles-y seulement : Mauro peut être en train de travailler dans le fichier ouvert, ne touche à rien d'autre (ni objets, ni collections, ni réglages des autres scènes). À la fin, supprime cette scène et ses objets (`bpy.data.scenes.remove`, puis les maillages et matériaux restés sans utilisateur).
-2. Modélise l'objet en Python (`execute_blender_code`), avec le même soin que les meubles de la base « Réalisme » : vraies formes (profils tournés, chanfreins, épaisseurs justes), matériaux PBR (Principled BSDF), textures répétables dessinées en numpy quand il en faut.
+2. Modélise l'objet en Python (`execute_blender_code`), avec le même soin que les meubles de la base « Réalisme » : vraies formes (profils tournés, chanfreins, épaisseurs justes), matériaux PBR (Principled BSDF), textures répétables dessinées en numpy quand il en faut. Si ton dossier de travail a un sous-dossier `scripts` (les scripts qui ont fait les meubles de la base « Réalisme » : textures `tex_bois`, `tex_chene`…, profils tournés `tour()`, boîtes chanfreinées `bx()`), regarde d'abord un ou deux de ces scripts (Glob, Read) et reprends leurs fonctions : les objets du pont auront le même aspect que les autres.
 3. Conventions de Maison3D, à respecter strictement :
    - unités en **mètres**, Z vers le haut ; l'objet est posé sur le sol (son point le plus bas à z = 0) et centré en x et en y ;
    - **sa face avant regarde vers −Y** (ce qu'on voit dans la vue de face de Blender, touche 1 du pavé numérique) ;
