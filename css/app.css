@@ -274,6 +274,10 @@ body.panneau-ouvert #toggle-panel.poignee{right:316px}
 #ajouter-formes[aria-expanded="true"] .aj-chevron::before{content:"▾"}
 #ajouter-formes-liste[hidden]{display:none}
 #ajouter-formes-liste button{padding:6px 10px 6px 44px}
+.aj-sous-liste[hidden]{display:none}
+.menu button.aj-src.aj-sous{padding-left:44px}
+.menu button.aj-src.aj-sous .ico{width:18px;height:18px}
+.aj-sous .aj-t{font-weight:500}
 @media (max-width:760px){#ajouter-menu{min-width:0;max-width:none}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}#panel{animation:none!important}}
 /* Chargement des meubles après la structure */

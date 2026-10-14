@@ -434,11 +434,11 @@ export async function ouvrirPhotoAvec(blob,{nom,L,P,H,origine:og}={},garder=fals
   if(H){ fen.querySelector('#ph-ratio').checked=false; fen.querySelector('#ph-h').value=String(H); } else majHauteur();
   dire((L&&P&&H?'Dimensions reprises : vérifiez-les, puis « Mettre en 3D (Tripo) ».':'Complétez les dimensions (cm), puis « Mettre en 3D (Tripo) ».')+(place?' Le meuble sera posé dans la maquette là où il est sur la photo.':''));
 }
-export function ouvrirPhoto(oui=true){
+export function ouvrirPhoto(oui=true,opt={}){
   if(oui&&!fen) construireFenetre();
   if(!fen) return; fen.hidden=!oui; majSuivi();
   if(oui&&tripoEnCours) return;   // création Tripo en cours : le panneau se rouvre tel quel, sur son suivi
   if(oui){ src=null; origine=null; pile=[]; outil=null; cadre=null; fondAvant=null; largeurSaisie=false; place=null; produit=null; dire(''); fen.querySelector('#ph-nom').value=''; fen.querySelector('.ph-tripo').hidden=true;
     fen.querySelector('#ph-avance').open=false;
-    fen.querySelector('#ph-recents').setAttribute('aria-expanded','false'); fen.querySelector('.ph-recents-liste').hidden=true; majBoutons(); setTimeout(()=>fen.querySelector('#ph-coller').focus()); }
+    fen.querySelector('#ph-recents').setAttribute('aria-expanded','false'); fen.querySelector('.ph-recents-liste').hidden=true; majBoutons(); setTimeout(()=>fen.querySelector(opt.lien?'#ph-lien':'#ph-coller').focus()); }   // lien : champ du lien prêt à coller
 }

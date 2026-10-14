@@ -115,31 +115,37 @@ function finRemplacement(){ remplacement=null; $('bandeau-remplacer').hidden=tru
 export const remplacementEnCours=()=>remplacement&&app.items[remplacement]||null;
 
 // ---------- menu « Ajouter » ----------
-const FORMES_CLE='maison3d-formes';   // formes simples dépliées (« oui ») ou repliées dans le menu « + »
+const FORMES_CLE='maison3d-formes', DESC_CLE='maison3d-description';   // sous-listes du menu « + » dépliées (« oui ») ou repliées
 function ouvrirMenu(oui){
   const m=$('ajouter-menu'); m.hidden=!oui; $('ajouter').setAttribute('aria-expanded',String(oui)); if(!oui) return;
   const ancien=remplacement&&app.items[remplacement];
   m.replaceChildren(el('div',{class:'menu-titre'},ancien?`Remplacer « ${ancien.meta.l} » par`:'N’importe quel objet'));
-  // une ligne par source : icône, titre, description dessous (Mauro, 14 octobre 2026 : l'écran était « un peu illisible »,
-  // les descriptions à droite repliaient les titres) ; ordre choisi par lui (Blender avant Tripo)
-  const ligne=(attrs,icone,t,d)=>{ const b=el('button',{type:'button',class:'aj-src',...attrs}); b.insertAdjacentHTML('afterbegin',svg(icone));
+  // une ligne par point de départ (Mauro, 14 octobre 2026 : « avec Blender, je peux aussi faire d'après une photo… le menu est
+  // un peu bizarre ») : icône, titre, description dessous ; l'outil (Blender, Tripo, kie.ai, image plate) ne se choisit
+  // qu'ensuite, là où il y en a plusieurs ; « description » et « formes simples » se déplient (choix gardés)
+  const ligne=(attrs,icone,t,d)=>{ const b=el('button',{type:'button',...attrs,class:'aj-src'+(attrs.class?' '+attrs.class:'')}); b.insertAdjacentHTML('afterbegin',svg(icone));
     const x=el('span',{class:'aj-txt'}); x.append(el('span',{class:'aj-t'},t),el('span',{class:'aj-d'},d)); b.append(x); return b; };
-  for(const [k,i,t,d,f] of [['mes','box','Mes objets 3D…','déjà dans vos variantes, sans les refaire',ouvrirMesObjets],
-    ['blender','monitor','Créer avec Blender…','sur votre PC, modélisé par Claude Code',()=>{ const r=remplacement; if(r) finRemplacement(); ouvrirBlender(true,{remplace:r||null}); }],
-    ['photo','camera','D’après une photo…','Tripo crée le meuble en 3D',ouvrirPhoto],['ia','sparkles','Créer avec l’IA…','décrivez-le, l’IA le dessine',()=>ouvrirCreer()],
-    ['catalogue','library','Catalogue 3D…','Poly Haven, Sketchfab',ouvrirCatalogue],['glb','folder','Fichier 3D…','glb, fbx, obj, dae, stl',ouvrirImport]]){
-    const b=ligne({'data-ajout':k},i,t,d); b.onclick=()=>{ ouvrirMenu(false); f(true); }; m.append(b); }
-  // formes simples repliées sous une ligne (Mauro : « j'utiliserai peu cette option ») ; dépliées ou non, choix gardé
-  let ouvertes=false; try{ ouvertes=localStorage.getItem(FORMES_CLE)==='oui'; }catch{}
-  const g=el('div',{class:'menu-groupe'}), liste=el('div',{id:'ajouter-formes-liste'}); liste.hidden=!ouvertes;
-  const bf=ligne({id:'ajouter-formes','aria-expanded':String(ouvertes),'aria-controls':'ajouter-formes-liste'},'shapes','Formes simples','boîte, table, armoire… : un volume à vos mesures');
-  bf.append(el('span',{class:'aj-chevron','aria-hidden':'true'}));
-  bf.onclick=()=>{ ouvertes=!ouvertes; liste.hidden=!ouvertes; bf.setAttribute('aria-expanded',String(ouvertes)); try{ localStorage.setItem(FORMES_CLE,ouvertes?'oui':'non'); }catch{} caler(m); };
+  const action=(b,f)=>{ b.onclick=()=>{ ouvrirMenu(false); f(); }; return b; };
+  const pli=(id,icone,t,d,cle)=>{   // ligne qui se déplie : sous-liste dessous, état gardé sur l'appareil
+    let ouvert=false; try{ ouvert=localStorage.getItem(cle)==='oui'; }catch{}
+    const g=el('div',{class:'menu-groupe'}), liste=el('div',{id:id+'-liste',class:'aj-sous-liste'}); liste.hidden=!ouvert;
+    const b=ligne({id,'aria-expanded':String(ouvert),'aria-controls':id+'-liste'},icone,t,d); b.append(el('span',{class:'aj-chevron','aria-hidden':'true'}));
+    b.onclick=()=>{ ouvert=!ouvert; liste.hidden=!ouvert; b.setAttribute('aria-expanded',String(ouvert)); try{ localStorage.setItem(cle,ouvert?'oui':'non'); }catch{} caler(m); };
+    g.append(b,liste); m.append(g); return liste; };
+  m.append(action(ligne({'data-ajout':'mes'},'box','Mes objets 3D…','déjà dans vos variantes, sans les refaire'),()=>ouvrirMesObjets(true)));
+  m.append(action(ligne({'data-ajout':'photo'},'camera','D’après une photo ou une image…','Blender (PC), Tripo (crédits) ou image plate'),()=>ouvrirPhoto(true)));
+  m.append(action(ligne({'data-ajout':'lien'},'link','D’après un lien de produit…','IKEA, Micasa, Pfister… : photo, nom, dimensions lus'),()=>ouvrirPhoto(true,{lien:true})));
+  m.append(action(ligne({'data-ajout':'produits'},'shopping-bag','D’après ma liste « Produits »…','chaque produit : Blender ou Mettre en 3D'),async()=>(await import('./produits.js')).ouvrirProduits(true)));
+  const desc=pli('ajouter-description','message-square','D’après une description','Blender sur le PC, ou une image par kie.ai',DESC_CLE);
+  desc.append(action(ligne({'data-ajout':'blender',class:'aj-sous'},'monitor','Blender le modélise sur le PC','d’après votre description (Claude Code)'),()=>{ const r=remplacement; if(r) finRemplacement(); ouvrirBlender(true,{remplace:r||null}); }));
+  desc.append(action(ligne({'data-ajout':'ia',class:'aj-sous'},'sparkles','kie.ai dessine une image d’abord','puis comme une photo : Blender, Tripo ou image plate'),()=>ouvrirCreer()));
+  m.append(action(ligne({'data-ajout':'catalogue'},'library','Catalogue 3D…','Poly Haven, Sketchfab'),()=>ouvrirCatalogue(true)));
+  m.append(action(ligne({'data-ajout':'glb'},'folder','Fichier 3D…','glb, fbx, obj, dae, stl'),()=>ouvrirImport(true)));
+  const liste=pli('ajouter-formes','shapes','Formes simples','boîte, table, armoire… à vos mesures',FORMES_CLE);
   for(const [f,d] of Object.entries(FORMES)){
     const b=el('button',{type:'button','data-forme':f}); b.append(el('span',{},d.nom),el('span',{class:'m2'},d.rond?`⌀ ${cmT(d.L)} × H ${cmT(d.H)} cm`:`${cmT(d.L)} × ${cmT(d.P)} × ${cmT(d.H)} cm`));
     b.onclick=()=>{ ouvrirMenu(false); ajouterForme(f); }; liste.append(b);
   }
-  g.append(bf,liste); m.append(g);
   m.append(el('div',{class:'menu-pied'},'')); m.lastChild.append(el('p',{},ancien?'Il prend la place de l’ancien, qui est masqué (« Annuler » le rétablit).':'Posé dans la pièce regardée ; réglages dans le panneau.'));
   caler(m);
 }
