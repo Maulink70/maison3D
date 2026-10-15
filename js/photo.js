@@ -6,7 +6,8 @@
 // avant, la couleur dominante sur les côtés et le dos ; photo gardée dans Airtable (fichiers.js), contour dans la disposition.
 // Le 11 octobre 2026 (photo et 3D séparées) : un seul bouton principal, « Mettre en 3D (Tripo) » ; les retouches et
 // l'objet plat (« Ajouter en photo ») passent dans « Options avancées ». Venu d'un montage sur une photo calée, le meuble
-// est posé dans la maquette là où il est sur la photo (place).
+// est posé dans la maquette là où il est sur la photo (place). Depuis le 15 octobre 2026 (Mauro), « Créer en 3D avec Blender »
+// est le bouton principal, avant « Mettre en 3D (Tripo) », comme dans le menu « + ».
 import * as THREE from 'three';
 import {$} from './app.js';
 import {envoyerFichier, lireFichier} from './fichiers.js';
@@ -205,8 +206,8 @@ function construireFenetre(){
         <button type="button" class="btn" id="ph-suivi-fermer">Fermer la fenêtre (la création continue)</button>
       </div>
       <div class="ph-final">
-        <button type="button" class="btn primary wide" id="ph-tripo">Mettre en 3D (Tripo)</button>
-        <button type="button" class="btn wide" id="ph-blender">Créer en 3D avec Blender (sur le PC)</button>
+        <button type="button" class="btn primary wide" id="ph-blender">Créer en 3D avec Blender (sur le PC)</button>
+        <button type="button" class="btn wide" id="ph-tripo">Mettre en 3D (Tripo)</button>
         <button type="button" class="btn wide" id="ph-montage">L’essayer d’abord sur une photo de la pièce (montage)</button>
       </div>
     </div></div>`;

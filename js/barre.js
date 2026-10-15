@@ -38,8 +38,19 @@ function menuBarre(idBt,idMenu,fermerApres=false){
   addEventListener('pointerdown',e=>{ if(!menu.hidden&&!menu.contains(e.target)&&!bt.contains(e.target)) ouvrir(false); });
   addEventListener('keydown',e=>{ if(e.key==='Escape'&&!menu.hidden){ ouvrir(false); bt.focus(); } });
 }
+// Échap ferme la fenêtre ouverte (Photo réaliste, Produits, Blender, catalogue, fichier 3D, visionneuse, montage…) même quand
+// le clavier est resté sur le bouton de la barre (audit du 15 octobre 2026, « Ok » de Mauro) : chaque fenêtre ne voyait Échap
+// que si le clavier était dedans. Si le clavier est dans une fenêtre, c'est elle qui agit (ses écouteurs arrêtent la propagation).
+function fenetreEchap(e){
+  if(e.key!=='Escape'||e.target.closest?.('[role="dialog"]')) return;
+  const ouvertes=[...document.querySelectorAll('.fenetre:not([hidden]),.visionneuse:not([hidden])')]; if(!ouvertes.length) return;
+  const z=d=>parseInt(getComputedStyle(d).zIndex)||0;
+  const dessus=ouvertes.reduce((a,d)=>z(d)>=z(a)?d:a);   // la plus haute (dernière du document à égalité)
+  const b=dessus.querySelector('.fenetre-tete .fermer, #vis-fermer, #mi-fermer'); if(b){ e.preventDefault(); b.click(); }
+}
 export function initBarre(){
   menuBarre('ouvertures','ouvertures-menu'); menuBarre('lumiere','lumiere-menu',true);
+  addEventListener('keydown',fenetreEchap);
   bar=document.querySelector('header.bar'); if(!bar) return;
   ligne=document.createElement('div'); ligne.className='bar-ligne';
   ligne.append(...bar.childNodes); bar.append(ligne);
