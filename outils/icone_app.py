@@ -7,7 +7,7 @@ apple-touch-icon2.png (180, sans transparence), favicon2-64.png. Usage : python3
 import os
 from PIL import Image, ImageDraw, ImageFont
 R=os.path.join(os.path.dirname(os.path.abspath(__file__)),'..'); IC=os.path.join(R,'icones')
-BLEU=(44,90,134); BLANC=(255,255,255)
+BLEU=(44,90,134); BLANC=(255,255,255); FONCE=(22,48,74); CLAIR=(120,160,196)
 src=Image.open(os.path.join(IC,'source-maison.png')).convert('RGBA'); S=src.size[0]
 # part de dessin (blanc) dans chaque pixel de l'ancienne icône : canal rouge, fond 44 → dessin 255
 dessin=Image.new('L',(S,S)); px=src.load(); q=dessin.load()
@@ -19,9 +19,16 @@ def carre(T):
     # maison : 50 % de large, posée à partir de 13 % de haut ; « 3D » en dessous, en gras, centré
     lm=int(T*0.50); m=maison.resize((lm,int(maison.size[1]*lm/maison.size[0])),Image.LANCZOS)
     teinte=Image.new('RGBA',m.size,BLEU+(255,)); im.paste(teinte,((T-m.size[0])//2,int(T*0.13)),m)
+    # « 3D » en relief (Mauro, 15 octobre 2026 : « j'aimerais que ça fasse 3D ») : lettres extrudées vers le bas à droite,
+    # côté bleu foncé, face bleue, fine arête claire en haut à gauche
     d=ImageDraw.Draw(im); font=ImageFont.truetype(os.path.join(R,'polices','IBMPlexSans-SemiBold.ttf'),int(T*0.27))
-    tb=d.textbbox((0,0),'3D',font=font); tw=tb[2]-tb[0]; th=tb[3]-tb[1]
-    d.text(((T-tw)/2-tb[0],int(T*0.62)-tb[1]),'3D',fill=BLEU+(255,),font=font)
+    tb=d.textbbox((0,0),'3D',font=font); tw=tb[2]-tb[0]
+    prof=max(2,int(T*0.045)); x0=(T-tw)/2-tb[0]-prof/2; y0=int(T*0.60)-tb[1]
+    for i in range(prof,0,-1):
+        k=i/prof; cote=tuple(int(FONCE[j]*(0.75+0.25*k)) for j in range(3))
+        d.text((x0+i,y0+i),'3D',fill=cote+(255,),font=font)
+    d.text((x0-1,y0-1),'3D',fill=CLAIR+(255,),font=font)
+    d.text((x0,y0),'3D',fill=BLEU+(255,),font=font)
     return im
 def arrondi(im,r):
     T=im.size[0]; m=Image.new('L',(T,T),0); ImageDraw.Draw(m).rounded_rectangle((0,0,T-1,T-1),radius=r,fill=255); im=im.copy(); im.putalpha(m); return im
