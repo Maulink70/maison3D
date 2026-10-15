@@ -19,11 +19,18 @@ def http(nom,x,corps):
      'options':{'response':{'response':{'fullResponse':True,'neverError':True}},'batching':{'batch':{'batchSize':4,'batchInterval':1000}}}}
   if corps: p.update({'sendBody':True,'contentType':'json','specifyBody':'json','jsonBody':'={{ JSON.stringify($json.req.body) }}'})
   return {'id':str(uuid.uuid5(uuid.NAMESPACE_DNS,'m3d-'+nom)),'name':nom,'type':'n8n-nodes-base.httpRequest','typeVersion':4.2,'position':[x,0],'parameters':p,'credentials':cred}
+def airtable(nom,x,corps,essais):
+  n=http(nom,x,corps); n['parameters']['options']['timeout']=60000 if corps else 20000
+  if essais: n.update({'retryOnFail':True,'maxTries':3,'waitBetweenTries':2000})
+  return n
+# Airtable injoignable un moment (12 octobre 2026, 17 h 38 : 7 exécutions en erreur après 2 min 15 s d'attente) : la lecture est
+# refaite jusqu'à 3 fois (sans effet de bord) avec un délai de 20 s ; l'écriture a un délai de 60 s mais n'est jamais refaite par n8n
+# (un envoi arrivé chez Airtable juste avant la coupure ferait une ligne d'historique en double) : le site la renvoie lui-même
 nodes=[
  {'id':str(uuid.uuid5(uuid.NAMESPACE_DNS,'m3d-webhook')),'name':'Site Maison3D','type':'n8n-nodes-base.webhook','typeVersion':2,'position':[0,0],'webhookId':'4a2f5d0e-6c1b-4c8e-9f3a-maison3d0001',
   'parameters':{'httpMethod':'POST','path':'maison3d','responseMode':'responseNode','options':{'allowedOrigins':ORIGINES}}},
- code('Analyser',lib+lire('analyser.js'),220), si('Lecture ?',440), http('Lire Airtable',660,False),
- code('Décider',lib+lire('decider.js'),880), si('Écriture ?',1100), http('Écrire Airtable',1320,True),
+ code('Analyser',lib+lire('analyser.js'),220), si('Lecture ?',440), airtable('Lire Airtable',660,False,True),
+ code('Décider',lib+lire('decider.js'),880), si('Écriture ?',1100), airtable('Écrire Airtable',1320,True,False),
  code('Répondre',lire('repondre.js'),1540),
  {'id':str(uuid.uuid5(uuid.NAMESPACE_DNS,'m3d-reponse')),'name':'Réponse','type':'n8n-nodes-base.respondToWebhook','typeVersion':1.1,'position':[1760,0],
   'parameters':{'respondWith':'json','responseBody':'={{ JSON.stringify($json.reponse) }}','options':{}}}]
