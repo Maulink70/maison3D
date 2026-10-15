@@ -1,7 +1,8 @@
 // Lampes allumées le soir (étape 2, demande de Mauro du 9 octobre 2026) : en lumière « Soir » ou « Nuit », les lampes
 // s'allument : leurs parties lumineuses brillent d'un blanc chaud (matière « lumiere » des luminaires construits en code :
 // abat-jours, globes, réglettes, bandeaux ; pour un autre objet marqué lampe, ses parties claires), et les 4 lampes
-// allumées les plus proches de ce qu'on regarde éclairent vraiment la pièce (4 sources ponctuelles au plus, pas d'ombres :
+// allumées les plus proches de ce qu'on regarde éclairent vraiment la pièce (6 sources ponctuelles au plus depuis le 15 octobre
+// 2026, 4 avant ; en 1re personne, celles dans le champ de vision d'abord ; pas d'ombres :
 // la tablette reste fluide). Est une lampe : tout élément qui a une partie en matière « lumiere » (lampadaire, lampe du
 // buffet, suspension, lustre, plafonniers, appliques, lampes des chevets…), ou tout objet coché « C'est une lampe » dans
 // le panneau (Éditer) — les objets ajoutés plus tard (étape 4) pourront être marqués de même. Chaque lampe s'allume ou
@@ -11,7 +12,8 @@ import {app, $} from './app.js';
 import {etat} from './calques.js';
 import {nommer, poserIcone} from './icones.js';
 
-const CLE='maison3d-lampes', CHAUD=new THREE.Color(0xffd29a), MAX=4, FORCE={soir:1.8,nuit:2.6};
+const CLE='maison3d-lampes', CHAUD=new THREE.Color(0xffd29a), MAX=6, FORCE={soir:1.8,nuit:2.6};
+let eclairees=new Set();   // lampes qui portent une source (gardées de préférence : pas de halo qui saute d'une lampe à l'autre)
 let choix={}, sources=null, dernier=0, allume=null;
 try{ choix=JSON.parse(localStorage.getItem(CLE)||'{}')||{}; }catch{ choix={}; }
 const garder=()=>{ try{ localStorage.setItem(CLE,JSON.stringify(choix)); }catch{} };
@@ -78,7 +80,15 @@ export function majLampes(){
   if(!soir&&!sources) return;
   if(!sources){ sources=[]; for(let k=0;k<MAX;k++){ const l=new THREE.PointLight(CHAUD,0,8,1.6); app.scene.add(l); sources.push(l); } }
   const t=performance.now(); if(t-dernier<300) return; dernier=t;
-  const vue=app.mode==='orbit'?app.orbit.target:app.camera.position;
-  const lampes=soir?Object.values(app.items).filter(it=>estAllumee(it)&&!it.hidden).map(it=>({it,p:centre(it)})).sort((a,b)=>a.p.distanceTo(vue)-b.p.distanceTo(vue)).slice(0,MAX):[];
+  // en 1re personne, une lampe devant soi (dans le champ de vision) passe avant une lampe plus proche mais dans le dos ou de
+  // côté (Mauro, 15 octobre 2026 : un pas vers la cuisine, et la lampe du buffet, au milieu de l'écran, perdait son halo et son
+  // reflet sur la table au profit des éclairages de la cuisine) ; une lampe déjà éclairée garde un avantage (hystérésis)
+  const vue=app.mode==='orbit'?app.orbit.target:app.camera.position, dir=new THREE.Vector3(), v=new THREE.Vector3();
+  app.camera.getWorldDirection(dir); const marche=app.mode==='walk', champ=Math.cos(THREE.MathUtils.degToRad(Math.min(app.camera.fov*Math.max(1,app.camera.aspect)/2+12,80)));
+  const score=(it,p)=>{ let d=p.distanceTo(vue);
+    if(marche){ const c=v.copy(p).sub(vue).normalize().dot(dir); d*=c>=champ?1:c>0?2.2:3.5; }
+    return eclairees.has(it.name)?d*0.8:d; };
+  const lampes=soir?Object.values(app.items).filter(it=>estAllumee(it)&&!it.hidden).map(it=>{ const p=centre(it); return {it,p,s:score(it,p)}; }).sort((a,b)=>a.s-b.s).slice(0,MAX):[];
+  eclairees=new Set(lampes.map(q=>q.it.name));
   sources.forEach((l,k)=>{ const q=lampes[k]; l.intensity=q?FORCE[etat.lumiere]:0; if(q) l.position.copy(q.p); });
 }
