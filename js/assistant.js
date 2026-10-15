@@ -558,7 +558,7 @@ async function enlever(o){
   await projet();
   const it=await choisirObjet('e-objet','Quel objet veux-tu enlever ?',o);
   let v='masquer';
-  if(it.ajout) v=(await demander('e-quoi',{titre:'Le masquer ou le supprimer ?',aide:'Les meubles de la maquette se masquent ; seuls les objets ajoutés se suppriment.',choix:[ch('Le masquer (on peut le remettre)','masquer',{prim:true}),ch('Le supprimer','supprimer')]})).v;
+  if(it.ajout&&!it.base) v=(await demander('e-quoi',{titre:'Le masquer ou le supprimer ?',aide:'Les meubles de la maquette se masquent ; seuls les objets ajoutés se suppriment.',choix:[ch('Le masquer (on peut le remettre)','masquer',{prim:true}),ch('Le supprimer','supprimer')]})).v;
   await recap([v==='masquer'?`Masquer « ${it.meta.l} » (il reste dans la liste « Masqués »)`:`Supprimer « ${it.meta.l} »`]);
   if(v==='masquer'){ setHidden(it,true); select(null); } else supprimerAjout(it.name);
   if(v==='supprimer') dispatchEvent(new CustomEvent('meubles'));
@@ -693,7 +693,7 @@ async function imprimer(){
 // ---------- J. Mes projets ----------
 async function projets(){
   const v=varianteCourante();
-  const r=await demander('j-quoi',{titre:'Que veux-tu faire avec tes projets ?',lignes:[`Projet affiché : « ${v?.nom||'Base d’origine'} ».`],
+  const r=await demander('j-quoi',{titre:'Que veux-tu faire avec tes projets ?',lignes:[`Projet affiché : « ${v?.nom||'Appart Base'} ».`],
     choix:[ch('Faire une copie pour essayer sans risque','copie'),ch('Changer de projet','changer'),ch('Comparer deux projets','comparer'),ch('Voir la liste des meubles du projet','tableau')]});
   if(r.v==='copie'){ const n='Projet '+(lesVariantes().filter(x=>!x.fixe).length+1);
     const t=await demander('j-nom',{titre:'Quel nom ?',libre:{ph:'Ex. « Salon bleu »'},choix:[ch(n,n,{prim:true})]});

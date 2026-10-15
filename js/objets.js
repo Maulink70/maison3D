@@ -226,7 +226,8 @@ function majPanneau(){
   majFichier();
   $('t-remplacer').hidden=it.meta.c==='ouverture'; $('t-blender').hidden=it.meta.c==='ouverture';
   $('t-pose').hidden=it.meta.c==='ouverture';   // portes et fenêtres : leurs ouvrants sont réglés sur le modèle (Taille grisé : edition.js)
-  $('t-suppr').hidden=!a; $('t-reset').hidden=!!a; $('t-suppr').textContent='Supprimer cet objet'; $('t-suppr').classList.remove('arme');
+  const libre=!!a&&!it.base;   // un objet de l'Appart Base se remet en place et se masque, ne se supprime pas (base.js)
+  $('t-suppr').hidden=!libre; $('t-reset').hidden=libre; $('t-suppr').textContent='Supprimer cet objet'; $('t-suppr').classList.remove('arme');
   partie=null; majDimensions(); majMatieres();
 }
 // poids du fichier d'un objet 3D importé (connu une fois le fichier lu : objet-pret)
@@ -247,7 +248,7 @@ export function initObjets(){
   $('remplacer-choisir').onclick=()=>ouvrirMenu(true);
   addEventListener('edition',()=>{ if(!app.edition&&remplacement) finRemplacement(); });
   let arme=0;
-  $('t-suppr').onclick=()=>{ const it=app.selected; if(!it?.ajout) return; const s=$('t-suppr');
+  $('t-suppr').onclick=()=>{ const it=app.selected; if(!it?.ajout||it.base) return; const s=$('t-suppr');
     if(Date.now()-arme>4000){ arme=Date.now(); s.textContent='Confirmer la suppression'; s.classList.add('arme'); setTimeout(()=>{ if(Date.now()-arme>=3900){ s.textContent='Supprimer cet objet'; s.classList.remove('arme'); } },4000); return; }
     arme=0; supprimerAjout(it.name); dispatchEvent(new CustomEvent('meubles')); save(); $('save-state').textContent='Objet supprimé (annulable).'; };
   // la disposition change (annuler, autre appareil) : le panneau suit

@@ -26,9 +26,11 @@ const garder=()=>{ try{ localStorage.setItem(CLE,JSON.stringify(choix)); }catch{
 
 // ---------- quel rendu ----------
 const simple=s=>String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().trim();
+// depuis le grand ménage du 15 octobre 2026, l'« Appart Base » (objets Blender) est la seule base : « Réaliste » d'office partout
+// (clé renduR gardée : le choix déjà fait sur l'appareil pour la base « Réalisme » reste valable)
 export function dansRealisme(){
-  const v=varianteCourante(); if(!v) return false;
-  const g=groupeDe(v), b=lesVariantes().find(x=>x.id===g); return simple(b?.nom)==='realisme';
+  const v=varianteCourante(); if(!v) return true;
+  const g=groupeDe(v), b=lesVariantes().find(x=>x.id===g); return !b||b.fixe||simple(b?.nom)==='realisme';
 }
 const cle=()=>dansRealisme()?'renduR':'rendu';
 export const renduReel=()=>choix[cle()]==='realiste';
@@ -105,7 +107,7 @@ function majBoutons(){
   const t=$('rendu-reel'); if(!t) return; const reel=renduReel();
   t.setAttribute('aria-pressed',String(reel));
   $('cq-ao-l').hidden=!reel; $('cq-ao').checked=!!choix.ao; $('cq-ao-curseur-l').hidden=!reel||!choix.ao;
-  $('cq-rendu-note').textContent=dansRealisme()?'Base « Réalisme » : « Réaliste » d’office.':'« Réaliste » : lumière d’ambiance, reflets, couleurs « appareil photo ».';
+  $('cq-rendu-note').textContent=dansRealisme()?'« Appart Base » : « Réaliste » d’office (lumière d’ambiance, reflets, couleurs « appareil photo »).':'« Réaliste » : lumière d’ambiance, reflets, couleurs « appareil photo ».';
 }
 // bouton « Réaliste » de la barre, à côté de « Affichage » (Mauro, 14 octobre 2026) : enfoncé en rendu réaliste ; il ouvre le menu (barre.js)
 function majBoutonBarre(){

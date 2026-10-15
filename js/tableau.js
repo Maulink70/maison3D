@@ -24,9 +24,10 @@ function matieresDe(it){
   return l.join(', ');
 }
 function changements(it){
-  if(it.ajout) return it.hidden?'ajouté, masqué':'ajouté';
+  if(it.ajout&&!it.base) return it.hidden?'ajouté, masqué':'ajouté';
   const e=etatDe(it), o=origineDe(it.name)||{}, l=[];
   if(it.hidden) l.push('masqué');
+  if(it.base&&e.a&&o.a&&JSON.stringify(e.a)!==JSON.stringify(o.a)) l.push('refait');   // objet de l'Appart Base : dimensions, nom ou hauteur de pose changés
   const d=Math.hypot((e.x||0)-(o.x||0),(e.z||0)-(o.z||0)); if(d>0.02) l.push('déplacé de '+d.toFixed(2).replace('.',',')+' m');
   const a=Math.round((e.r||0)*180/Math.PI)%360; if(Math.abs(a)>=1) l.push('tourné de '+a+'°');
   if(e.s) l.push('redimensionné'); if(e.dy) l.push('posé à '+Math.round(e.dy*100)+' cm');
@@ -36,13 +37,13 @@ function changements(it){
 export function lignes({niveau='tout',changes=false,ouvertures=false}={}){
   const r=[];
   for(const it of Object.values(app.items)){
-    if(it.meta.c!=='meuble'&&!(ouvertures&&it.meta.c==='ouverture')) continue;
+    if(it.meta.c!=='meuble'&&!(ouvertures&&it.meta.c==='ouverture')) continue; if(it.coulisses) continue;
     const niv=it.lvl==='Étage'?'etage':'rez'; if(niveau!=='tout'&&niveau!==niv) continue;
     const ch=changements(it); if(changes&&!ch) continue;
     const s=it.size, a=it.ajout, o=a?.o;
-    r.push({niveau:it.lvl,piece:pieceDe(it.g.position.x,it.g.position.z,niv)?.nom||'',nom:it.meta.l,categorie:a?'Objet ajouté':it.meta.c==='ouverture'?'Porte ou fenêtre':'Mobilier',
+    r.push({niveau:it.lvl,piece:pieceDe(it.g.position.x,it.g.position.z,niv)?.nom||'',nom:it.meta.l,categorie:a&&!it.base?'Objet ajouté':it.meta.c==='ouverture'?'Porte ou fenêtre':'Mobilier',
       L:cm(s.x),P:cm(s.z),H:cm(s.y),matieres:matieresDe(it),couleur:it.color||'',changements:ch,
-      source:o?(o.produit?o.site:o.site+(o.auteur?' · '+o.auteur:'')+(o.licence?' · '+o.licence:'')):a?SOURCES[a.t]||'':'Maquette',lien:o?.lien||'',nomCle:it.name});
+      source:o?(o.produit?o.site:o.site+(o.auteur?' · '+o.auteur:'')+(o.licence?' · '+o.licence:'')):it.base?'Appart Base (Blender)':a?SOURCES[a.t]||'':'Maquette',lien:o?.lien||'',nomCle:it.name});
   }
   const ordreNiv=n=>n==='Rez'?0:1;
   return r.sort((x,y)=>ordreNiv(x.niveau)-ordreNiv(y.niveau)||x.piece.localeCompare(y.piece,'fr')||x.nom.localeCompare(y.nom,'fr'));

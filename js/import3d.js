@@ -29,8 +29,10 @@ const boite=o=>{ o.updateMatrixWorld(true); return new THREE.Box3().setFromObjec
 // ---------- l'objet 3D ----------
 const modeles=new Map(), poids=new Map();   // poids : octets et triangles de chaque fichier lu (panneau de l'objet)
 const nbTriangles=s=>{ let t=0; s.traverse(o=>{ if(o.isMesh){ const g=o.geometry; t+=(g.index?g.index.count:g.attributes.position.count)/3; } }); return t; };
+// fichier d'un objet de l'Appart Base : dans le dépôt (f.u = modele/objets/<id>.glb, gardé en cache par sw.js), sinon table Fichiers
+const lireLocal=async u=>{ try{ const r=await fetch(u); return r.ok?await r.blob():null; }catch{ return null; } };
 function modele(f){
-  if(!modeles.has(f.id)) modeles.set(f.id,(async()=>{ const b=await lireFichier(f.id,f.n||1,'model/gltf-binary'); if(!b){ modeles.delete(f.id); return null; }
+  if(!modeles.has(f.id)) modeles.set(f.id,(async()=>{ const b=f.u?(await lireLocal(f.u))||await lireFichier(f.id,f.n||1,'model/gltf-binary'):await lireFichier(f.id,f.n||1,'model/gltf-binary'); if(!b){ modeles.delete(f.id); return null; }
     try{ const s=await lire(await b.arrayBuffer()); poids.set(f.id,{octets:b.size,triangles:nbTriangles(s)}); return s; }catch{ modeles.delete(f.id); return null; } })());
   return modeles.get(f.id);
 }

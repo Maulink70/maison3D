@@ -10,7 +10,7 @@ self.addEventListener('activate',e=>e.waitUntil((async()=>{
   for(const k of await caches.keys()) if(k!==MODELE&&k!==CODE&&k!=='maison3d-fichiers') await caches.delete(k);   // fichiers des objets ajoutés (fichiers.js) : gardés
   await self.clients.claim();
 })()));
-const fixe=u=>(u.origin===self.location.origin&&/\/(modele|polices|icones|ciel|textures)\/|\/cuisson\/[^?]*\.(webp|bin)$/.test(u.pathname))||u.hostname==='cdn.jsdelivr.net'||u.hostname==='fonts.gstatic.com';
+const fixe=u=>(u.origin===self.location.origin&&!/\.json$/.test(u.pathname)&&/\/(modele|polices|icones|ciel|textures)\/|\/cuisson\/[^?]*\.(webp|bin)$/.test(u.pathname))||u.hostname==='cdn.jsdelivr.net'||u.hostname==='fonts.gstatic.com';
 self.addEventListener('fetch',e=>{
   const r=e.request; if(r.method!=='GET'||r.headers.has('range')) return;
   const u=new URL(r.url);

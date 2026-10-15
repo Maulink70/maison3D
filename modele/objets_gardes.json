@@ -1,0 +1,119 @@
+{
+ "version": 1,
+ "date": "2026-10-15",
+ "note": "Objets ajoutés par Mauro dans les anciennes variantes « 1 » et « Retouches » (supprimées le 15 octobre 2026) ; fichiers dans la table Fichiers d’Airtable.",
+ "objets": [
+  {
+   "x": 17.4416,
+   "z": -22.6004,
+   "r": 0,
+   "a": {
+    "d": [
+     0.99951,
+     0.50342,
+     0.96045
+    ],
+    "e": 0.9397,
+    "f": "glb",
+    "fic": {
+     "id": "recDUqkRJzOYQMwYh",
+     "n": 1
+    },
+    "n": "fruit+bowl+3d+model",
+    "p": {
+     "H": 0.157,
+     "L": 0.3,
+     "P": 0.3
+    },
+    "t": "glb",
+    "v": "rez",
+    "y": 0.0003
+   },
+   "variante": "Retouches"
+  },
+  {
+   "x": 17.2346,
+   "z": -17.7038,
+   "r": 0,
+   "a": {
+    "d": [
+     3.09069,
+     0.95012,
+     2.48475
+    ],
+    "e": 0,
+    "f": "glb",
+    "fic": {
+     "id": "recG0HgDu3pwM7BpN",
+     "n": 1
+    },
+    "n": "Canapé salon 2",
+    "p": {
+     "H": 0.95,
+     "L": 3.091,
+     "P": 2.485
+    },
+    "t": "glb",
+    "v": "rez",
+    "y": 0.0003
+   },
+   "variante": "Retouches"
+  },
+  {
+   "x": 17.9883,
+   "z": -22.5918,
+   "r": -3.14159,
+   "a": {
+    "d": [
+     0.63727,
+     0.86214,
+     0.97971
+    ],
+    "e": 0.9397,
+    "f": "glb",
+    "fic": {
+     "id": "recRvd30eYTakryn1",
+     "n": 1
+    },
+    "n": "espresso+machine+3d+model (2)",
+    "p": {
+     "H": 0.39,
+     "L": 0.29,
+     "P": 0.585
+    },
+    "t": "glb",
+    "v": "rez",
+    "y": 0.0003
+   },
+   "variante": "Retouches"
+  },
+  {
+   "x": 19.0653,
+   "z": -22.5095,
+   "r": -1.5708,
+   "a": {
+    "d": [
+     0.40783,
+     0.5,
+     0.33494
+    ],
+    "e": 0,
+    "f": "glb",
+    "fic": {
+     "id": "recONZqlT7R82EXE1",
+     "n": 1
+    },
+    "n": "Sac linge",
+    "p": {
+     "H": 0.5,
+     "L": 0.408,
+     "P": 0.335
+    },
+    "t": "glb",
+    "v": "etage",
+    "y": 2.74
+   },
+   "variante": "1"
+  }
+ ]
+}

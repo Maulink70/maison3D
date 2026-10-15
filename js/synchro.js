@@ -36,7 +36,9 @@ const enAttente=()=>Object.keys(attente.changements).length>0||attente.ops.lengt
 
 // « Base » (demande de Mauro du 10 octobre 2026) : la maquette telle qu'au départ, toujours en tête des variantes, ni
 // modifiable, ni renommable, ni supprimable ; pas stockée dans Airtable (sa disposition est vide : tout à sa place d'origine)
-export const BASE=Object.freeze({id:'base',nom:'Base d’origine',disposition:{},version:0,fixe:true,origine:true});
+// Depuis le grand ménage du 15 octobre 2026, c'est l'« Appart Base » (base.js : l'appartement tel qu'il est, objets Blender compris),
+// seule base au départ ; disposition vide = tout à sa place de base
+export const BASE=Object.freeze({id:'base',nom:'Appart Base',disposition:{},version:0,fixe:true,origine:true});
 export const lesVariantes=()=>[BASE,...variantes];
 // Bases (11 octobre 2026, choix de Mauro) : « En faire une base » copie une variante en base (Airtable : « Est une base »),
 // verrouillée comme la Base d'origine mais renommable, masquable et supprimable (avec ses variantes) ; chaque variante
@@ -76,10 +78,9 @@ const mesureDuServeur=s=>({a:s.a,b:s.b,t:/^\d+$/.test(s.id)?+s.id:s.id});
 export async function charger(){
   const r=await appel('charger');
   if(!r.ok){ majEtat(r.horsLigne); return false; }
-  variantes=r.variantes||[];
-  if(!variantes.length){ majEtat(); return false; }
+  variantes=r.variantes||[];   // aucune variante sur le serveur : l'Appart Base seule (grand ménage du 15 octobre 2026)
   const voulu=connecte()?(lire(CACHE,{}).courante||courante):null;
-  const v=voulu===BASE.id?BASE:variantes.find(x=>x.id===voulu)||variantes[0];
+  const v=voulu===BASE.id?BASE:variantes.find(x=>x.id===voulu)||variantes[0]||BASE;
   if(v.id!==courante){ courante=v.id; changerJournal(courante); }
   if(connecte()){
     // vues et mesures : la liste du serveur, plus celles faites ici et pas encore envoyées (ou d'avant les comptes)

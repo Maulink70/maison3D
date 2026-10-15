@@ -13,7 +13,8 @@
 // base » le reste : présent dans une base et, au plus, dans ses copies (les 141 objets Blender de « Réalisme » et de « Projet 4 »).
 // Une base faite par Mauro à partir de sa variante (« Retouches ») ne change donc rien : ses objets restent « mes ajouts ».
 import {app} from './app.js';
-import {lesVariantes, varianteCourante, verrouillee, groupeDe} from './synchro.js';
+import {lesVariantes, varianteCourante, verrouillee, groupeDe, BASE} from './synchro.js';
+import {objetsDeBase} from './base.js';
 import {lireDisposition} from './sauvegarde.js';
 import {ajouterObjet, remplacementEnCours} from './objets.js';
 import {nomDe} from './ajouts.js';
@@ -28,6 +29,15 @@ const CLE='maison3d-mesobjets';
 const lireChoix=()=>{ try{ const c=JSON.parse(localStorage.getItem(CLE)||'{}'); return {filtre:['mes','bases','tous'].includes(c.filtre)?c.filtre:'mes',cacher:!!c.cacher}; }catch{ return {filtre:'mes',cacher:false}; } };
 let fen=null, liste=[], choix=lireChoix(), filtreVu='mes';
 const garder=()=>{ try{ localStorage.setItem(CLE,JSON.stringify(choix)); }catch{} };
+// anciens objets de Mauro (modele/objets_gardes.json : variantes « 1 » et « Retouches » supprimées au grand ménage du 15 octobre 2026,
+// fichiers toujours dans Airtable), lus à la première ouverture, rangés dans « Mes ajouts »
+const GARDES='modele/objets_gardes.json';
+let gardes=null;
+async function lireGardes(){
+  if(gardes) return; gardes=[];
+  try{ const r=await fetch(GARDES,{cache:'no-store'}); if(r.ok) gardes=((await r.json()).objets||[]).filter(e=>e?.a&&cle(e.a)); }catch{}
+  if(gardes.length&&fen&&!fen.hidden){ liste=recueillir(); choisirPastille(); remplir(); }
+}
 
 // les objets des variantes (la plus récemment modifiée d'abord : c'est sa place et son aspect qui sont repris) ; chaque objet
 // sait dans quelles variantes et dans quelles bases il est (un objet d'une base est « de base », même s'il est aussi dans une copie)
@@ -36,8 +46,9 @@ function recueillir(){
   for(const e of Object.values(ici)) if(e?.a){ const k=cle(e.a); if(k) deja.add(k); }
   const toutes=lesVariantes(), parId=new Map(toutes.map(v=>[v.id,v])), clesDe=new Map();
   // les objets (même fichier) de la base d'une variante : ceux qu'elle en a hérités
+  // (l'Appart Base : ses objets sont dans base.js, pas dans une disposition)
   const heritee=(v,k)=>{ const b=parId.get(groupeDe(v)); if(!b||b.id===v.id) return false;
-    if(!clesDe.has(b.id)) clesDe.set(b.id,new Set(Object.values(b.disposition||{}).map(e=>e?.a&&cle(e.a)).filter(Boolean))); return clesDe.get(b.id).has(k); };
+    if(!clesDe.has(b.id)) clesDe.set(b.id,new Set(b.id===BASE.id?objetsDeBase().map(({e})=>cle(e.a)):Object.values(b.disposition||{}).map(e=>e?.a&&cle(e.a)).filter(Boolean))); return clesDe.get(b.id).has(k); };
   const vs=toutes.filter(v=>!v.origine).sort((a,b)=>(b.id===cour?.id)-(a.id===cour?.id)||String(b.modifieeLe||'').localeCompare(String(a.modifieeLe||'')));
   for(const v of vs){
     const d=v.id===cour?.id?ici:(v.disposition||{}), base=verrouillee(v);
@@ -48,6 +59,9 @@ function recueillir(){
       if(!base&&!heritee(v,k)) o.mes=true;
     }
   }
+  // les objets de l'Appart Base (base.js), puis les anciens objets gardés
+  for(const {n,e} of objetsDeBase()){ const k=cle(e.a); if(!k) continue; let o=vus.get(k); if(!o){ o={k,n,e,d:{},v:BASE,noms:[],bases:[],mes:false}; vus.set(k,o); } if(!o.bases.includes(BASE.nom)) o.bases.push(BASE.nom); }
+  for(const e of gardes||[]){ const k=cle(e.a); if(vus.has(k)) continue; vus.set(k,{k,n:'',e,d:{},v:{nom:e.variante||''},noms:[],bases:[],mes:true,note:`Gardé de l’ancienne variante « ${e.variante||'?'} » (ménage du 15 octobre 2026)`}); }
   return [...vus.values()].map(o=>({...o,ici:deja.has(o.k),masques:masquesLa(o),nom:nomDe(o.e.a),deBase:!o.mes,
     texte:sans([nomDe(o.e.a),...o.noms,...o.bases,o.e.a.o?texteOrigine(o.e.a.o):'',o.e.a.t==='glb'?'modele 3d':'image plate'].join(' '))}))
     .sort((a,b)=>sans(a.nom).localeCompare(sans(b.nom),'fr'));
@@ -89,17 +103,16 @@ const CUBE='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-wi
 export function mesObjetsDisponibles(){ return recueillir().length; }
 export function ouvrirMesObjets(oui=true){
   if(oui&&!fen) construire(); if(!fen) return; fen.hidden=!oui; if(!oui) return;
-  liste=recueillir(); const rempl=remplacementEnCours();
+  lireGardes(); liste=recueillir(); const rempl=remplacementEnCours();
   fen.querySelector('.mo-aide').textContent=!liste.length?'Aucun objet 3D ni image plate dans vos variantes pour l’instant : ils apparaîtront ici dès que vous en aurez ajouté un (fichier 3D, Tripo, catalogue, photo).'
     :rempl?`Le nouvel objet prend la place et l’orientation de « ${rempl.meta.l} », qui sera masqué. Même fichier : rien n’est refait, aucun crédit.`
-    :'Les objets déjà ajoutés dans vos variantes. « Ajouter ici » les met dans la variante affichée, à la même place, même taille et mêmes matières : rien n’est refait, aucun crédit.';
+    :'Vos objets (anciens et nouveaux) et ceux de l’Appart Base. « Ajouter ici » les met dans la variante affichée, à la même place, même taille et mêmes matières : rien n’est refait, aucun crédit.';
   fen.querySelector('.mo-outils').hidden=!liste.length;
-  // la pastille gardée, sauf si elle ne montrerait rien alors qu'il y a des objets ailleurs (pas encore d'ajout à soi : « Tous »)
-  const nMes=liste.filter(o=>!o.deBase).length, nBases=liste.length-nMes;
-  filtreVu=choix.filtre; if((filtreVu==='mes'&&!nMes)||(filtreVu==='bases'&&!nBases)) filtreVu='tous';
-  const q=fen.querySelector('#mo-recherche'); q.value=''; remplir();
+  choisirPastille(); const q=fen.querySelector('#mo-recherche'); q.value=''; remplir();
   if(matchMedia('(hover:hover) and (pointer:fine)').matches) q.focus();
 }
+// la pastille gardée, sauf si elle ne montrerait rien alors qu'il y a des objets ailleurs (pas encore d'ajout à soi : « Tous »)
+function choisirPastille(){ const nMes=liste.filter(o=>!o.deBase).length, nBases=liste.length-nMes; filtreVu=choix.filtre; if((filtreVu==='mes'&&!nMes)||(filtreVu==='bases'&&!nBases)) filtreVu='tous'; }
 function remplir(){
   const ul=fen.querySelector('.mo-liste'), rempl=remplacementEnCours(), q=sans(fen.querySelector('#mo-recherche').value.trim()), cacher=fen.querySelector('#mo-cacher-ici').checked;
   const nMes=liste.filter(o=>!o.deBase).length, nBases=liste.length-nMes;
@@ -120,7 +133,7 @@ function carte(o,rempl){
   const q=l=>l.map(x=>`« ${x} »`).join(', '), parts=[];
   if(o.bases.length) parts.push((o.bases.length>1?'les bases ':'la base ')+q(o.bases));
   if(o.noms.length) parts.push((o.noms.length>1?'les variantes ':'la variante ')+q(o.noms));
-  inf.append(el('span',{class:'mat-aide'},'Dans '+parts.join(' et ')));
+  inf.append(el('span',{class:'mat-aide'},o.note||('Dans '+parts.join(' et '))));
   if(o.ici) inf.append(el('span',{class:'mo-ici'},'déjà dans cette variante'));
   const cases=[];
   if(!rempl) for(const it of o.masques){ const lb=el('label',{class:'mo-masquer'}), c=el('input',{type:'checkbox'}); c.checked=true; cases.push([c,it]);

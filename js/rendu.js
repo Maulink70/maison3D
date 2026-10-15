@@ -57,7 +57,7 @@ export async function soldeKie(){ const r=await n8nRendu({action:'solde'}); if(A
 export function changements(){
   const l=[];
   for(const it of Object.values(app.items)){
-    if(it.ajout){ if(!it.hidden) l.push({it,type:'ajout'}); continue; }
+    if(it.ajout&&!it.base){ if(!it.hidden) l.push({it,type:'ajout'}); continue; }
     const o=origineDe(it.name); if(!o) continue;
     const e=etatDe(it);
     if(e.h){ l.push({it,type:'retire'}); continue; }

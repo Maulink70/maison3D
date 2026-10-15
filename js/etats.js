@@ -36,10 +36,12 @@ export const egaux=(n,a,b)=>texte(n,a)===texte(n,b);
 export function etatDe(it){
   return normaliser(it.name,{x:it.g.position.x,z:it.g.position.z,r:it.g.rotation.y,h:it.hidden,c:it.color,s:it.g.scale.toArray(),m:it.matieres,a:it.ajout,dy:it.ajout?0:it.g.position.y-it.home.y});
 }
-// état d'origine : meuble du modèle à sa place ; objet ajouté, sol ou mur : rien (null)
+// état d'origine : meuble du modèle à sa place (masqué s'il est en coulisses : porte ou fenêtre de la maquette doublée par
+// celle de Blender, base.js), objet de l'Appart Base dans son état de base (it.etat0) ; objet ajouté, sol ou mur : rien (null)
 export function origineDe(n){
-  if(estSurface(n)) return null; const it=app.items[n]; if(!it||it.ajout) return null;
-  return normaliser(n,{x:it.home.x,z:it.home.z,r:0,h:false,c:null});
+  if(estSurface(n)) return null; const it=app.items[n]; if(!it||(it.ajout&&!it.base)) return null;
+  if(it.base) return JSON.parse(JSON.stringify(it.etat0));
+  return normaliser(n,{x:it.home.x,z:it.home.z,r:0,h:!!it.coulisses,c:null});
 }
 
 // taille d'un meuble du modèle (facteurs par axe, dans son repère) : boîte, plan, emprise et alertes suivent
@@ -60,7 +62,8 @@ export function majApparence(it,force=false){
 // met un élément dans l'état e (normalisé)
 export function appliquerEtat(it,e){
   if(!e) return;
-  if(it.ajout&&e.a&&JSON.stringify(trier(it.ajout))!==JSON.stringify(e.a)) reconstruire(it,e.a);
+  const a=e.a||(it.base?it.etat0.a:null);   // objet de l'Appart Base sans définition dans l'état : celle de la base
+  if(it.ajout&&a&&JSON.stringify(trier(it.ajout))!==JSON.stringify(a)) reconstruire(it,a);
   it.g.position.x=e.x; it.g.position.z=e.z; it.g.rotation.set(0,e.r||0,0);
   if(!it.ajout){ echelonner(it,e.s||[1,1,1]); it.g.position.y=it.home.y+(+e.dy||0); }
   it.color=e.c||null; it.matieres=e.m?JSON.parse(JSON.stringify(e.m)):{}; majApparence(it);

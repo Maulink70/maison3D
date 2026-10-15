@@ -14,7 +14,12 @@ const KEY='diolly3d-v1';
 // disposition actuelle : les éléments qui ne sont pas dans leur état d'origine, les objets ajoutés, les sols et murs habillés
 export function lireDisposition(){
   const d={};
-  for(const it of Object.values(app.items)){ const e=etatDe(it); if(it.ajout||!egaux(it.name,e,origineDe(it.name))) d[it.name]=e; }
+  for(const it of Object.values(app.items)){ let e=etatDe(it);
+    if(it.base){   // objet de l'Appart Base : seulement s'il diffère, et sans sa définition tant qu'elle est celle de la base (base.js)
+      if(egaux(it.name,e,origineDe(it.name))) continue;
+      if(JSON.stringify(e.a)===JSON.stringify(it.etat0.a)){ e={...e}; delete e.a; }
+    } else if(!it.ajout&&egaux(it.name,e,origineDe(it.name))) continue;
+    d[it.name]=e; }
   for(const [n,e] of lesSurfaces()) if(e) d[n]=e;
   const ea=normaliser('alertes',etatAlertes()); if(ea) d.alertes=ea;   // alertes ignorées, gardées avec la variante
   return d;
@@ -30,7 +35,7 @@ export function save(opts={}){
 export function appliquerDisposition(d,{silencieux=false}={}){
   d=d||{}; let liste=false;
   for(const [n,e] of Object.entries(d)) if(e?.a&&!estSurface(n)&&!app.items[n]){ if(creerAjout(n,normaliser(n,e))) liste=true; }
-  for(const it of Object.values(app.items)) if(it.ajout&&!d[it.name]){ supprimerAjout(it.name); liste=true; }
+  for(const it of Object.values(app.items)) if(it.ajout&&!it.base&&!d[it.name]){ supprimerAjout(it.name); liste=true; }
   for(const it of Object.values(app.items)) appliquerEtat(it,normaliser(it.name,d[it.name])||origineDe(it.name));
   for(const n of nomsSurfaces()) appliquerSurface(n,normaliser(n,d[n]));
   appliquerAlertes(normaliser('alertes',d.alertes));

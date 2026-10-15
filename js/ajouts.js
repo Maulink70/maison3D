@@ -56,7 +56,7 @@ export function reconstruire(it,a){
   app.selBox?.update(); invaliderPlan();
 }
 export function supprimerAjout(nom){
-  const it=app.items[nom]; if(!it?.ajout) return;
+  const it=app.items[nom]; if(!it?.ajout||it.base) return;   // un objet de l'Appart Base se masque, ne se supprime pas
   if(app.selected===it) select(null);
   vider(it); it.g.removeFromParent(); delete app.items[nom]; invaliderPlan();
 }

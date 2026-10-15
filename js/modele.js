@@ -12,6 +12,7 @@ import {construireCuisine} from './rez_cuisine.js';
 import {construireSalon, construireBuffet} from './rez_salon.js';
 import {construirePieces, carrelerMursSdb} from './rez_pieces.js';
 import {plafondsPin, solDouche, murAubergine, ouvrirPorteDouche, carrelerDouche, faitage} from './etage_structure.js';
+import {chargerBase, installerBase, estRetire} from './base.js';
 import {construireEtage} from './etage_pieces.js';
 import {installerPortes} from './portes.js';
 import {installerFenetres} from './fenetres.js';
@@ -166,6 +167,7 @@ function installerMobilier(root){
   for(const child of [...root.children]){
     const meta=META[child.name]||{l:child.name,c:'fixe'};
     if(meta.c==='fixe'){ ajouterFixe(child,true); continue; }
+    if(estRetire(child.name)){ root.remove(child); continue; }   // meuble remplacé par un objet de l'Appart Base (base.js) : jamais affiché, hors de la liste
     const box=new THREE.Box3().setFromObject(child), c=box.getCenter(new THREE.Vector3());
     const g=new THREE.Group(); g.name=child.name; g.position.set(c.x,box.min.y,c.z); root.add(g); g.attach(child);
     const it={g,meta,name:child.name,size:box.getSize(new THREE.Vector3()),lvl:child.name.startsWith('etage')?'Étage':'Rez',
@@ -188,8 +190,8 @@ export async function chargerModele({structurePrete,mobilierPret}){
     $('loading').hidden=true; $('charge').hidden=false;
   }catch(e){ erreur(e,$('pct')); return; }
   try{
-    const m=await charger(FICHIERS.mobilier,p=>{ $('charge-pct').textContent=p+' %'; });
-    installerMobilier(m.scene); app.mobilierPret=true; mobilierPret();
+    const [m]=await Promise.all([charger(FICHIERS.mobilier,p=>{ $('charge-pct').textContent=p+' %'; }),chargerBase()]);   // l'Appart Base (base.js) en même temps
+    installerMobilier(m.scene); installerBase(); app.mobilierPret=true; mobilierPret();
     $('charge').hidden=true;
   }catch(e){ $('charge').hidden=false; erreur(e,$('charge'));
     $('list').innerHTML='<div class="attente">Les meubles n’ont pas pu être chargés. Rechargez la page.</div>'; }

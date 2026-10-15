@@ -100,7 +100,7 @@ export function select(name){
   for(const r of document.querySelectorAll('.row')) r.classList.toggle('sel',r.dataset.n===name);
   if(!app.selected){ if(onglet==='objet') ongletPanneau('meubles'); dispatchEvent(new CustomEvent('selection')); return; }
   const it=app.selected;
-  $('sel-cat').textContent=(it.ajout?'Objet ajouté':CAT_LABEL[it.meta.c])+' · '+it.lvl;
+  $('sel-cat').textContent=(it.ajout&&!it.base?'Objet ajouté':CAT_LABEL[it.meta.c])+' · '+it.lvl;
   $('sel-name').textContent=it.meta.l;
   $('sel-dims').textContent='L '+fmt(it.size.x)+' × P '+fmt(it.size.z)+' × H '+fmt(it.size.y)+' m';
   $('t-color').value=it.color||'#ffffff';
@@ -120,7 +120,7 @@ export function select(name){
 export function paint(it,hex){ it.color=hex||null; majApparence(it); }
 export function setHidden(it,h){ it.hidden=h; it.g.visible=!h; const row=document.querySelector('.row[data-n="'+CSS.escape(it.name)+'"]'); if(row){row.classList.toggle('off',h); row.querySelector('.eye').textContent=h?'Afficher':'Masquer';} majMasques(); }
 // tout l'élément à son état d'origine (place, rotation, couleur, taille, matières, affiché)
-export function resetItem(it){ if(!it.ajout) appliquerEtat(it,origineDe(it.name)); }
+export function resetItem(it){ if(!it.ajout||it.base) appliquerEtat(it,origineDe(it.name)); }
 
 // Liste rangée par étage (celui où l'on se trouve d'abord), puis mobilier / portes et fenêtres, par ordre alphabétique.
 // Filtres : niveau (Tout / Rez / Étage), affichés ou masqués (Tous / Affichés / Masqués (n) : Mauro, 11 octobre 2026, « trop
@@ -147,7 +147,7 @@ function observer(){ if(observateur) return observateur;
   observateur=new IntersectionObserver(es=>{ for(const e of es) if(e.isIntersecting){ const row=e.target, it=app.items[row.dataset.n]; observateur.unobserve(row);
     if(it) demanderVignette(it,url=>{ const im=row.querySelector('.vign img'); if(im) im.src=url; }); } },{root:$('list'),rootMargin:'120px 0px'});
   return observateur; }
-const listes=i=>i.meta.c==='meuble'||i.meta.c==='ouverture';
+const listes=i=>(i.meta.c==='meuble'||i.meta.c==='ouverture')&&!i.coulisses;   // coulisses : portes et fenêtres de la maquette doublées par Blender (base.js)
 function majMasques(){ const n=Object.values(app.items).filter(i=>listes(i)&&i.hidden).length; $('f-masques').textContent='Masqués'+(n?` (${n})`:''); }
 const sansAccent=t=>t.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
 export function buildList(){
@@ -160,7 +160,7 @@ export function buildList(){
   for(const lvl of niveaux){
     const blocs=[];
     for(const cat of ['meuble','ouverture']){
-      const its=Object.values(app.items).filter(i=>i.lvl===lvl&&i.meta.c===cat&&(!cherche||sansAccent(i.meta.l).includes(cherche))&&(filtre.vis==='tous'||(filtre.vis==='masques')===!!i.hidden)&&(!filtre.piece||pieceDuMeuble(i)?.id===filtre.piece))
+      const its=Object.values(app.items).filter(i=>i.lvl===lvl&&i.meta.c===cat&&!i.coulisses&&(!cherche||sansAccent(i.meta.l).includes(cherche))&&(filtre.vis==='tous'||(filtre.vis==='masques')===!!i.hidden)&&(!filtre.piece||pieceDuMeuble(i)?.id===filtre.piece))
         .sort((a,b)=>a.meta.l.localeCompare(b.meta.l,'fr'));
       if(its.length) blocs.push([cat,its]);
     }
@@ -170,7 +170,7 @@ export function buildList(){
       const c=document.createElement('div'); c.className='eyebrow group-title'; c.textContent=CAT_LABEL[cat]; box.appendChild(c);
       for(const it of its){
         total++;
-        const row=document.createElement('div'); row.className='row'+(it.hidden?' off':'')+(app.selected===it?' sel':'')+(it.ajout?' ajout':''); row.dataset.n=it.name;
+        const row=document.createElement('div'); row.className='row'+(it.hidden?' off':'')+(app.selected===it?' sel':'')+(it.ajout&&!it.base?' ajout':''); row.dataset.n=it.name;
         const v=document.createElement('span'); v.className='vign'; const im=document.createElement('img'); im.alt=''; im.decoding='async'; v.append(im);
         const b=document.createElement('button'); b.className='name'; b.textContent=it.meta.l; b.onclick=()=>{ if(it.hidden) setHidden(it,false); select(it.name); cadrerObjet(it); save(); };   // la vue se cadre sur lui (Mauro, 11 octobre 2026)
         const eye=document.createElement('button'); eye.className='eye'; eye.textContent=it.hidden?'Afficher':'Masquer';

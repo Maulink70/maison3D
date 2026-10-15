@@ -21,7 +21,7 @@ let etat=null, journal=[], pos=0, enCours=false;   // journal[0..pos) : fait ; j
 // état de chaque élément (etats.js) : meubles, objets ajoutés (absents = null), sols et murs habillés
 const photo=()=>{ const s={}; for(const it of Object.values(app.items)) s[it.name]=etatDe(it); for(const [n,e] of lesSurfaces()) if(e) s[n]=e;
   const ea=normaliser('alertes',etatAlertes()); if(ea) s.alertes=ea; return s; };
-const origine=(n,s)=>!estSurface(n)&&!!app.items[n]&&!app.items[n].ajout&&egaux(n,s,origineDe(n));
+const origine=(n,s)=>!estSurface(n)&&!!app.items[n]&&!(app.items[n].ajout&&!app.items[n].base)&&egaux(n,s,origineDe(n));
 const m=v=>v.toFixed(2).replace('.',',')+' m', deg=r=>{ let a=Math.round(r*180/Math.PI)%360; if(a>180) a-=360; if(a<=-180) a+=360; return a; };
 const cm=v=>String(Math.round(v*1000)/10).replace('.',',');
 const dims=e=>e?.a?.p?`${cm(e.a.p.L)} × ${cm(e.a.p.P)} × ${cm(e.a.p.H)} cm`:'';
@@ -78,7 +78,7 @@ function appliquer(e,quoi){
   for(const c of e.ch){ const s=c[quoi];
     if(c.n==='alertes'){ appliquerAlertes(s); continue; }
     if(estSurface(c.n)){ appliquerSurface(c.n,s); continue; }
-    if(!s){ if(app.items[c.n]?.ajout){ supprimerAjout(c.n); liste=true; } continue; }
+    if(!s){ const x=app.items[c.n]; if(x?.ajout&&!x.base){ supprimerAjout(c.n); liste=true; } else if(x) appliquerEtat(x,origineDe(c.n)); continue; }
     let it=app.items[c.n]; if(!it&&s.a){ it=creerAjout(c.n,s); liste=true; }
     if(it) appliquerEtat(it,s); }
   if(liste) dispatchEvent(new CustomEvent('meubles'));

@@ -74,6 +74,7 @@ export function comparer(idB){
   const noms=new Set([...Object.keys(dA),...Object.keys(dB),...Object.keys(app.items),...nomsSurfaces()]);
   for(const n of noms){
     const A=normaliser(n,dA[n])||origineDe(n), B=normaliser(n,dB[n])||origineDe(n);
+    const ib=app.items[n]; if(ib?.base){ if(A&&!A.a) A.a=ib.etat0.a; if(B&&!B.a) B.a=ib.etat0.a; }   // objet de l'Appart Base gardé sans sa définition (sauvegarde.js)
     if(n==='alertes'||egaux(n,A,B)) continue;   // les alertes ignorées ne se voient pas
     if(estSurface(n)){ diff.push({n,surface:true,A,B}); continue; }
     const it=app.items[n];

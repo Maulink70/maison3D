@@ -26,10 +26,12 @@ export const lesAlertes=()=>alertes;
 // meubles qui comptent : posés (base sous 1 m), de plus de 5 cm de haut (le tapis ne gêne pas), visibles
 const poses=it=>it.meta.c==='meuble'&&!it.hidden&&it.g.position.y-sol(niveauDe(it))<1.0&&it.size.y>=0.05;
 const poseActuelle=it=>({x:it.g.position.x,z:it.g.position.z,r:it.g.rotation.y});
-const poseOrigine=it=>({x:it.home.x,z:it.home.z,r:0});
+const poseOrigine=it=>({x:it.home.x,z:it.home.z,r:it.etat0?.r||0});   // objet de l'Appart Base : son orientation de base
+// objet ajouté dans une variante (pas un objet de l'Appart Base, qui compte dans la référence comme un meuble de la maquette)
+const libre=it=>!!it.ajout&&!it.base;
 // examinés : meubles déplacés, tournés, redimensionnés, et tous les objets ajoutés (étape 4)
 const echelle=it=>it.g.scale.x!==1||it.g.scale.y!==1||it.g.scale.z!==1;
-const deplace=it=>{ if(it.ajout||echelle(it)||Math.abs(it.g.position.y-it.home.y)>1e-3) return true; const p=poseActuelle(it); return Math.hypot(p.x-it.home.x,p.z-it.home.z)>0.005||Math.abs(p.r)>1e-4; };
+const deplace=it=>{ if(libre(it)||echelle(it)||Math.abs(it.g.position.y-it.home.y)>1e-3||(it.base&&JSON.stringify(it.ajout)!==JSON.stringify(it.etat0.a))) return true; const p=poseActuelle(it); return Math.hypot(p.x-it.home.x,p.z-it.home.z)>0.005||Math.abs(p.r)>1e-4; };
 // cellules (centres, repère du meuble) de son emprise, gardées une fois
 function cellules(it){
   if(it.cellules) return it.cellules;
@@ -97,7 +99,7 @@ const nomPorte=pt=>app.items[pt.nom]?.meta.l||pt.nom;
 function reference(){
   base={paires:new Set(),murs:new Map(),passages:new Map(),portes:new Map()};
   for(const niv of ['rez','etage']){
-    const liste=Object.values(app.items).filter(it=>poses(it)&&!it.ajout&&niveauDe(it)===niv), g=murs(niv), occ=occupation(liste,poseOrigine);   // objets ajoutés : absents de l'origine
+    const liste=Object.values(app.items).filter(it=>poses(it)&&!libre(it)&&niveauDe(it)===niv), g=murs(niv), occ=occupation(liste,poseOrigine);   // objets ajoutés : absents de l'origine
     for(const it of liste){ const c=chevauchements(it,poseOrigine,liste,poseOrigine,g); base.murs.set(it,c.mur);
       for(const [n,k] of c.autres) if(k>=MINI) base.paires.add(it.name+'|'+n.name); }
     for(const [pt,o] of ouvertures(occ,liste,niv)) base.portes.set(pt,o.deg);
@@ -133,7 +135,7 @@ function calculer(){
       for(const [n,k] of c.autres) if(k>=MINI&&!base.paires.has(it.name+'|'+n.name)&&!base.paires.has(n.name+'|'+it.name)&&!range(it,n)){
         const cle='meuble|'+[it.name,n.name].sort().join('|'); if(!out.some(a=>a.k===cle)) out.push({it,autre:n,grave:true,k:cle,noms:[it.name,n.name],texte:`${it.meta.l} chevauche ${n.meta.l.toLowerCase()}`}); }
       // passages : ce meuble retiré de l'occupation (on mesure ce qu'il laisse autour de lui)
-      const o2=occupation(liste,poseActuelle,it), av=it.ajout?{}:passages(it,poseOrigine,occupation(liste.filter(n=>!n.ajout),poseOrigine,it),g), ap=passages(it,poseActuelle,o2,g);
+      const o2=occupation(liste,poseActuelle,it), av=libre(it)?{}:passages(it,poseOrigine,occupation(liste.filter(n=>!libre(n)),poseOrigine,it),g), ap=passages(it,poseActuelle,o2,g);
       for(const [cote,d] of Object.entries(ap)){ if(d<0.05||d>=0.8) continue; const avant=av[cote];
         if(avant!==undefined&&avant<0.8&&d>=avant-0.05) continue;   // déjà étroit à l'origine, pas plus étroit
         out.push({it,grave:d<0.7,k:'passage|'+it.name+'|'+cote,noms:[it.name],texte:`${it.meta.l} : passage de ${m(d)} côté ${cote} (${d<0.7?'trop étroit, ':''}70 à 80 cm conseillés)`}); }

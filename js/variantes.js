@@ -53,7 +53,7 @@ function ligne(v,cour){
   }
   const affichee=cour&&v.id===cour.id, n=v.estBase?variantesDe(v.id).length:0;
   const qui=v.modifieePar?'modifiée par '+v.modifieePar+', '+quand(v.modifieeLe):'';
-  const info=v.id===BASE.id?'maquette d’origine, intouchable':v.estBase?['base verrouillée',v.masquee?'masquée':'',n+' variante'+(n>1?'s':'')].filter(Boolean).join(' · '):qui;
+  const info=v.id===BASE.id?'l’appartement tel qu’il est, intouchable : « Créer » pour une variante':v.estBase?['base verrouillée',v.masquee?'masquée':'',n+' variante'+(n>1?'s':'')].filter(Boolean).join(' · '):qui;
   const b=el('button',{type:'button',class:'aller-vue'}); if(affichee) b.setAttribute('aria-current','true');
   b.append(el('span',{},v.nom),el('span',{class:'m2'},affichee?'affichée'+(info?' · '+info:''):info));
   b.onclick=async()=>{ if(affichee){ ouvrir(false); return; }
@@ -71,7 +71,7 @@ function ligne(v,cour){
   } else {
     li.append(petit(aBaser===v.id?'En base ?':'⤴','En faire une base (copie de « '+v.nom+' »)',()=>{ if(aBaser===v.id) faireBase(v); else armer('b',v.id); },aBaser===v.id?' danger texte':''));
     const s=petit(aSupprimer===v.id?'Supprimer ?':'×','Supprimer '+v.nom,()=>{ if(aSupprimer===v.id) supprimer(v); else armer('s',v.id); },aSupprimer===v.id?' danger':'');
-    if(modifiables().length<2) s.disabled=true;   // la dernière variante modifiable reste
+    // (jusqu'au grand ménage du 15 octobre 2026, la dernière variante modifiable ne se supprimait pas ; l'Appart Base suffit désormais)
     li.append(s);
   }
   return li;
