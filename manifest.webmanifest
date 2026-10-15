@@ -11,19 +11,19 @@
   "theme_color": "#2c5a86",
   "icons": [
     {
-      "src": "icones/icone5-192.png",
+      "src": "icones/icone6-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "icones/icone5-512.png",
+      "src": "icones/icone6-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "icones/icone5-maskable-512.png",
+      "src": "icones/icone6-maskable-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"

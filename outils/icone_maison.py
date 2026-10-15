@@ -4,9 +4,10 @@ le cadre, maison en trait blanc, cube en différentes couleurs »), d'après l'i
 le contour de la maison (traits bleus dans le GIF) et le cube avec sa flèche (traits blancs) sont découpés, agrandis en
 traits nets, puis posés en blanc et dans la couleur choisie sur un fond bleu nuit (léger dégradé).
 
-    python3 outils/icone_maison.py <couleur hex du cube> [dossier de sortie] [préfixe]     # ex. ef4444 icones icone5
-Fichiers : <préfixe>-512.png et -192.png (coins arrondis transparents), favicon-64, apple-touch (180, carré plein, iOS
-arrondit), -maskable-512 (carré plein, maison sur 54 % : zone sûre du lanceur Android).
+    python3 outils/icone_maison.py <couleur hex du cube> [dossier de sortie] [préfixe]     # ex. 4da3ff icones icone6
+Fichiers : <préfixe>-512.png et -192.png (coins arrondis transparents, maison sur 92 %), favicon-64, apple-touch (180, carré
+plein, iOS arrondit, 88 %), -maskable-512 (carré plein, maison sur 67 % : zone sûre du lanceur Android). Nouveau préfixe à chaque
+changement (sw.js garde icones/ en cache sous le nom du fichier).
 """
 import sys
 from pathlib import Path
@@ -70,12 +71,14 @@ def icone(maison, cube, teinte, taille, part, coins):
 
 def tout(hexa, dossier, prefixe):
     maison, cube = masques(); teinte = couleur(hexa); d = Path(dossier); d.mkdir(parents=True, exist_ok=True)
-    icone(maison, cube, teinte, 512, 0.64, 0.2).save(d / f'{prefixe}-512.png', optimize=True)
-    icone(maison, cube, teinte, 192, 0.64, 0.2).save(d / f'{prefixe}-192.png', optimize=True)
-    icone(maison, cube, teinte, 64, 0.68, 0.2).save(d / f'{prefixe.replace("icone", "favicon")}-64.png', optimize=True)
-    icone(maison, cube, teinte, 180, 0.64, 0).convert('RGB').save(d / f'apple-touch-{prefixe}.png', optimize=True)
-    icone(maison, cube, teinte, 512, 0.54, 0).convert('RGB').save(d / f'{prefixe}-maskable-512.png', optimize=True)
+    # Mauro (15 octobre 2026) : « la maison est trop petite, mets au max » : 92 % de la largeur dans le carré arrondi (aucun pixel
+    # dans les coins coupés), 88 % pour iOS (arrondi plus large), 67 % pour Android (tout dans le cercle sûr de 80 %, 1 % de marge)
+    icone(maison, cube, teinte, 512, 0.92, 0.2).save(d / f'{prefixe}-512.png', optimize=True)
+    icone(maison, cube, teinte, 192, 0.92, 0.2).save(d / f'{prefixe}-192.png', optimize=True)
+    icone(maison, cube, teinte, 64, 0.92, 0.2).save(d / f'{prefixe.replace("icone", "favicon")}-64.png', optimize=True)
+    icone(maison, cube, teinte, 180, 0.88, 0).convert('RGB').save(d / f'apple-touch-{prefixe}.png', optimize=True)
+    icone(maison, cube, teinte, 512, 0.67, 0).convert('RGB').save(d / f'{prefixe}-maskable-512.png', optimize=True)
 
 
 if __name__ == '__main__':
-    tout(sys.argv[1] if len(sys.argv) > 1 else 'ef4444', sys.argv[2] if len(sys.argv) > 2 else 'icones', sys.argv[3] if len(sys.argv) > 3 else 'icone5')
+    tout(sys.argv[1] if len(sys.argv) > 1 else '4da3ff', sys.argv[2] if len(sys.argv) > 2 else 'icones', sys.argv[3] if len(sys.argv) > 3 else 'icone6')
