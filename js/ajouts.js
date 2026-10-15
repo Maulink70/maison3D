@@ -26,7 +26,7 @@ function remplir(it,a){
   const {g,noms,taille,pret}=construire(a);
   g.name=it.name+'__forme'; it.g.add(g); it.nomsParties=noms;
   recueillir(it,g); it.size=taille; poserCouvercleAjout(it);
-  if(pret) pret.then(ok=>{ if(!ok||g.parent!==it.g) return; recueillir(it,g); poserCouvercleAjout(it); oublier(it); it.nomsParties=g.userData.noms||it.nomsParties;
+  if(pret) pret.then(ok=>{ if(!ok){ dispatchEvent(new CustomEvent('objet-echec',{detail:{it}})); return; } if(g.parent!==it.g) return; recueillir(it,g); poserCouvercleAjout(it); oublier(it); it.nomsParties=g.userData.noms||it.nomsParties;
     majApparence(it,true); invaliderPlan(); app.selBox?.update(); dispatchEvent(new CustomEvent('objet-pret',{detail:{it}})); });
 }
 function vider(it){

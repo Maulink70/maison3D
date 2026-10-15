@@ -13,6 +13,7 @@ import {construireSalon, construireBuffet} from './rez_salon.js';
 import {construirePieces, carrelerMursSdb} from './rez_pieces.js';
 import {plafondsPin, solDouche, murAubergine, ouvrirPorteDouche, carrelerDouche, faitage} from './etage_structure.js';
 import {chargerBase, installerBase, estRetire} from './base.js';
+import {montrerChargement, elementsAttendus, cacherChargement} from './chargement.js';
 import {construireEtage} from './etage_pieces.js';
 import {installerPortes} from './portes.js';
 import {installerFenetres} from './fenetres.js';
@@ -187,12 +188,12 @@ export async function chargerModele({structurePrete,mobilierPret}){
   try{
     const s=await charger(FICHIERS.structure,p=>{ $('bar').style.width=p+'%'; $('pct').textContent=p+' %'; const r=$('loading-rempli'); if(r) r.style.clipPath=`inset(${100-p}% 0 0 0)`; });
     installerStructure(s.scene); structurePrete();
-    $('loading').hidden=true; $('charge').hidden=false;
+    $('loading').hidden=true; $('charge').hidden=false; montrerChargement();
   }catch(e){ erreur(e,$('pct')); return; }
   try{
     const [m]=await Promise.all([charger(FICHIERS.mobilier,p=>{ $('charge-pct').textContent=p+' %'; }),chargerBase()]);   // l'Appart Base (base.js) en même temps
     installerMobilier(m.scene); installerBase(); app.mobilierPret=true; mobilierPret();
-    $('charge').hidden=true;
-  }catch(e){ $('charge').hidden=false; erreur(e,$('charge'));
+    $('charge').hidden=true; elementsAttendus();
+  }catch(e){ $('charge').hidden=false; erreur(e,$('charge')); cacherChargement();
     $('list').innerHTML='<div class="attente">Les meubles n’ont pas pu être chargés. Rechargez la page.</div>'; }
 }

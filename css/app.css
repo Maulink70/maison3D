@@ -292,6 +292,14 @@ body.panneau-ouvert #toggle-panel.poignee{right:316px}
 /* Chargement des meubles après la structure */
 #charge{position:absolute;top:72px;left:50%;transform:translateX(-50%);background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:6px 14px;font-size:12.5px;color:var(--muted);white-space:nowrap;pointer-events:none}
 #charge .num{font-family:var(--font-data);font-variant-numeric:tabular-nums;color:var(--ink)}
+/* Animation de chargement (GIF de Mauro, 15 octobre 2026) : l'icône tourne au milieu de l'écran, dans sa carte sombre, pendant le chargement des éléments (js/chargement.js) */
+#chargement-anim{position:absolute;inset:0;display:grid;place-items:center;pointer-events:none;z-index:12;transition:opacity .35s}
+#chargement-anim[hidden]{display:none}
+#chargement-anim.sortie{opacity:0}
+.charg-carte{position:relative;width:200px;border-radius:24px;overflow:hidden;background:#30353c;box-shadow:0 14px 44px rgba(0,0,0,.4)}
+.charg-carte img{display:block;width:100%;height:auto}
+.charg-carte .num{position:absolute;left:0;right:0;bottom:9px;text-align:center;font-family:var(--font-data);font-variant-numeric:tabular-nums;font-size:13px;color:#fff;opacity:.8}
+@media (max-width:760px){.charg-carte{width:150px;border-radius:18px}}
 .list .attente{padding:12px 8px;color:var(--muted)}
 .filtres{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:10px 12px 4px;flex:none}
 .filtres .seg{flex:none}
