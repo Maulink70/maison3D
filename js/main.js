@@ -30,6 +30,7 @@ import {majReflets} from './reflets.js';
 import {initRealiste, majRealiste, rendreReel} from './realiste.js';
 import {initCuisson, preparerStructure, appliquerCuisson, majCuisson} from './cuisson.js';
 import {initCurseurs} from './curseurs.js';
+import {poserParquets} from './parquets.js';
 import {initOmbres, majOmbres} from './ombres.js';
 import {initVignettes} from './vignettes.js';
 import {eclatActif, rendreEclate, suivreEclat} from './eclate.js';
@@ -132,7 +133,7 @@ $('installer').onclick=async()=>{ if(!proposition) return; proposition.prompt();
 
 // on n'entre (et la maquette ne se charge) qu'une fois connecté (écran d'entrée, compte.js)
 initPorte(()=>chargerModele({
-  structurePrete:()=>{ preparerStructure(); demarrerVues(); },
+  structurePrete:()=>{ poserParquets(); preparerStructure(); demarrerVues(); },   // parquets en photo avant la lumière précalculée (même géométrie)
   mobilierPret:()=>{ restore(); buildList(); demarrerHistorique(); demarrerSynchro(); traiterRecu(); ajusterBarre(); appliquerCuisson(); }
 }));
 

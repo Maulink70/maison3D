@@ -1,0 +1,5 @@
+Textures photo des surfaces de la maquette (15 octobre 2026).
+
+parquet_couleur.webp, parquet_normales.webp, parquet_rugosite.webp :
+  « wooden_floor_01 » de Poly Haven (https://polyhaven.com/a/wooden_floor_01), licence CC0 (domaine public),
+  motif de 1,99 m × 1,99 m ; images 1K (jpg) converties en WebP 1024 px par outils/textures/convertir.py.
