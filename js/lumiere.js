@@ -1,6 +1,6 @@
-// Lumière du jour (étape 2) : Normale, Matin, Midi, Soir, Nuit (menu « Calques », groupe Affichage, choix mémorisé avec les
-// calques) : direction, couleur et force du soleil, lumière d'ambiance (ciel et sol), teinte du ciel et des montagnes en
-// 1re personne. Sans ombres portées (trop lourdes pour la tablette) : la lumière change la teinte et l'éclairage des faces.
+// Lumière du jour (étape 2) : Normale, Matin, Midi, Soir, Nuit (bouton « Lumière » de la barre ; choix mémorisé avec les
+// calques, etat.lumiere de calques.js) : direction, couleur et force du soleil, lumière d'ambiance (ciel et sol), teinte du
+// ciel et des montagnes en 1re personne. Sans ombres portées (trop lourdes pour la tablette) : la lumière change la teinte et l'éclairage des faces.
 // Nord = −z (haut du plan) : soleil à l'est (+x) le matin, au sud (+z) et haut à midi, à l'ouest (−x) et bas le soir.
 import * as THREE from 'three';
 import {app} from './app.js';
@@ -17,9 +17,10 @@ const R={
   soir:{ciel:[0xffd9bc,0xb39a88,1.45],soleil:[0xff9d55,1.45,[-40,11,6]],appoint:0.28,teinte:0xffc9a0},
   nuit:{ciel:[0x5a6c94,0x231f1c,0.55],soleil:[0x9db2e0,0.18,[-10,40,-20]],appoint:0.06,teinte:0x2a3352}};   // lune, lampes allumées (lampes.js)
 let posee=null, cielTeinte=null, reelPose=null, bouton=null;
-// bouton « Lumière » de la barre (Mauro, 14 octobre 2026 : « une icône à part ») : son icône dit la lumière choisie, son menu les 5 choix
+// bouton « Lumière » de la barre (Mauro, 14 octobre 2026 : « une icône à part ») : son icône dit la lumière choisie
 const ICONE={normale:'sun-dim',matin:'sunrise',midi:'sun',soir:'sunset',nuit:'moon'};
-// 4 choix (Mauro, 14 octobre 2026) : retoucher le choix allumé rend la lumière normale (elle reste dans le menu « Affichage »)
+// 4 choix (Mauro, 14 octobre 2026) : retoucher le choix allumé rend la lumière normale ; seul réglage depuis le 15 octobre
+// 2026 (la ligne « Lumière » du menu « Affichage » est retirée : « on a l'icône »)
 for(const b of document.querySelectorAll('#lumiere-menu [data-lumiere]')) b.addEventListener('click',()=>choisirLumiere(etat.lumiere===b.dataset.lumiere?'normale':b.dataset.lumiere));
 function majBouton(nom){
   const b=document.getElementById('lumiere'); bouton=nom; if(!b) return;

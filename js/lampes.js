@@ -17,8 +17,11 @@ try{ choix=JSON.parse(localStorage.getItem(CLE)||'{}')||{}; }catch{ choix={}; }
 const garder=()=>{ try{ localStorage.setItem(CLE,JSON.stringify(choix)); }catch{} };
 const base=o=>o.userData.orig||o.material;   // matériau d'origine (avant recoloration ou allumage)
 const LUMINEUX=['lumiere','cristal'];   // abat-jours, globes, réglettes, bandeaux ; pampilles du lustre
-// objets 3D importés (Blender…) : parties lumineuses d'après le nom d'origine de leur matière (gardé à l'import)
-const LUMIERE_IMPORT=/opale|abat.?jour|ampoule|lumi|spot|diffus|interieur_lampe|lampe_boule_interieur|cristal/i;
+// objets 3D importés (Blender…) : parties lumineuses d'après le nom d'origine de leur matière (gardé à l'import).
+// Lampe boule ajourée de la sellette (base Réalisme, 15 octobre 2026, Mauro : « tous les trous font traverser la lumière ») :
+// dans le fichier, une partie des trous a un disque « Lampe_Boule_Interieur », les autres un disque gris
+// « Ceramique_Alveole_Lampe » : les alvéoles d'une lampe brillent aussi, tous les trous s'allument.
+const LUMIERE_IMPORT=/opale|abat.?jour|ampoule|lumi|spot|diffus|interieur_lampe|lampe_boule_interieur|cristal|alveole.*lampe|lampe.*alveole/i;
 const lumineuseImport=o=>LUMIERE_IMPORT.test(base(o)?.userData?.nom||'');
 const parNature=it=>it.mats.some(o=>LUMINEUX.includes(base(o)?.name))||(!!it.ajout&&it.mats.some(lumineuseImport))||/lustre|lampe|lampadaire|suspension|plafonnier|applique/i.test(it.name)||(!!it.ajout&&/lustre|lampe|lampadaire|suspension|plafonnier|applique/i.test(it.meta?.l||''))
   ||['lampe','lampadaire'].includes(it.ajout?.f);   // formes « Lampe à poser » et « Lampadaire » (étape 4)

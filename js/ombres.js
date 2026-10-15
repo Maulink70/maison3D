@@ -1,5 +1,6 @@
 // Ombres portées du soleil en direct (audit du 15 octobre 2026, « ok » de Mauro) : case « Ombres du soleil (plus lent) »
-// dans le groupe Affichage du menu « Affichage », après les ombres de contact, décochée d'office (coûteuse sur tablette).
+// dans le menu du bouton « Réaliste » de la barre (sous les ombres de contact ; Mauro, 15 octobre 2026 : « dans l'icône
+// Réaliste »), décochée d'office (coûteuse sur tablette).
 // Le soleil de lumiere.js (app.lumieres.sun) projette une carte d'ombres de 2048 px sur toute la maison (caméra d'ombre
 // orthographique centrée sur l'appartement, dans la direction du soleil) ; murs, sols, toits et meubles portent et
 // reçoivent les ombres, les vitres et ce qui est transparent n'en portent pas. Rien n'est changé tant que la case est
@@ -47,12 +48,7 @@ export function majOmbres(){
 }
 export function initOmbres(){
   for(const ev of ['objet-pret','meubles','apparence','mobilier']) addEventListener(ev,()=>{ sale=true; });
-  const ao=document.getElementById('cq-ao-l'); if(!ao) return;
-  const a=document.createElement('label'); a.className='case'; a.id='cq-soleil-l';
-  a.innerHTML='<input type="checkbox" id="cq-soleil"> Ombres du soleil (plus lent)';
-  const c=a.querySelector('input'); c.checked=actif;
+  const c=document.getElementById('cq-soleil'); if(!c) return; c.checked=actif;
   c.onchange=()=>{ actif=c.checked; try{ localStorage.setItem(CLE,JSON.stringify(actif)); }catch{} regler(); };
-  ao.after(a);
-  document.getElementById('cq-raz')?.addEventListener('click',()=>{ if(actif){ actif=false; c.checked=false; try{ localStorage.setItem(CLE,'false'); }catch{} regler(); } });
   if(actif) regler();
 }

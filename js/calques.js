@@ -26,7 +26,8 @@ let budget=0;
 
 // ---------- mémoire ----------
 function garder(){ try{ localStorage.setItem(CLE,JSON.stringify({etat,masquees:[...masquees]})); }catch{} }
-// bouton « Lumière » de la barre (lumiere.js) : même choix que le menu « Affichage », gardé de même
+// bouton « Lumière » de la barre (lumiere.js) : choix gardé avec les calques (etat.lumiere) ; depuis le 15 octobre 2026 la
+// lumière n'est plus dans le menu « Affichage » (Mauro : « on a l'icône »)
 export function choisirLumiere(k){ etat.lumiere=k; garder(); }
 function relire(){ try{ const d=JSON.parse(localStorage.getItem(CLE)||'{}'); Object.assign(etat,d.etat||{}); delete etat.ecartMurs; delete etat.toutEclat; for(const k of d.masquees||[]) masquees.add(k); }catch{} }   // (murs soulevés et « Tout éclaté », retirés)
 
@@ -193,7 +194,8 @@ export function initCalques(){
   const bt=$('calques-bouton'), menu=$('calques-menu');
   const ouvrir=oui=>{ menu.hidden=!oui; bt.setAttribute('aria-expanded',String(oui)); if(oui){ majMenu(); caler(menu); } };
   // trois groupes repliables (audit du 15 octobre 2026, « ok » de Mauro : le menu était devenu très long) : Affichage
-  // (murs, photos, lumière, rendu, ombres, vue éclatée), Calques (noms, surfaces, hauteurs, mesures de la règle) et
+  // (murs, photos, vue éclatée ; la lumière, le rendu et les ombres ont leurs boutons dans la barre depuis le 15 octobre
+  // 2026), Calques (noms, surfaces, hauteurs, mesures de la règle) et
   // Cotes (plan 2D), ouverts ou repliés selon le dernier choix (clé maison3d-menu-affichage ; les cotes repliées au départ)
   const CLE_GROUPES='maison3d-menu-affichage'; let plis={affichage:true,calques:true,cotes:false};
   try{ plis={...plis,...JSON.parse(localStorage.getItem(CLE_GROUPES)||'{}')}; }catch{}
@@ -210,30 +212,25 @@ export function initCalques(){
       lab.append(c,document.createTextNode(l)); corps.append(lab); }
     menu.append(g);
     if(titre==='Affichage'){ const g=corps;
-      // lumière du jour (lumiere.js) et vue éclatée (eclate.js)
-      const l=document.createElement('div'); l.className='impr-ligne';
-      l.innerHTML='<span id="cq-t-lumiere">Lumière</span><div class="seg" role="group" aria-labelledby="cq-t-lumiere">'+
-        [['normale','Normale'],['matin','Matin'],['midi','Midi'],['soir','Soir'],['nuit','Nuit']].map(([k,t])=>`<button type="button" id="cq-lum-${k}" data-lumiere="${k}">${t}</button>`).join('')+'</div>';
-      l.querySelectorAll('[data-lumiere]').forEach(b=>b.onclick=()=>{ etat.lumiere=b.dataset.lumiere; garder(); majMenu(); });
+      // vue éclatée (eclate.js)
       const e=document.createElement('label'); e.className='case eclat';
       e.innerHTML='<span>Vue éclatée</span><input type="range" id="cq-eclat" min="0" max="3" step="0.1" value="0"><output id="cq-eclat-val">0 m</output>';
       e.querySelector('input').oninput=ev=>{ etat.eclat=+ev.target.value; garder(); majMenu(); };
-      g.append(l,e);
+      g.append(e);
     }
   }
   const pied=document.createElement('div'); pied.className='menu-pied';
   const re=document.createElement('button'); re.type='button'; re.id='cq-reafficher'; re.className='btn';
   re.onclick=()=>{ masquees.clear(); garder(); majMenu(); };
-  // tout décocher (demande de Mauro du 10 octobre 2026) : petite icône en haut à droite du menu ; toutes les cases,
-  // lumière normale, vue éclatée à 0
+  // tout décocher (demande de Mauro du 10 octobre 2026) : petite icône en haut à droite du menu ; toutes les cases et la
+  // vue éclatée à 0 (la lumière et le rendu ne sont plus dans ce menu : leurs boutons de la barre gardent leur réglage)
   const raz=document.createElement('button'); raz.type='button'; raz.id='cq-raz'; raz.className='ib';
   poserIcone(raz,'rotate-cw'); nommer(raz,'Tout décocher');
-  raz.onclick=()=>{ for(const [k] of OPTIONS) etat[k]=false; etat.lumiere='normale'; etat.eclat=0; garder(); majMenu(); };
+  raz.onclick=()=>{ for(const [k] of OPTIONS) etat[k]=false; etat.eclat=0; garder(); majMenu(); };
   menu.prepend(raz);
   const aide=document.createElement('p'); aide.textContent='Touchez une cote pour la masquer.';
   pied.append(re,aide); menu.append(pied);
   function majMenu(){ re.hidden=!masquees.size; re.textContent=`Réafficher les cotes masquées (${masquees.size})`; for(const [k] of OPTIONS) $('cq-'+k).checked=!!etat[k];
-    for(const b of menu.querySelectorAll('[data-lumiere]')) b.setAttribute('aria-pressed',String((etat.lumiere||'normale')===b.dataset.lumiere));
     const ok=app.mode==='orbit'&&app.level==='all', r=$('cq-eclat'); r.disabled=!ok; r.value=String(+etat.eclat||0);
     $('cq-eclat-val').textContent=ok?(+etat.eclat||0).toFixed(1).replace('.',',')+' m':'maquette, Tout'; }
   bt.onclick=e=>{ e.stopPropagation(); ouvrir(menu.hidden); };

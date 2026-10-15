@@ -112,6 +112,9 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
 /* menu « Ouvrir » (portes, fenêtres, stores) : une ligne par choix, icône + ce que fera le bouton */
 #ouvertures-menu{min-width:250px}
 #lumiere-menu{min-width:170px}
+#realiste-menu{min-width:270px}
+.bar .menu-choix .case{font-size:13.5px}
+.bar .menu-choix .cq-note{margin-top:4px}
 .bar .menu-choix .ib{display:flex;flex-direction:row;align-items:center;justify-content:flex-start;gap:10px;width:100%;min-width:0;height:auto;min-height:40px;padding:8px 10px;color:var(--ink)}
 .bar .menu-choix .ib[hidden]{display:none}
 .bar .menu-choix .ib .ico{width:20px;height:20px;flex:none}

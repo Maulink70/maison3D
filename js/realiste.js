@@ -1,6 +1,9 @@
-// Rendu réaliste (14 octobre 2026, « go » de Mauro) : choix « Rendu : Normal | Réaliste » dans le groupe Affichage du menu
-// « Calques », « Réaliste » d'office quand la base « Réalisme » (ou l'une de ses variantes) est affichée ; deux choix gardés
-// sur l'appareil (clé maison3d-rendu) : l'un pour la base Réalisme, l'autre pour tout le reste. « Réaliste » =
+// Rendu réaliste (14 octobre 2026, « go » de Mauro) : bouton « Réaliste » de la barre et son menu (15 octobre 2026, Mauro :
+// les ombres de contact et les ombres du soleil « dans l'icône Réaliste » ; la ligne « Rendu : Normal | Réaliste » du menu
+// « Affichage » est retirée) : ligne « Rendu réaliste » (enfoncée = réaliste), cases « Ombres de contact » (en réaliste
+// seulement) et « Ombres du soleil » (ombres.js), note. « Réaliste » d'office quand la base « Réalisme » (ou l'une de ses
+// variantes) est affichée ; deux choix gardés sur l'appareil (clé maison3d-rendu) : l'un pour la base Réalisme, l'autre
+// pour tout le reste. « Réaliste » =
 // 1. éclairage d'ambiance par une pièce « studio » préfiltrée (RoomEnvironment de three.js) sur tous les matériaux : lumière
 //    douce venue de partout et vrais reflets (métal, verre, laque), force selon la lumière du jour ; les lumières d'ambiance
 //    (lumiere.js) sont baissées d'autant ;
@@ -93,35 +96,25 @@ export function rendreReel(cam){
   taille(); comp.render(); return true;
 }
 
-// ---------- menu « Calques » (groupe Affichage) ----------
+// ---------- bouton « Réaliste » de la barre et son menu ----------
 function majBoutons(){
   majBoutonBarre();
-  const m=$('cq-rendu'); if(!m) return; const reel=renduReel();
-  for(const b of m.querySelectorAll('[data-rendu]')) b.setAttribute('aria-pressed',String(b.dataset.rendu===(reel?'realiste':'normal')));
+  const t=$('rendu-reel'); if(!t) return; const reel=renduReel();
+  t.setAttribute('aria-pressed',String(reel));
   $('cq-ao-l').hidden=!reel; $('cq-ao').checked=!!choix.ao;
   $('cq-rendu-note').textContent=dansRealisme()?'Base « Réalisme » : « Réaliste » d’office.':'« Réaliste » : lumière d’ambiance, reflets, couleurs « appareil photo ».';
 }
-// bouton « Réaliste » de la barre, à côté de « Affichage » (Mauro, 14 octobre 2026) : même choix que « Rendu : Normal | Réaliste » du menu
+// bouton « Réaliste » de la barre, à côté de « Affichage » (Mauro, 14 octobre 2026) : enfoncé en rendu réaliste ; il ouvre le menu (barre.js)
 function majBoutonBarre(){
   const b=$('realiste'); if(!b) return; const reel=renduReel();
-  b.setAttribute('aria-pressed',String(reel)); nommer(b,reel?'Revenir au rendu normal':'Passer au rendu réaliste');
+  b.setAttribute('aria-pressed',String(reel)); nommer(b,'Rendu réaliste et ombres : '+(reel?'réaliste':'normal'));
 }
 const basculer=()=>{ choix[cle()]=renduReel()?'normal':'realiste'; garder(); majRealiste(); majBoutons(); };
 export function initRealiste(){
-  $('realiste')?.addEventListener('click',basculer);
+  $('rendu-reel')?.addEventListener('click',basculer);
+  $('realiste')?.addEventListener('click',()=>majBoutons());   // le menu s'ouvre (barre.js) : état à jour
+  $('cq-ao')?.addEventListener('change',e=>{ choix.ao=e.target.checked; garder(); });
   addEventListener('rendu',()=>majBoutonBarre());
-  const lum=$('cq-lum-normale')?.closest('.impr-ligne'); if(!lum) return;
-  const l=document.createElement('div'); l.className='impr-ligne'; l.id='cq-rendu';
-  l.innerHTML='<span id="cq-t-rendu">Rendu</span><div class="seg" role="group" aria-labelledby="cq-t-rendu">'+
-    '<button type="button" id="cq-rendu-normal" data-rendu="normal">Normal</button><button type="button" id="cq-rendu-realiste" data-rendu="realiste">Réaliste</button></div>';
-  l.querySelectorAll('[data-rendu]').forEach(b=>b.onclick=()=>{ choix[cle()]=b.dataset.rendu; garder(); majRealiste(); majBoutons(); });
-  const a=document.createElement('label'); a.className='case'; a.id='cq-ao-l';
-  a.innerHTML='<input type="checkbox" id="cq-ao"> Ombres de contact (plus lent sur tablette)';
-  a.querySelector('input').onchange=e=>{ choix.ao=e.target.checked; garder(); };
-  const n=document.createElement('p'); n.className='cq-note'; n.id='cq-rendu-note';
-  lum.after(l,a,n);
-  $('calques-bouton')?.addEventListener('click',()=>majBoutons());
-  $('cq-raz')?.addEventListener('click',()=>{ choix[cle()]='normal'; garder(); majRealiste(); majBoutons(); });   // « Tout décocher » : rendu normal
   addEventListener('variantes',()=>majBoutons());
   majBoutons();
 }

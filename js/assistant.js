@@ -43,6 +43,7 @@ import {ouvrirCatalogue} from './catalogue.js';
 import {ouvrirImport} from './import3d.js';
 import {ouvrirBlender} from './blender.js';
 import {imageMeuble} from './impression.js';
+import {choisirLumiere} from './calques.js';
 
 const ASSISTANT='https://n8n.srv1123557.hstgr.cloud/webhook/maison3d-assistant';
 const ACCUEIL='Ciao, je suis ton assistant, comment puis-je t’aider ?';
@@ -481,7 +482,7 @@ async function visiter(o){
 async function finVisite(m=app.mode){
   await finir('Tu y es',m==='walk'?['Pour marcher : touche le sol pour faire un pas, garde le doigt appuyé pour aller plus loin.']:[],[
     ch('Ouvrir les portes','portes',{go:async()=>{ toutOuvrir(true); await finVisite(m); }}),
-    ch('Voir le soir, lampes allumées','soir',{go:async()=>{ document.querySelector('#cq-lum-soir')?.click(); await finVisite(m); }})]);
+    ch('Voir le soir, lampes allumées','soir',{go:async()=>{ choisirLumiere('soir'); await finVisite(m); }})]);
 }
 
 // ---------- B. Ajouter, L. Créer avec l'IA ----------

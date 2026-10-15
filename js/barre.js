@@ -29,7 +29,8 @@ const plusTard=()=>{ if(attente) return; attente=requestAnimationFrame(()=>{ att
 // bouton « Ouvrir » : portes, fenêtres et stores réunis (Mauro, 14 octobre 2026 : « on gagne de la place, je clique dessus et
 // j'ai les trois choix »). Les boutons #portes, #fenetres, #stores et #auto sont dans son menu (vues.js et stores.js les
 // règlent comme avant) ; le menu reste ouvert après un choix (on voit l'état changer), il se ferme en touchant ailleurs ou par Échap.
-// Bouton « Lumière » : même menu, refermé après le choix (un seul choix possible).
+// Bouton « Lumière » : même menu, refermé après le choix (un seul choix possible). Bouton « Réaliste » : rendu réaliste et
+// ombres (realiste.js, ombres.js), menu gardé ouvert comme « Ouvrir » (15 octobre 2026).
 function menuBarre(idBt,idMenu,fermerApres=false){
   const bt=document.getElementById(idBt), menu=document.getElementById(idMenu); if(!bt||!menu) return;
   const ouvrir=oui=>{ menu.hidden=!oui; bt.setAttribute('aria-expanded',String(oui)); if(oui) caler(menu); };
@@ -49,7 +50,7 @@ function fenetreEchap(e){
   const b=dessus.querySelector('.fenetre-tete .fermer, #vis-fermer, #mi-fermer'); if(b){ e.preventDefault(); b.click(); }
 }
 export function initBarre(){
-  menuBarre('ouvertures','ouvertures-menu'); menuBarre('lumiere','lumiere-menu',true);
+  menuBarre('ouvertures','ouvertures-menu'); menuBarre('lumiere','lumiere-menu',true); menuBarre('realiste','realiste-menu');
   addEventListener('keydown',fenetreEchap);
   bar=document.querySelector('header.bar'); if(!bar) return;
   ligne=document.createElement('div'); ligne.className='bar-ligne';

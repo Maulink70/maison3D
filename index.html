@@ -81,8 +81,18 @@
         <button class="ib" id="calques-bouton" data-nom="Affichage" data-icone="layers" aria-label="Calques et affichage" aria-haspopup="true" aria-expanded="false" aria-controls="calques-menu"></button>
         <div id="calques-menu" class="menu" role="dialog" aria-label="Calques" hidden></div>
       </div>
-      <button class="ib" id="realiste" data-nom="Réaliste" data-icone="sparkles" aria-label="Passer au rendu réaliste" aria-pressed="false"></button>
-      <!-- lumière du jour : un bouton et ses choix (Mauro, 14 octobre 2026), aussi dans le menu « Affichage » -->
+      <!-- rendu réaliste et ombres : un bouton et son menu (Mauro, 15 octobre 2026 : « ombres de contact et ombres du soleil
+           dans l'icône Réaliste ») ; le choix Normal | Réaliste et la ligne Lumière ont quitté le menu « Affichage » -->
+      <div class="aller">
+        <button class="ib" id="realiste" data-nom="Réaliste" data-icone="sparkles" aria-label="Rendu réaliste et ombres : normal" aria-pressed="false" aria-haspopup="true" aria-expanded="false" aria-controls="realiste-menu"></button>
+        <div id="realiste-menu" class="menu menu-choix" role="dialog" aria-label="Rendu réaliste et ombres" hidden>
+          <button class="ib" id="rendu-reel" data-icone="sparkles" aria-label="Rendu réaliste" aria-pressed="false"></button>
+          <label class="case" id="cq-ao-l"><input type="checkbox" id="cq-ao"> Ombres de contact (plus lent sur tablette)</label>
+          <label class="case" id="cq-soleil-l"><input type="checkbox" id="cq-soleil"> Ombres du soleil (plus lent)</label>
+          <p class="cq-note" id="cq-rendu-note"></p>
+        </div>
+      </div>
+      <!-- lumière du jour : un bouton et ses choix (Mauro, 14 octobre 2026) ; seul réglage depuis le 15 octobre 2026 -->
       <div class="aller">
         <button class="ib" id="lumiere" data-nom="Lumière" data-icone="sun-dim" aria-label="Lumière : normale" aria-pressed="false" aria-haspopup="true" aria-expanded="false" aria-controls="lumiere-menu"></button>
         <div id="lumiere-menu" class="menu menu-choix" role="dialog" aria-label="Lumière du jour" hidden>
