@@ -790,6 +790,15 @@ body.panneau-ouvert #toggle-panel.poignee{right:316px}
 .mo-ici{justify-self:start;font-size:12px;background:var(--accent-soft);color:var(--accent);border-radius:6px;padding:1px 6px}
 .mo-masquer{display:flex;gap:6px;align-items:flex-start;font-size:12.5px;margin-top:2px}.mo-masquer input{margin:2px 0 0;flex:none}
 @media (max-width:520px){.mo-carte{grid-template-columns:48px 1fr}.mo-vign{width:48px;height:48px}.mo-carte>.btn{grid-column:1/-1}}
+.mo-outils{display:grid;gap:8px;margin:0 0 10px}   /* recherche, pastilles Mes ajouts / Objets des bases / Tous, case « déjà ici » */
+.mo-outils input[type=search]{width:100%;min-width:0;font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:var(--r);padding:7px 10px}
+.mo-pastilles{display:flex;flex-wrap:wrap;gap:4px;align-items:center}
+.mo-pastilles .pastille{width:auto;height:auto;border:1px solid var(--line);background:var(--panel);border-radius:999px;padding:3px 9px;font-size:12px;color:var(--muted);font-weight:500;line-height:1.2;cursor:pointer}
+.mo-pastilles .pastille[aria-pressed="true"]{background:var(--accent);color:var(--panel);border-color:var(--accent)}
+.mo-cacher{display:flex;gap:6px;align-items:center;font-size:12.5px;color:var(--muted);margin-left:auto}.mo-cacher input{margin:0}
+.mo-titre{font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin:6px 0 -2px}.mo-titre:first-child{margin-top:0}
+.mo-vide{padding:8px 2px}
+@media (pointer:coarse){.mo-pastilles .pastille{padding:6px 11px;min-height:32px}}
 .as-suivi{display:grid;gap:6px;background:var(--accent-soft);border-radius:8px;padding:8px 10px}
 .as-suivi[hidden]{display:none}
 .as-suivi p{margin:0;font-size:13px}
