@@ -2,7 +2,8 @@
 // un fond sombre avec son reflet) : affichée au milieu de l'écran pendant le chargement des éléments, après la structure
 // (meubles de la maquette, puis objets de l'Appart Base dont les fichiers 3D arrivent un à un), et retirée dès que 60 %
 // des objets sont prêts (demande de Mauro ; le reste finit de se charger derrière). Fichier icones/chargement.webp (WebP
-// animé, 320 px, 25 images, ≈ 90 Ko, fait par outils/icone_anim.py ; cache d'abord par sw.js comme les autres icônes).
+// animé transparent : l'icône seule, sans fond ni reflet, « en fond transparent » demandé par Mauro ; 256 px, 25 images,
+// ≈ 190 Ko, fait par outils/icone_anim.py ; cache d'abord par sw.js comme les autres icônes).
 import {app,$} from './app.js';
 
 const SEUIL=0.6;                      // part des objets prêts à partir de laquelle l'animation disparaît
