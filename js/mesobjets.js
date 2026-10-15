@@ -6,11 +6,14 @@
 // (remplacé par lui, comme la machine à café du bar) est masqué aussi, case cochée d'avance.
 // Recherche et tri (15 octobre 2026, Mauro : « cette liste n'est pas triée, pas de champ de recherche… ne faudrait-il pas
 // séparer les objets de base avec ceux créés ? ») : champ de recherche (nom, variante, boutique, sans accents), pastilles
-// « Mes ajouts » (objets qui ne sont dans aucune base : la machine, le porte-fruits…, montrés d'office), « Objets des bases »
-// (les objets Blender de la base « Réalisme »…), « Tous » (les deux, par groupe) ; case « Cacher ceux déjà dans cette
-// variante » ; liste par ordre alphabétique ; choix gardés sur l'appareil (clé maison3d-mesobjets).
+// « Mes ajouts » (montrés d'office), « Objets des bases » (les objets Blender de la base « Réalisme »…), « Tous » (les deux,
+// par groupe) ; case « Cacher ceux déjà dans cette variante » ; liste par ordre alphabétique ; choix gardés sur l'appareil
+// (clé maison3d-mesobjets). Est « mon ajout » tout objet présent dans une variante de travail (non verrouillée) sans y avoir
+// été hérité de la base de cette variante (la machine : dans « 1 », variante de la Base d'origine, qui est vide) ; est « de
+// base » le reste : présent dans une base et, au plus, dans ses copies (les 141 objets Blender de « Réalisme » et de « Projet 4 »).
+// Une base faite par Mauro à partir de sa variante (« Retouches ») ne change donc rien : ses objets restent « mes ajouts ».
 import {app} from './app.js';
-import {lesVariantes, varianteCourante, verrouillee} from './synchro.js';
+import {lesVariantes, varianteCourante, verrouillee, groupeDe} from './synchro.js';
 import {lireDisposition} from './sauvegarde.js';
 import {ajouterObjet, remplacementEnCours} from './objets.js';
 import {nomDe} from './ajouts.js';
@@ -31,16 +34,21 @@ const garder=()=>{ try{ localStorage.setItem(CLE,JSON.stringify(choix)); }catch{
 function recueillir(){
   const cour=varianteCourante(), ici=lireDisposition(), vus=new Map(), deja=new Set();
   for(const e of Object.values(ici)) if(e?.a){ const k=cle(e.a); if(k) deja.add(k); }
-  const vs=lesVariantes().filter(v=>!v.origine).sort((a,b)=>(b.id===cour?.id)-(a.id===cour?.id)||String(b.modifieeLe||'').localeCompare(String(a.modifieeLe||'')));
+  const toutes=lesVariantes(), parId=new Map(toutes.map(v=>[v.id,v])), clesDe=new Map();
+  // les objets (même fichier) de la base d'une variante : ceux qu'elle en a hérités
+  const heritee=(v,k)=>{ const b=parId.get(groupeDe(v)); if(!b||b.id===v.id) return false;
+    if(!clesDe.has(b.id)) clesDe.set(b.id,new Set(Object.values(b.disposition||{}).map(e=>e?.a&&cle(e.a)).filter(Boolean))); return clesDe.get(b.id).has(k); };
+  const vs=toutes.filter(v=>!v.origine).sort((a,b)=>(b.id===cour?.id)-(a.id===cour?.id)||String(b.modifieeLe||'').localeCompare(String(a.modifieeLe||'')));
   for(const v of vs){
     const d=v.id===cour?.id?ici:(v.disposition||{}), base=verrouillee(v);
     for(const [n,e] of Object.entries(d)){
       if(!e?.a||(e.a.t!=='glb'&&e.a.t!=='photo')) continue; const k=cle(e.a); if(!k) continue;
-      let o=vus.get(k); if(!o){ o={k,n,e,d,v,noms:[],bases:[]}; vus.set(k,o); }
+      let o=vus.get(k); if(!o){ o={k,n,e,d,v,noms:[],bases:[],mes:false}; vus.set(k,o); }
       const l=base?o.bases:o.noms; if(!l.includes(v.nom)) l.push(v.nom);
+      if(!base&&!heritee(v,k)) o.mes=true;
     }
   }
-  return [...vus.values()].map(o=>({...o,ici:deja.has(o.k),masques:masquesLa(o),nom:nomDe(o.e.a),deBase:o.bases.length>0,
+  return [...vus.values()].map(o=>({...o,ici:deja.has(o.k),masques:masquesLa(o),nom:nomDe(o.e.a),deBase:!o.mes,
     texte:sans([nomDe(o.e.a),...o.noms,...o.bases,o.e.a.o?texteOrigine(o.e.a.o):'',o.e.a.t==='glb'?'modele 3d':'image plate'].join(' '))}))
     .sort((a,b)=>sans(a.nom).localeCompare(sans(b.nom),'fr'));
 }
