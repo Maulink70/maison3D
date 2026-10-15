@@ -8,6 +8,7 @@ import {etat, choisirLumiere} from './calques.js';
 import {poserIcone, nommer} from './icones.js';
 import {renduReel, BAISSE} from './realiste.js';
 import {poserCiel} from './ciel.js';
+import {cuissonActive, BAISSE_AMBIANCE} from './cuisson.js';
 
 export const LUMIERES=[['normale','Normale'],['matin','Matin'],['midi','Midi'],['soir','Soir'],['nuit','Nuit']];
 const R={
@@ -17,6 +18,7 @@ const R={
   soir:{ciel:[0xffd9bc,0xb39a88,1.45],soleil:[0xff9d55,1.45,[-40,11,6]],appoint:0.28,teinte:0xffc9a0},
   nuit:{ciel:[0x5a6c94,0x231f1c,0.55],soleil:[0x9db2e0,0.18,[-10,40,-20]],appoint:0.06,teinte:0x2a3352}};   // lune, lampes allumées (lampes.js)
 let posee=null, cielTeinte=null, reelPose=null, bouton=null;
+addEventListener('cuisson',()=>{ posee=null; });   // cuisson posée, cochée ou décochée : lumières réglées de nouveau
 // bouton « Lumière » de la barre (Mauro, 14 octobre 2026 : « une icône à part ») : son icône dit la lumière choisie
 const ICONE={normale:'sun-dim',matin:'sunrise',midi:'sun',soir:'sunset',nuit:'moon'};
 // 4 choix (Mauro, 14 octobre 2026) : retoucher le choix allumé rend la lumière normale ; seul réglage depuis le 15 octobre
@@ -32,7 +34,7 @@ export function majLumiere(){
   if(nom!==bouton) majBouton(nom);
   // rendu réaliste (realiste.js) : l'éclairage d'ambiance éclaire déjà, les lumières sont baissées d'autant
   if(nom!==posee||reel!==reelPose){ posee=nom; reelPose=reel; const r=R[nom], {hemi,sun,fill}=app.lumieres, k=reel?BAISSE:{ciel:1,soleil:1,appoint:1};
-    hemi.color.set(r.ciel[0]); hemi.groundColor.set(r.ciel[1]); hemi.intensity=r.ciel[2]*k.ciel;
+    hemi.color.set(r.ciel[0]); hemi.groundColor.set(r.ciel[1]); hemi.intensity=r.ciel[2]*k.ciel*(cuissonActive()?BAISSE_AMBIANCE:1);   // lumière précalculée (cuisson.js) : le ciel cuit éclaire déjà
     sun.color.set(r.soleil[0]); sun.intensity=r.soleil[1]*k.soleil; sun.position.set(...r.soleil[2]); fill.intensity=r.appoint*k.appoint; cielTeinte=null; }
   // ciel et montagnes (peints, sans éclairage) : teintés une fois qu'ils existent
   if(app.ciel&&cielTeinte!==posee){ cielTeinte=posee;
