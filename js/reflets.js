@@ -19,6 +19,12 @@ function sansDiffus(shader){ shader.fragmentShader=shader.fragmentShader.replace
 const forceDu=()=>(FORCE[etat.lumiere]??1)*filtreLumiere(etat.lumiere);   // filtre du menu « Lumière » (curseurs.js)
 export const estImporte=it=>it?.ajout?.t==='glb';
 export const RUGOSITE_MIN=0.35;
+// le soir et la nuit, l'environnement « studio » est presque éteint (FORCE de realiste.js : 0,65 et 0,2) : le granit poli retrouve de petits
+// reflets nets des lampes au lieu de gros halos mous (Mauro, 15 octobre 2026, les 5 spots de la cuisine : « les reflets donnent pas
+// bien du tout ») ; de jour, 0,35 comme avant (le reflet de la pièce « studio » sur le granit noir de l'îlot)
+const RUGOSITE_SOIR={soir:0.25,nuit:0.12};
+const rugositeMin=()=>RUGOSITE_SOIR[etat.lumiere]??RUGOSITE_MIN;
+let rugoDernier=null;
 
 // matériaux affichés d'un objet importé (une copie de matériau perd onBeforeCompile : on le remet)
 export function refleter(it){
@@ -29,7 +35,8 @@ export function refleter(it){
     // rendu réaliste : l'environnement « studio » se reflétait trop net sur les matières très lisses (granit noir de l'îlot,
     // audit du 15 octobre 2026, « Corrige » de Mauro) : rugosité d'au moins RUGOSITE_MIN, la valeur d'origine remise en rendu normal
     if(reel){ if(m.envMap===carte()||m.onBeforeCompile===sansDiffus){ m.envMap=null; m.onBeforeCompile=DEFAUT; m.envMapIntensity=1; m.needsUpdate=true; }
-      if(m.roughness<RUGOSITE_MIN){ if(m.userData.rugosite0===undefined) m.userData.rugosite0=m.roughness; m.roughness=RUGOSITE_MIN; } continue; }
+      const r0=m.userData.rugosite0??m.roughness, rm=rugositeMin();
+      if(r0<rm){ m.userData.rugosite0=r0; m.roughness=rm; } else if(m.userData.rugosite0!==undefined) m.roughness=m.userData.rugosite0; continue; }
     if(m.userData.rugosite0!==undefined){ m.roughness=m.userData.rugosite0; delete m.userData.rugosite0; }
     if(m.envMap!==carte()||m.onBeforeCompile!==sansDiffus){ m.envMap=carte(); m.onBeforeCompile=sansDiffus; m.needsUpdate=true; }
     m.envMapIntensity=f; }
@@ -38,6 +45,7 @@ addEventListener('apparence',e=>refleter(e.detail.it));   // objet prêt, couleu
 addEventListener('rendu',()=>{ force=null; for(const it of Object.values(app.items)) refleter(it); });   // rendu normal ↔ réaliste
 // à chaque image : force qui suit la lumière du jour (rien à faire tant qu'elle ne change pas)
 export function majReflets(){
+  const rm=rugositeMin(); if(rm!==rugoDernier){ rugoDernier=rm; for(const it of Object.values(app.items)) refleter(it); }   // jour ↔ soir ↔ nuit : rugosité minimale
   const f=forceDu(); if(f===force) return; force=f;
   for(const it of Object.values(app.items)) if(estImporte(it)) for(const o of it.mats) if(o.material?.envMap===carte()) o.material.envMapIntensity=f;
 }

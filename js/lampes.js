@@ -13,6 +13,10 @@ import {etat} from './calques.js';
 import {nommer, poserIcone} from './icones.js';
 
 const CLE='maison3d-lampes', CHAUD=new THREE.Color(0xffd29a), MAX=6, FORCE={soir:1.8,nuit:2.6};
+// spots (plusieurs disques lumineux dans une même partie « spot » : les 5 spots sous les meubles hauts de la cuisine) : une source
+// dirigée vers le bas par disque, en plus des 6 sources ponctuelles ; cône large et bord très doux (spots encastrés sans cache)
+export const NB_SPOTS=5, SPOT={angle:THREE.MathUtils.degToRad(52), penumbre:1, decroit:2, portee:4, force:{soir:0.8,nuit:1.2}, dessous:0.015};
+let spotsL=null;   // les sources des spots (créées au premier soir où une lampe à plusieurs spots est allumée)
 let eclairees=new Set();   // lampes qui portent une source (gardées de préférence : pas de halo qui saute d'une lampe à l'autre)
 let choix={}, sources=null, dernier=0, allume=null;
 try{ choix=JSON.parse(localStorage.getItem(CLE)||'{}')||{}; }catch{ choix={}; }
@@ -38,22 +42,49 @@ function parties(it){
   return it.parties=l;
 }
 // allume ou éteint l'aspect d'une lampe (matériau propre à chaque partie, comme pour la recoloration)
+// les spots d'une lampe à plusieurs spots (les 5 de la cuisine) sont émissifs d'origine (matière Blender) : éteints, ils s'éteignent
+// vraiment (Mauro, 15 octobre 2026 : « ou les 5 allumés, ou les 5 éteints »)
+const spotEteignable=(it,o)=>/spot/i.test(base(o)?.userData?.nom||'')&&plusieursSpots(it);
 function briller(it,oui){
   for(const o of parties(it)){
-    if(!o.userData.orig){ if(!oui) continue; o.userData.orig=o.material; o.material=o.material.clone(); }   // éteinte et jamais allumée : rien à faire
+    if(!o.userData.orig){ if(!oui&&!spotEteignable(it,o)) continue; o.userData.orig=o.material; o.material=o.material.clone(); }   // éteinte et jamais allumée : rien à faire
     const m=o.material, b=o.userData.orig; if(!m.emissive) continue;
     // éteinte : l'éclat propre du matériau (matière choisie dans la bibliothèque, sinon celui d'origine)
     const nat=m.userData.emissif;
     if(oui){ m.emissive.copy(CHAUD); m.emissiveIntensity=etat.lumiere==='nuit'?2.2:1.6; }
-    else if(nat){ m.emissive.setHex(nat.h); m.emissiveIntensity=nat.i; } else { m.emissive.copy(b.emissive||new THREE.Color(0)); m.emissiveIntensity=b.emissiveIntensity??1; }
+    else if(nat){ m.emissive.setHex(nat.h); m.emissiveIntensity=nat.i; }
+    else if(spotEteignable(it,o)){ m.emissive.setHex(0); m.emissiveIntensity=0; }
+    else { m.emissive.copy(b.emissive||new THREE.Color(0)); m.emissiveIntensity=b.emissiveIntensity??1; }
   }
 }
 function centre(it){ const b=new THREE.Box3(); for(const o of parties(it)) b.expandByObject(o); return b.isEmpty()?new THREE.Box3().setFromObject(it.g).getCenter(new THREE.Vector3()):b.getCenter(new THREE.Vector3()); }
 
+// Spots d'une lampe : une même partie « spot » peut porter plusieurs disques lumineux séparés (les 5 spots de la cuisine, Mauro,
+// 15 octobre 2026 : « les reflets donnent pas bien du tout » et « il faudrait que ça allume les 5 en même temps » : une seule source
+// au milieu des 5 faisait de gros reflets ronds sur le granit, et un seul « spot » semblait allumé). Disques = îlots de sommets
+// reliés (anneau et disque d'un même spot réunis à 1 cm près), calculés une fois dans le repère du meuble : ils le suivent.
+function spotsDe(it){
+  if(it.spotsPos!==undefined) return it.spotsPos;
+  const res=[]; it.g.updateWorldMatrix(true,true);
+  for(const o of parties(it)){
+    if(!/spot/i.test(base(o)?.userData?.nom||'')) continue;
+    const pos=o.geometry?.attributes?.position; if(!pos) continue;
+    const idx=o.geometry.index, n=pos.count, par=new Int32Array(n); for(let i=0;i<n;i++) par[i]=i;
+    const f=a=>{ while(par[a]!==a){ par[a]=par[par[a]]; a=par[a]; } return a; };
+    const nt=idx?idx.count/3:n/3;
+    for(let t=0;t<nt;t++){ const a=idx?idx.getX(3*t):3*t, b=idx?idx.getX(3*t+1):3*t+1, c=idx?idx.getX(3*t+2):3*t+2; par[f(a)]=f(b); par[f(b)]=f(c); }
+    const boites=new Map(), v=new THREE.Vector3();
+    for(let i=0;i<n;i++){ v.fromBufferAttribute(pos,i).applyMatrix4(o.matrixWorld); const k=f(i); let b=boites.get(k); if(!b) boites.set(k,b=new THREE.Box3()); b.expandByPoint(v); }
+    const fus=[]; for(const b of boites.values()){ const m=fus.find(x=>x.clone().expandByScalar(0.01).intersectsBox(b)); if(m) m.union(b); else fus.push(b.clone()); }
+    for(const b of fus) res.push(it.g.worldToLocal(b.getCenter(new THREE.Vector3())));
+  }
+  return it.spotsPos=res;
+}
+const plusieursSpots=it=>spotsDe(it).length>1;
 // matériau d'une partie changé (bibliothèque de matières, étape 4) : la lampe garde son état allumé ou éteint
 addEventListener('apparence',e=>{ const it=e.detail.it; if(estLampe(it)||it.parties) briller(it,soirOuNuit()&&estAllumee(it)&&!it.hidden); });
 export function basculerLampe(it,oui=!estAllumee(it)){ if(!estLampe(it)) return; choix[it.name]={...choix[it.name],allumee:oui}; garder(); dernier=0; allume=null; majPanneauLampe(); }
-export function marquerLampe(it,oui){ choix[it.name]={...choix[it.name],lampe:oui}; if(!oui) briller(it,false); it.parties=null; garder(); dernier=0; allume=null; majPanneauLampe(); }
+export function marquerLampe(it,oui){ choix[it.name]={...choix[it.name],lampe:oui}; if(!oui) briller(it,false); it.parties=null; it.spotsPos=undefined; garder(); dernier=0; allume=null; majPanneauLampe(); }
 export function majPanneauLampe(){
   const it=app.selected, c=$('t-lampe'), b=$('t-allumer'); if(!c) return;
   if(!it){ return; } c.checked=estLampe(it); b.hidden=!estLampe(it);
@@ -88,7 +119,14 @@ export function majLampes(){
   const score=(it,p)=>{ let d=p.distanceTo(vue);
     if(marche){ const c=v.copy(p).sub(vue).normalize().dot(dir); d*=c>=champ?1:c>0?2.2:3.5; }
     return eclairees.has(it.name)?d*0.8:d; };
-  const lampes=soir?Object.values(app.items).filter(it=>estAllumee(it)&&!it.hidden).map(it=>{ const p=centre(it); return {it,p,s:score(it,p)}; }).sort((a,b)=>a.s-b.s).slice(0,MAX):[];
+  const allumees=soir?Object.values(app.items).filter(it=>estAllumee(it)&&!it.hidden):[];
+  const lampes=allumees.filter(it=>!plusieursSpots(it)).map(it=>{ const p=centre(it); return {it,p,s:score(it,p)}; }).sort((a,b)=>a.s-b.s).slice(0,MAX);
   eclairees=new Set(lampes.map(q=>q.it.name));
   sources.forEach((l,k)=>{ const q=lampes[k]; l.intensity=q?FORCE[etat.lumiere]:0; if(q) l.position.copy(q.p); });
+  // la lampe à plusieurs spots la plus proche : une source par spot (les NB_SPOTS plus proches de la vue s'il y en a davantage)
+  const multi=allumees.filter(plusieursSpots).map(it=>({it,s:score(it,centre(it))})).sort((a,b)=>a.s-b.s)[0];
+  if(multi&&!spotsL){ spotsL=[]; for(let k=0;k<NB_SPOTS;k++){ const l=new THREE.SpotLight(CHAUD,0,SPOT.portee,SPOT.angle,SPOT.penumbre,SPOT.decroit); app.scene.add(l,l.target); spotsL.push(l); } }
+  if(!spotsL) return;
+  const pts=multi?spotsDe(multi.it).map(p=>multi.it.g.localToWorld(p.clone())).sort((a,b)=>a.distanceTo(vue)-b.distanceTo(vue)).slice(0,NB_SPOTS):[];
+  spotsL.forEach((l,k)=>{ const p=pts[k]; l.intensity=p?SPOT.force[etat.lumiere]:0; if(p){ l.position.set(p.x,p.y-SPOT.dessous,p.z); l.target.position.set(p.x,p.y-1,p.z); l.target.updateMatrixWorld(); } });
 }
