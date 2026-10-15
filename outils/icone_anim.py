@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Icônes de l'application (icones/icone4-*) et animation de chargement (icones/chargement.webp) d'après le GIF animé
+"""Animation de chargement (icones/chargement.webp) et, avec --icones, les anciennes icônes icone4-* d'après le GIF animé
 de Mauro (15 octobre 2026 : cadre bleu arrondi en 3D, maison et cube blancs dedans, qui tourne sur un fond sombre avec son
 reflet au sol ; 600 × 600 px, 50 images, 2 s).
 
@@ -15,8 +15,9 @@ cadre bleu et les traits blancs de la maison (intérieur du cadre transparent, s
 256 px, qualité 80 et alpha 80 (≈ 385 Ko : la transparence des traits fins pèse ; 3,2 Mo pour le GIF) ; affichée au milieu de l'écran pendant le chargement des éléments
 (js/chargement.js), avec une ombre portée en CSS.
 
-    python3 outils/icone_anim.py <animation.gif>        # le GIF n'est pas dans le dépôt (3 Mo) ; sa première image y est :
-    python3 outils/icone_anim.py                        # icones/source-anim.webp (icônes seulement)
+    python3 outils/icone_anim.py <animation.gif>        # le GIF n'est pas dans le dépôt (3 Mo) ; sa première image y est
+                                                        # (icones/source-anim.webp, dont icone_maison.py tire l'icône de l'application)
+    python3 outils/icone_anim.py --icones               # anciennes icônes icone4 (intérieur sombre), remplacées le 15 octobre 2026 au soir
 """
 import sys
 from pathlib import Path
@@ -115,16 +116,17 @@ def animation(gif, sortie, taille=256, pas=2, duree=80, qualite=80, qualite_alph
 
 
 def main():
-    gif = Path(sys.argv[1]) if len(sys.argv) > 1 else None
+    gif = Path(sys.argv[1]) if len(sys.argv) > 1 and not sys.argv[1].startswith('--') else None
     f0 = image_de_face(gif)
     if gif: f0.save(SOURCE_F0, 'WEBP', quality=90, method=6)
-    icone = decouper(f0)
-    poser(icone, 512, 0.96).save(ICONES / 'icone4-512.png', optimize=True)
-    poser(icone, 192, 0.96).save(ICONES / 'icone4-192.png', optimize=True)
-    poser(icone, 64, 0.96).save(ICONES / 'favicon4-64.png', optimize=True)
-    poser(icone, 180, 0.84, fond=FOND).convert('RGB').save(ICONES / 'apple-touch-icon4.png', optimize=True)
-    poser(icone, 512, 0.72, fond=FOND).convert('RGB').save(ICONES / 'icone4-maskable-512.png', optimize=True)
-    print('icônes :', icone.size, 'px découpés')
+    if '--icones' in sys.argv:                       # anciennes icônes icone4 (remplacées par icone_maison.py le 15 octobre 2026 au soir)
+        icone = decouper(f0)
+        poser(icone, 512, 0.96).save(ICONES / 'icone4-512.png', optimize=True)
+        poser(icone, 192, 0.96).save(ICONES / 'icone4-192.png', optimize=True)
+        poser(icone, 64, 0.96).save(ICONES / 'favicon4-64.png', optimize=True)
+        poser(icone, 180, 0.84, fond=FOND).convert('RGB').save(ICONES / 'apple-touch-icon4.png', optimize=True)
+        poser(icone, 512, 0.72, fond=FOND).convert('RGB').save(ICONES / 'icone4-maskable-512.png', optimize=True)
+        print('icônes :', icone.size, 'px découpés')
     if gif:
         n, o, cadre = animation(gif, ICONES / 'chargement.webp')
         print('animation :', n, 'images,', round(o / 1024), 'Ko, cadre', cadre)
