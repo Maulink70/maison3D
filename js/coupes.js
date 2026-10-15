@@ -5,6 +5,10 @@
 // ce que l'extérieur n'atteint pas est plein, même si le meuble n'a pas de fond ni de dos) et on y pose un couvercle
 // dans la matière la plus présente sur la coupe. Les couvercles ne sont affichés que lorsque leur coupe est active.
 // Les murs de la structure n'en ont pas besoin (leurs dos sont doublés), ni les parties mobiles des portes et fenêtres.
+// Les objets ajoutés (formes, photos, fichiers 3D : meubles de Blender de la base « Réalisme ») reçoivent le leur dès qu'ils
+// sont prêts (poserCouvercleAjout, appelé par ajouts.js), refait si l'objet est refait (Mauro, 15 octobre 2026 : vus d'en
+// haut en vue Rez, l'armoire du dégagement et les meubles hauts de la cuisine de Blender montraient leur intérieur, et les
+// faces superposées dedans scintillaient).
 import * as THREE from 'three';
 import {app} from './app.js';
 import {REZ_CUT, ROOF_CUT} from './config.js';
@@ -17,7 +21,7 @@ function section(racine,h){
   const segs=[], parMat=new Map();
   racine.updateMatrixWorld(true);
   racine.traverse(o=>{
-    if(!o.isMesh||o.userData.dos||o.userData.porte||o.userData.vitre) return;
+    if(!o.isMesh||o.userData.dos||o.userData.porte||o.userData.vitre||o.userData.attente||o.name==='alerte'||o.userData.eclat||o.name.endsWith('__couvercle')) return;
     const m=o.material; if(Array.isArray(m)||m.transparent) return;
     const bb=new THREE.Box3().setFromObject(o); if(bb.min.y>=h||bb.max.y<=h) return;
     const pos=o.geometry.attributes.position, idx=o.geometry.index, n=idx?idx.count:pos.count;
@@ -72,25 +76,32 @@ function couvercle(segs,y){
 // Pose les couvercles : éléments de la liste (dans leur groupe, ils suivent déplacement, rotation, masquage et couleur)
 // et éléments fixes construits en code (escalier, muret, cloison du réduit). Appelé une fois le mobilier installé.
 const FIXES=['rez__escalier','rez__cloison','rez__cloison_reduit'];
+// un couvercle pour une racine (élément de la liste ou élément fixe), au niveau donné ; rien si la coupe ne la traverse pas
+function poser(o,it,etage){
+  const h=(etage?ROOF_CUT:REZ_CUT)-SOUS;
+  const bb=new THREE.Box3().setFromObject(o); if(bb.min.y>=h||bb.max.y<=h) return;
+  const {segs,parMat}=section(o,h); if(!segs.length) return;
+  const geo=couvercle(segs,h); if(!geo) return;
+  const mat=[...parMat.entries()].sort((a,b)=>b[1]-a[1])[0][0];
+  geo.applyMatrix4(o.matrixWorld.clone().invert());
+  const m=new THREE.Mesh(geo,mat); m.name=o.name+'__couvercle'; m.userData.coupe=etage?'etage':'rez'; m.visible=false;
+  if(it){ m.userData.item=it.name; it.mats.push(m); m.userData.y0=o.position.y; } else m.raycast=()=>{};
+  o.add(m); couvercles.push(m);
+}
 export function poserCouvercles(){
-  const cibles=[...Object.values(app.items).map(it=>({o:it.g,it})),
-    ...FIXES.map(n=>app.model.getObjectByName(n)).filter(Boolean).map(o=>({o,it:null}))];
-  for(const {o,it} of cibles){
-    const etage=o.name.startsWith('etage'), h=(etage?ROOF_CUT:REZ_CUT)-SOUS;
-    const bb=new THREE.Box3().setFromObject(o); if(bb.min.y>=h||bb.max.y<=h) continue;
-    const {segs,parMat}=section(o,h); if(!segs.length) continue;
-    const geo=couvercle(segs,h); if(!geo) continue;
-    const mat=[...parMat.entries()].sort((a,b)=>b[1]-a[1])[0][0];
-    geo.applyMatrix4(o.matrixWorld.clone().invert());
-    const m=new THREE.Mesh(geo,mat); m.name=o.name+'__couvercle'; m.userData.coupe=etage?'etage':'rez'; m.visible=false;
-    if(it){ m.userData.item=it.name; it.mats.push(m); m.userData.y0=o.position.y; } else m.raycast=()=>{};
-    o.add(m); couvercles.push(m);
-  }
+  for(const it of Object.values(app.items)) poser(it.g,it,it.g.name.startsWith('etage'));
+  for(const n of FIXES){ const o=app.model.getObjectByName(n); if(o) poser(o,null,false); }
+}
+// objet ajouté prêt ou refait (ajouts.js, après la collecte de ses parties) : l'ancien couvercle est retiré, un nouveau calculé
+export function poserCouvercleAjout(it){
+  for(const c of it.g.children.filter(c=>c.name===it.name+'__couvercle')){ it.g.remove(c); c.geometry.dispose(); const k=couvercles.indexOf(c); if(k>=0) couvercles.splice(k,1); }
+  it.mats=it.mats.filter(o=>o.name!==it.name+'__couvercle');
+  poser(it.g,it,it.ajout?.v==='etage');
 }
 // À chaque image : un couvercle n'est visible que si la coupe de son niveau est active (vue Rez ou Étage en maquette)
 export function majCouvercles(){
   const plans=app.renderer.clippingPlanes;
   const rez=plans.some(p=>p.normal.y<0&&Math.abs(p.constant-REZ_CUT)<1e-6), etage=plans.some(p=>p.normal.y<0&&Math.abs(p.constant-ROOF_CUT)<1e-6);
   // un meuble redimensionné (étape 4) n'a plus la section calculée : pas de couvercle
-  for(const m of couvercles){ const g=m.parent, e=g?.scale; m.visible=(m.userData.coupe==='rez'?rez:etage)&&(!e||(e.x===1&&e.y===1&&e.z===1))&&(m.userData.y0===undefined||Math.abs(g.position.y-m.userData.y0)<1e-4); }
+  for(const m of couvercles){ const g=m.parent, e=g?.scale; if(!g){ m.visible=false; continue; } m.visible=(m.userData.coupe==='rez'?rez:etage)&&(!e||(e.x===1&&e.y===1&&e.z===1))&&(m.userData.y0===undefined||Math.abs(g.position.y-m.userData.y0)<1e-4); }
 }

@@ -3,6 +3,7 @@
 // voyage dans la disposition de la variante où il a été ajouté. Nom interne : aj__<horodatage><hasard>.
 import * as THREE from 'three';
 import {app} from './app.js';
+import {poserCouvercleAjout} from './coupes.js';
 import {construireForme, FORMES} from './formes_simples.js';
 import {construirePhoto} from './photo.js';
 import {construireGLB} from './import3d.js';
@@ -24,8 +25,8 @@ const recueillir=(it,g)=>{ it.mats=[]; g.traverse(o=>{ if(o.isMesh&&!o.userData.
 function remplir(it,a){
   const {g,noms,taille,pret}=construire(a);
   g.name=it.name+'__forme'; it.g.add(g); it.nomsParties=noms;
-  recueillir(it,g); it.size=taille;
-  if(pret) pret.then(ok=>{ if(!ok||g.parent!==it.g) return; recueillir(it,g); oublier(it); it.nomsParties=g.userData.noms||it.nomsParties;
+  recueillir(it,g); it.size=taille; poserCouvercleAjout(it);
+  if(pret) pret.then(ok=>{ if(!ok||g.parent!==it.g) return; recueillir(it,g); poserCouvercleAjout(it); oublier(it); it.nomsParties=g.userData.noms||it.nomsParties;
     majApparence(it,true); invaliderPlan(); app.selBox?.update(); dispatchEvent(new CustomEvent('objet-pret',{detail:{it}})); });
 }
 function vider(it){
