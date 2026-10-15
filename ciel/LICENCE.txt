@@ -1,0 +1,5 @@
+Ciels de Poly Haven (https://polyhaven.com), licence CC0 (domaine public), panoramas « pure sky » réduits en WebP 4096 × 2048 :
+jour  = kloofendal_48d_partly_cloudy_puresky
+matin = qwantani_sunrise_puresky
+soir  = belfast_sunset_puresky
+nuit  = qwantani_moon_noon_puresky

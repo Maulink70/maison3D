@@ -14,6 +14,8 @@ import {surfaceChoisie, surfaceEn, choisirSurface} from './revetements.js';
 import {matieresOuvertes, choisirPartie} from './objets.js';
 import {aimanter, reglerAimant} from './aimant.js';
 import {cadrerObjet} from './aller.js';
+import {PIECES, pieceEn} from './pieces.js';
+import {demanderVignette} from './vignettes.js';
 
 const rc=new THREE.Raycaster();
 
@@ -124,20 +126,41 @@ export function resetItem(it){ if(!it.ajout) appliquerEtat(it,origineDe(it.name)
 // Filtres : niveau (Tout / Rez / Étage), affichés ou masqués (Tous / Affichés / Masqués (n) : Mauro, 11 octobre 2026, « trop
 // long à chercher le seul masqué ») et recherche sur le nom (sans tenir compte des accents ni des majuscules).
 // Reconstruite au chargement, au changement d'étage et à chaque ajout ou retrait de meuble (évènement « meubles »).
-const filtre={niveau:'tout',texte:'',vis:'tous'};
+const filtre={niveau:'tout',texte:'',vis:'tous',piece:null};
+// pièce d'un meuble : celle de son centre, sinon la plus proche à moins de 80 cm (renfoncements), comme le tableau des meubles
+function pieceDuMeuble(it){ const x=it.g.position.x, z=it.g.position.z, niv=it.lvl==='Étage'?'etage':'rez'; const p=pieceEn(x,z,niv); if(p) return p; let m=null, dm=0.8;
+  for(const q of PIECES) if(q.niveau===niv) for(const [x0,z0,x1,z1] of q.rects){ const d=Math.hypot(Math.max(x0-x,0,x-x1),Math.max(z0-z,0,z-z1)); if(d<dm){ dm=d; m=q; } }
+  return m; }
+// pastilles par pièce (audit du 15 octobre 2026) : les pièces des niveaux affichés, « Toutes » en tête ; le choix se garde
+// tant que la pièce reste dans la liste
+function majPastilles(){
+  const z=$('f-pieces'); if(!z) return;
+  const niv=filtre.niveau==='rez'?['rez']:filtre.niveau==='etage'?['etage']:(app.level==='etage'?['etage','rez']:['rez','etage']);
+  const pieces=niv.flatMap(n=>PIECES.filter(p=>p.niveau===n));
+  if(filtre.piece&&!pieces.some(p=>p.id===filtre.piece)) filtre.piece=null;
+  z.replaceChildren(...[null,...pieces].map(p=>{ const b=document.createElement('button'); b.type='button'; b.className='pastille'; b.dataset.piece=p?p.id:'';
+    b.textContent=p?p.nom:'Toutes'; b.setAttribute('aria-pressed',String((p?p.id:null)===filtre.piece)); b.onclick=()=>{ filtre.piece=p?p.id:null; buildList(); }; return b; }));
+}
+// vignettes (vignettes.js) : dessinées quand la ligne arrive à l'écran, trois par image au plus
+let observateur=null;
+function observer(){ if(observateur) return observateur;
+  observateur=new IntersectionObserver(es=>{ for(const e of es) if(e.isIntersecting){ const row=e.target, it=app.items[row.dataset.n]; observateur.unobserve(row);
+    if(it) demanderVignette(it,url=>{ const im=row.querySelector('.vign img'); if(im) im.src=url; }); } },{root:$('list'),rootMargin:'120px 0px'});
+  return observateur; }
 const listes=i=>i.meta.c==='meuble'||i.meta.c==='ouverture';
 function majMasques(){ const n=Object.values(app.items).filter(i=>listes(i)&&i.hidden).length; $('f-masques').textContent='Masqués'+(n?` (${n})`:''); }
 const sansAccent=t=>t.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
 export function buildList(){
-  const box=$('list'); box.innerHTML='';
+  const box=$('list'); box.innerHTML=''; observateur?.disconnect(); observateur=null;
   const ordre=app.level==='etage'?['Étage','Rez']:['Rez','Étage'];
   const niveaux=filtre.niveau==='rez'?['Rez']:filtre.niveau==='etage'?['Étage']:ordre;
   const cherche=sansAccent(filtre.texte.trim());
+  majPastilles();
   let total=0;
   for(const lvl of niveaux){
     const blocs=[];
     for(const cat of ['meuble','ouverture']){
-      const its=Object.values(app.items).filter(i=>i.lvl===lvl&&i.meta.c===cat&&(!cherche||sansAccent(i.meta.l).includes(cherche))&&(filtre.vis==='tous'||(filtre.vis==='masques')===!!i.hidden))
+      const its=Object.values(app.items).filter(i=>i.lvl===lvl&&i.meta.c===cat&&(!cherche||sansAccent(i.meta.l).includes(cherche))&&(filtre.vis==='tous'||(filtre.vis==='masques')===!!i.hidden)&&(!filtre.piece||pieceDuMeuble(i)?.id===filtre.piece))
         .sort((a,b)=>a.meta.l.localeCompare(b.meta.l,'fr'));
       if(its.length) blocs.push([cat,its]);
     }
@@ -148,11 +171,12 @@ export function buildList(){
       for(const it of its){
         total++;
         const row=document.createElement('div'); row.className='row'+(it.hidden?' off':'')+(app.selected===it?' sel':'')+(it.ajout?' ajout':''); row.dataset.n=it.name;
+        const v=document.createElement('span'); v.className='vign'; const im=document.createElement('img'); im.alt=''; im.decoding='async'; v.append(im);
         const b=document.createElement('button'); b.className='name'; b.textContent=it.meta.l; b.onclick=()=>{ if(it.hidden) setHidden(it,false); select(it.name); cadrerObjet(it); save(); };   // la vue se cadre sur lui (Mauro, 11 octobre 2026)
         const eye=document.createElement('button'); eye.className='eye'; eye.textContent=it.hidden?'Afficher':'Masquer';
         eye.setAttribute('aria-label',(it.hidden?'Afficher ':'Masquer ')+it.meta.l);
         eye.onclick=()=>{ setHidden(it,!it.hidden); if(app.selected===it&&it.hidden) select(null); save(); };
-        row.append(b,eye); box.appendChild(row);
+        row.append(v,b,eye); box.appendChild(row); observer().observe(row);
       }
     }
   }
@@ -219,6 +243,7 @@ export function initEdition(){
   $('toggle-panel').onclick=()=>openSheet($('panel').hidden);
   addEventListener('niveau',()=>{ if(app.mobilierPret) buildList(); });
   addEventListener('meubles',()=>{ if(app.mobilierPret) buildList(); });
+  addEventListener('vignette',e=>{ const row=$('list').querySelector(`.row[data-n="${CSS.escape(e.detail.it.name)}"]`); if(row) demanderVignette(e.detail.it,url=>{ const im=row.querySelector('.vign img'); if(im) im.src=url; }); });   // objet 3D arrivé : sa vignette
   for(const k of ['tout','rez','etage']) $('f-'+k).onclick=()=>filtrerNiveau(k);
   for(const k of ['tous','affiches','masques']) $('f-'+k).onclick=()=>filtrerVisibles(k);
   // un meuble affiché ou masqué (bouton, annuler, autre appareil) sort de la liste « Affichés » ou « Masqués »

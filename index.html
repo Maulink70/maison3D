@@ -150,6 +150,7 @@
           <button id="f-affiches" aria-pressed="false">Affichés</button>
           <button id="f-masques" aria-pressed="false">Masqués</button>
         </div>
+        <div class="pastilles" id="f-pieces" role="group" aria-label="Pièce"></div>
       </div>
       <div class="list" id="list"><div class="attente">Chargement des meubles…</div></div>
       <div class="p-pied">
@@ -237,11 +238,13 @@
   <div id="jeu-aide" role="status" hidden></div>
   <div id="hint"></div>
   <div id="charge" role="status" hidden>Meubles en cours de chargement <span class="num" id="charge-pct">0 %</span></div>
-  <div id="loading"><div><span>Chargement de la maquette…</span><span class="meter"><i id="bar"></i></span><span class="num" id="pct">0 %</span></div></div>
+  <div id="loading"><div>
+    <svg class="plan-silhouette" viewBox="0 0 81.3 134.6" aria-hidden="true"><g class="fond"><rect x="16.2" y="67.5" width="64.5" height="66.5" rx="0.6"/><rect x="37.5" y="29.3" width="43.2" height="37.0" rx="0.6"/><rect x="25.7" y="52.8" width="10.6" height="13.5" rx="0.6"/><rect x="2.0" y="52.8" width="22.5" height="13.5" rx="0.6"/><rect x="18.3" y="29.3" width="16.7" height="22.3" rx="0.6"/><rect x="36.3" y="0.6" width="44.4" height="26.7" rx="0.6"/><rect x="18.3" y="18.3" width="16.8" height="9.0" rx="0.6"/><rect x="0.6" y="0.6" width="33.2" height="15.7" rx="0.6"/><rect x="0.6" y="17.5" width="15.7" height="9.8" rx="0.6"/><rect x="0.6" y="39.6" width="15.7" height="11.2" rx="0.6"/><rect x="0.6" y="29.3" width="6.8" height="9.1" rx="0.6"/></g><g class="rempli" id="loading-rempli" style="clip-path:inset(100% 0 0 0)"><rect x="16.2" y="67.5" width="64.5" height="66.5" rx="0.6"/><rect x="37.5" y="29.3" width="43.2" height="37.0" rx="0.6"/><rect x="25.7" y="52.8" width="10.6" height="13.5" rx="0.6"/><rect x="2.0" y="52.8" width="22.5" height="13.5" rx="0.6"/><rect x="18.3" y="29.3" width="16.7" height="22.3" rx="0.6"/><rect x="36.3" y="0.6" width="44.4" height="26.7" rx="0.6"/><rect x="18.3" y="18.3" width="16.8" height="9.0" rx="0.6"/><rect x="0.6" y="0.6" width="33.2" height="15.7" rx="0.6"/><rect x="0.6" y="17.5" width="15.7" height="9.8" rx="0.6"/><rect x="0.6" y="39.6" width="15.7" height="11.2" rx="0.6"/><rect x="0.6" y="29.3" width="6.8" height="9.1" rx="0.6"/></g></svg>
+    <span>Chargement de la maquette…</span><span class="meter"><i id="bar"></i></span><span class="num" id="pct">0 %</span></div></div>
   <!-- entrée (étape 3, choix de Mauro du 10 octobre 2026) : sans compte, seulement cet écran ; la maquette ne se charge qu'une fois connecté -->
   <div id="porte" hidden>
     <form id="porte-form" class="porte-carte" autocomplete="on">
-      <div class="porte-titre"><strong>Appart. Diolly</strong><span>Maison3D</span></div>
+      <div class="porte-titre"><img class="porte-logo" src="icones/icone-192.png" alt="" width="56" height="56"><div><strong>Appart. Diolly</strong><span>Maison3D</span></div></div>
       <p class="porte-texte">Connectez-vous pour entrer.</p>
       <label for="porte-nom">Nom</label>
       <input id="porte-nom" name="username" autocomplete="username" autocapitalize="none" spellcheck="false" required>

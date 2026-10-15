@@ -50,12 +50,22 @@ function icone(p){
     b.onclick=e=>{ e.stopPropagation(); ouvrir(b.dataset.photo); };
     $('points-photo').append(b); m={b,pointe,vu:true,rayonA:0}; icones.set(p.id,m); }
   const nom=`Voir en vrai ici : photo « ${p.nom} »`+(nomPiece(p.piece)?' ('+nomPiece(p.piece)+')':'');
-  if(m.b.getAttribute('aria-label')!==nom) nommer(m.b,nom);
+  if(!m.groupe&&m.b.getAttribute('aria-label')!==nom) nommer(m.b,nom);   // regroupée : poser() nomme
   return m;
 }
 function ouvrir(id){
   const l=source(), p=l.find(x=>x.id===id); if(!p) return;
-  voirPhoto(p,l.filter(x=>x.piece===p.piece));
+  const g=icones.get(id)?.groupe;   // icône regroupée (maquette, plan) : la visionneuse sur les photos du groupe
+  voirPhoto(p,g&&g.length>1?g.map(k=>l.find(x=>x.id===k)).filter(Boolean):l.filter(x=>x.piece===p.piece));
+}
+// Regroupement (audit du 15 octobre 2026, « ok » de Mauro : « 30 appareils photo encombrent la maquette et le plan ») : en
+// maquette et sur le plan, les icônes à moins de RAYON_GROUPE px les unes des autres sont réunies sous la première,
+// qui porte leur nombre (data-n, dessiné en CSS) ; toucher = la visionneuse sur ces photos. En 1re personne, rien ne change.
+const RAYON_GROUPE=38;
+function regrouper(places){
+  const groupes=[];
+  for(const q of places){ const g=groupes.find(h=>Math.hypot(h.x-q.e.x,h.y-q.e.y)<RAYON_GROUPE); if(g){ g.ids.push(q.p.id); g.x=(g.x*(g.ids.length-1)+q.e.x)/g.ids.length; g.y=(g.y*(g.ids.length-1)+q.e.y)/g.ids.length; } else groupes.push({x:q.e.x,y:q.e.y,ids:[q.p.id],e2:q.e2,p:q.p}); }
+  return groupes;
 }
 // une photo cachée par un mur, en 1re personne (rayon vers son point de vue, 4 fois par seconde au plus)
 const rc=new THREE.Raycaster(), dv=new THREE.Vector3();
@@ -67,12 +77,19 @@ function cachee(m,pt){
 
 // ---------- à chaque image ----------
 const v3=new THREE.Vector3(), v4=new THREE.Vector3();
+function poser(m,p,e,e2,groupe){
+  m.b.style.transform=`translate(${Math.round(e.x)}px,${Math.round(e.y)}px)`;
+  const n=groupe?groupe.length:0, nomP=nomPiece(p.piece);
+  if(n>1){ m.groupe=groupe; if(m.b.dataset.n!==String(n)) m.b.dataset.n=String(n); const t=`${n} photos prises ici`+(nomP?' ('+nomP+')':'')+' : voir'; if(m.b.getAttribute('aria-label')!==t) nommer(m.b,t); }
+  else if(m.groupe||m.b.dataset.n){ m.groupe=null; delete m.b.dataset.n; icone(p); }
+  if(e2&&n<=1){ const ang=Math.atan2(e2.y-e.y,e2.x-e.x); m.pointe.hidden=false; m.pointe.style.transform=`rotate(${ang.toFixed(3)}rad)`; } else m.pointe.hidden=true;
+}
 let ignoree=null;   // photo dont on a refusé le bandeau (jusqu'à ce qu'on s'éloigne)
 export function majPointsVue(){
   const z=$('points-photo'), actif=app.mobilierPret&&etat.photos!==false&&!calageActif()&&!comparaisonActive()&&!app.mesure;
   if(actif&&!legere&&!enCours&&!photosChargees()&&performance.now()>prochainEssai) chargerLegere();
   if(actif) majListe();
-  const montrees=new Set(); let ici=null;
+  const montrees=new Set(), places=[]; let ici=null;
   if(actif&&calees.length){
     const r=z.getBoundingClientRect(), cam=app.camera, walk=app.mode==='walk', plan=app.mode==='plan';
     const c=cam.position, monNiveau=c.y>ETAGE_FLOOR+0.5?'etage':'rez';
@@ -100,10 +117,9 @@ export function majPointsVue(){
         const b=v4.project(cam); e={x:(a.x+1)/2*r.width,y:(1-a.y)/2*r.height}; e2=b.z<=1&&b.z>=-1?{x:(b.x+1)/2*r.width,y:(1-b.y)/2*r.height}:null;
       }
       if(!e||e.x<-20||e.y<-20||e.x>r.width+20||e.y>r.height+20) continue;
-      const m=icone(p); montrees.add(p.id);
-      m.b.style.transform=`translate(${Math.round(e.x)}px,${Math.round(e.y)}px)`;
-      if(e2){ const ang=Math.atan2(e2.y-e.y,e2.x-e.x); m.pointe.hidden=false; m.pointe.style.transform=`rotate(${ang.toFixed(3)}rad)`; } else m.pointe.hidden=true;
+      if(walk){ poser(icone(p),p,e,e2,null); montrees.add(p.id); } else places.push({p,e,e2});
     }
+    if(!walk) for(const g of regrouper(places)){ const p=g.p, m=icone(p); montrees.add(p.id); poser(m,p,g.ids.length>1?{x:g.x,y:g.y}:places.find(q=>q.p===p).e,g.ids.length>1?null:g.e2,g.ids.length>1?g.ids:null); }
   }
   for(const [id,m] of icones){ const vu=montrees.has(id); if(m.vu!==vu){ m.b.hidden=!vu; m.vu=vu; } }
   z.hidden=!montrees.size;

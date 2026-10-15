@@ -7,6 +7,7 @@ import {app} from './app.js';
 import {etat, choisirLumiere} from './calques.js';
 import {poserIcone, nommer} from './icones.js';
 import {renduReel, BAISSE} from './realiste.js';
+import {poserCiel} from './ciel.js';
 
 export const LUMIERES=[['normale','Normale'],['matin','Matin'],['midi','Midi'],['soir','Soir'],['nuit','Nuit']];
 const R={
@@ -34,5 +35,6 @@ export function majLumiere(){
     sun.color.set(r.soleil[0]); sun.intensity=r.soleil[1]*k.soleil; sun.position.set(...r.soleil[2]); fill.intensity=r.appoint*k.appoint; cielTeinte=null; }
   // ciel et montagnes (peints, sans éclairage) : teintés une fois qu'ils existent
   if(app.ciel&&cielTeinte!==posee){ cielTeinte=posee;
-    app.ciel.traverse(o=>{ if(o.isMesh&&o.material?.isMeshBasicMaterial&&o.material.map){ o.material.color.set(R[posee].teinte); } }); }
+    app.ciel.traverse(o=>{ if(o.isMesh&&o.material?.isMeshBasicMaterial&&o.material.map&&!o.userData.photo){ o.material.color.set(R[posee].teinte); } });
+    poserCiel(posee,R[posee].soleil[2]); }   // vraie photo de ciel (ciel.js, 15 octobre 2026), soleil dans la direction du soleil
 }

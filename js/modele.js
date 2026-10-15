@@ -183,7 +183,7 @@ function erreur(err,cible){ console.error(err); cible.textContent='Le modèle n�
 // 2. le mobilier (meubles, portes, fenêtres), avec un indicateur discret
 export async function chargerModele({structurePrete,mobilierPret}){
   try{
-    const s=await charger(FICHIERS.structure,p=>{ $('bar').style.width=p+'%'; $('pct').textContent=p+' %'; });
+    const s=await charger(FICHIERS.structure,p=>{ $('bar').style.width=p+'%'; $('pct').textContent=p+' %'; const r=$('loading-rempli'); if(r) r.style.clipPath=`inset(${100-p}% 0 0 0)`; });
     installerStructure(s.scene); structurePrete();
     $('loading').hidden=true; $('charge').hidden=false;
   }catch(e){ erreur(e,$('pct')); return; }

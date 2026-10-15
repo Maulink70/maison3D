@@ -192,15 +192,24 @@ export function initCalques(){
   relire();
   const bt=$('calques-bouton'), menu=$('calques-menu');
   const ouvrir=oui=>{ menu.hidden=!oui; bt.setAttribute('aria-expanded',String(oui)); if(oui){ majMenu(); caler(menu); } };
-  const groupes=[['Affichage',OPTIONS.slice(8)],['Pièces',OPTIONS.slice(0,3)],['Cotes (sur le plan 2D)',OPTIONS.slice(3,7)],['Règle',OPTIONS.slice(7,8)]];
-  for(const [titre,opts] of groupes){
-    const g=document.createElement('div'); g.className='menu-groupe';
-    const t=document.createElement('div'); t.className='menu-titre'; t.textContent=titre; g.append(t);
+  // trois groupes repliables (audit du 15 octobre 2026, « ok » de Mauro : le menu était devenu très long) : Affichage
+  // (murs, photos, lumière, rendu, ombres, vue éclatée), Calques (noms, surfaces, hauteurs, mesures de la règle) et
+  // Cotes (plan 2D), ouverts ou repliés selon le dernier choix (clé maison3d-menu-affichage ; les cotes repliées au départ)
+  const CLE_GROUPES='maison3d-menu-affichage'; let plis={affichage:true,calques:true,cotes:false};
+  try{ plis={...plis,...JSON.parse(localStorage.getItem(CLE_GROUPES)||'{}')}; }catch{}
+  const groupes=[['affichage','Affichage',OPTIONS.slice(8)],['calques','Calques',[...OPTIONS.slice(0,3),...OPTIONS.slice(7,8)]],['cotes','Cotes (sur le plan 2D)',OPTIONS.slice(3,7)]];
+  for(const [cle,titre,opts] of groupes){
+    const g=document.createElement('div'); g.className='menu-groupe menu-pli'; g.id='cq-grp-'+cle;
+    const t=document.createElement('button'); t.type='button'; t.className='menu-titre menu-pli-titre'; t.setAttribute('aria-controls','cq-grp-'+cle+'-corps');
+    const corps=document.createElement('div'); corps.className='menu-pli-corps'; corps.id='cq-grp-'+cle+'-corps';
+    const poser=()=>{ const o=!!plis[cle]; t.setAttribute('aria-expanded',String(o)); corps.hidden=!o; t.innerHTML=`<span>${titre}</span><span class="menu-pli-fleche" aria-hidden="true">${o?'⌃':'⌄'}</span>`; };
+    t.onclick=()=>{ plis[cle]=!plis[cle]; try{ localStorage.setItem(CLE_GROUPES,JSON.stringify(plis)); }catch{} poser(); };
+    poser(); g.append(t,corps);
     for(const [k,l] of opts){ const lab=document.createElement('label'); lab.className='case';
       const c=document.createElement('input'); c.type='checkbox'; c.id='cq-'+k; c.checked=!!etat[k]; c.onchange=()=>{ etat[k]=c.checked; garder(); };
-      lab.append(c,document.createTextNode(l)); g.append(lab); }
+      lab.append(c,document.createTextNode(l)); corps.append(lab); }
     menu.append(g);
-    if(titre==='Affichage'){
+    if(titre==='Affichage'){ const g=corps;
       // lumière du jour (lumiere.js) et vue éclatée (eclate.js)
       const l=document.createElement('div'); l.className='impr-ligne';
       l.innerHTML='<span id="cq-t-lumiere">Lumière</span><div class="seg" role="group" aria-labelledby="cq-t-lumiere">'+

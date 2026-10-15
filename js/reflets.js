@@ -17,6 +17,7 @@ const CHUNK=THREE.ShaderChunk.lights_fragment_maps.replace('iblIrradiance += get
 function sansDiffus(shader){ shader.fragmentShader=shader.fragmentShader.replace('#include <lights_fragment_maps>',CHUNK); }
 const forceDu=()=>FORCE[etat.lumiere]??1;
 export const estImporte=it=>it?.ajout?.t==='glb';
+export const RUGOSITE_MIN=0.35;
 
 // matériaux affichés d'un objet importé (une copie de matériau perd onBeforeCompile : on le remet)
 export function refleter(it){
@@ -24,7 +25,11 @@ export function refleter(it){
   const f=forceDu(), reel=renduReel();
   for(const o of it.mats){ const m=o.material;
     if(!m?.isMeshStandardMaterial) continue;
-    if(reel){ if(m.envMap===carte()||m.onBeforeCompile===sansDiffus){ m.envMap=null; m.onBeforeCompile=DEFAUT; m.envMapIntensity=1; m.needsUpdate=true; } continue; }
+    // rendu réaliste : l'environnement « studio » se reflétait trop net sur les matières très lisses (granit noir de l'îlot,
+    // audit du 15 octobre 2026, « Corrige » de Mauro) : rugosité d'au moins RUGOSITE_MIN, la valeur d'origine remise en rendu normal
+    if(reel){ if(m.envMap===carte()||m.onBeforeCompile===sansDiffus){ m.envMap=null; m.onBeforeCompile=DEFAUT; m.envMapIntensity=1; m.needsUpdate=true; }
+      if(m.roughness<RUGOSITE_MIN){ if(m.userData.rugosite0===undefined) m.userData.rugosite0=m.roughness; m.roughness=RUGOSITE_MIN; } continue; }
+    if(m.userData.rugosite0!==undefined){ m.roughness=m.userData.rugosite0; delete m.userData.rugosite0; }
     if(m.envMap!==carte()||m.onBeforeCompile!==sansDiffus){ m.envMap=carte(); m.onBeforeCompile=sansDiffus; m.needsUpdate=true; }
     m.envMapIntensity=f; }
 }

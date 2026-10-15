@@ -28,6 +28,8 @@ import {initStores, majStores} from './stores.js';
 import {initBlender} from './blender.js';
 import {majReflets} from './reflets.js';
 import {initRealiste, majRealiste, rendreReel} from './realiste.js';
+import {initOmbres, majOmbres} from './ombres.js';
+import {initVignettes} from './vignettes.js';
 import {eclatActif, rendreEclate, suivreEclat} from './eclate.js';
 import {initIcones} from './icones.js';
 import {initBarre, ajusterBarre} from './barre.js';
@@ -50,7 +52,7 @@ import {initPointsListe} from './pointsliste.js';
 import {initCreer} from './creer.js';
 import {initAssistant} from './assistant.js';
 
-initIcones(); initBarre(); initCompte(); initSynchro(); initVariantes(); initComparer(); initVues(); initVisite(); initEdition(); initOuvrants3D(); initStores(); initSauvegarde(); initAller(); initPlan(); initCalques(); initRealiste(); initMesure(); initImpression(); initIsoler(); initCameras(); initHistorique(); initPartage(); initAlertes(); initObjets(); initRevetements(); initGalerie(); initCalage(); initRecu(); initPointsVue(); initProduits(); initJeu(); initPointsListe(); initCreer(); initAssistant(); initBlender();
+initIcones(); initBarre(); initCompte(); initSynchro(); initVariantes(); initComparer(); initVues(); initVisite(); initEdition(); initOuvrants3D(); initStores(); initSauvegarde(); initAller(); initPlan(); initCalques(); initRealiste(); initOmbres(); initVignettes(); initMesure(); initImpression(); initIsoler(); initCameras(); initHistorique(); initPartage(); initAlertes(); initObjets(); initRevetements(); initGalerie(); initCalage(); initRecu(); initPointsVue(); initProduits(); initJeu(); initPointsListe(); initCreer(); initAssistant(); initBlender();
 // tableau des meubles : toucher un nom le montre (sélectionné en Éditer) ; bouton du panneau
 initTableau(it=>{ if(app.edition&&!it.hidden) select(it.name); cadrerObjet(it); }); $('f-tableau').onclick=()=>ouvrirTableau(true);
 
@@ -142,7 +144,7 @@ function rendre(){
 app.renderer.setAnimationLoop(()=>{
   const dt=Math.min(clock.getDelta(),0.1);
   if(app.mode==='walk') walk(dt); else if(app.mode==='plan') majPlan(dt); else { majCadrage(dt); suivreEclat(); app.orbit.update(); }
-  majPortes(dt); majRideaux(dt); majStores(dt); majCouvercles(); majTransparence(); majRevetements(); majAlertes(); majRealiste(); majLumiere(); majLampes(); majReflets();
+  majPortes(dt); majRideaux(dt); majStores(dt); majCouvercles(); majTransparence(); majRevetements(); majAlertes(); majRealiste(); majLumiere(); majOmbres(); majLampes(); majReflets();
   if(app.selected&&eclatActif()) select(null);   // vue éclatée : pas de sélection (la poignée suivrait mal le meuble soulevé)
   if(app.selBox&&app.tc.object) app.selBox.update();
   app.camera.updateMatrixWorld();   // calques, mesures et points de vue à la place de la caméra de cette image (sinon ils traînaient d'une image en tournant)

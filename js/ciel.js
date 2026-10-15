@@ -1,6 +1,10 @@
 // Dehors, visible en 1re personne seulement (par les fenêtres et les portes ouvertes) : ciel avec nuages, montagnes
 // enneigées au loin, collines boisées, pelouse en relief, arbres (demande de Mauro du 9 octobre 2026). Tout est dessiné
 // en code au premier passage en 1re personne : aucune image à télécharger.
+// Depuis le 15 octobre 2026 (audit, « ok on fait » de Mauro), le dôme reçoit une VRAIE PHOTO DE CIEL (panoramas « pure sky »
+// de Poly Haven, licence CC0, réduits en WebP 4096 × 2048 dans ciel/ : jour, matin, soir, nuit, ~1 Mo chacun, gardés en
+// cache par sw.js) : le dégradé peint reste le temps du chargement et en secours. Le dôme est tourné pour que le soleil
+// de la photo soit là où lumiere.js met le soleil (nord = −z) ; les montagnes et les collines restent devant.
 import * as THREE from 'three';
 import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 import {app} from './app.js';
@@ -160,12 +164,38 @@ function cageEscalier(){
   return g;
 }
 
+// ---------- ciel en photo (15 octobre 2026) ----------
+// colonne du soleil (ou de la lune) dans chaque panorama (0 à 1, relevée à la conversion : ciels.json du scratchpad)
+// Poly Haven : jour = kloofendal_48d_partly_cloudy_puresky, matin = qwantani_sunrise_puresky, soir = belfast_sunset_puresky,
+// nuit = qwantani_moon_noon_puresky (la lune haute) ; u = colonne du soleil ou de la lune dans l'image (0 à 1)
+export const CIELS={jour:{f:'ciel/jour.webp',u:0.599},matin:{f:'ciel/matin.webp',u:0.606},soir:{f:'ciel/soir.webp',u:0.688},nuit:{f:'ciel/nuit.webp',u:0.6}};
+export const CIEL_DE={normale:'jour',midi:'jour',matin:'matin',soir:'soir',nuit:'nuit'};
+let dome=null, peint=null, photoPosee=null, photoVoulue=null, chargeur=null, enCours=null;
+const textures=new Map();   // nom → texture chargée (une seule gardée sur la carte graphique : les autres sont libérées)
+// la photo tournée pour que son soleil soit dans la direction (dx, dz) du soleil de lumiere.js. Sur la sphère vue de
+// l'intérieur (repeat.x = −1), la colonne c de l'image apparaît dans la direction u = offset − c, et la direction u va
+// de l'ouest (u = 0) au sud (0,25), à l'est (0,5) et au nord (0,75) : e(u) = (−cos 2πu, sin 2πu).
+function orienter(t,nom,dir){ const dx=dir?.[0]??1, dz=dir?.[2]??0; t.offset.x=CIELS[nom].u+Math.atan2(dz,-dx)/(2*Math.PI); }
+export function poserCiel(nom,dir){
+  const k=CIEL_DE[nom]||'jour'; photoVoulue=k; if(!dome) return;
+  const t=textures.get(k);
+  if(t){ if(photoPosee!==k){ for(const [n,x] of textures) if(n!==k){ x.dispose(); textures.delete(n); } dome.material.map=t; dome.material.needsUpdate=true; photoPosee=k; } orienter(t,k,dir); return; }
+  if(enCours===k) return; enCours=k;
+  (chargeur||(chargeur=new THREE.TextureLoader())).load(CIELS[k].f,tex=>{
+    tex.colorSpace=THREE.SRGBColorSpace; tex.wrapS=THREE.RepeatWrapping; tex.repeat.x=-1; tex.generateMipmaps=true; tex.minFilter=THREE.LinearMipmapLinearFilter; tex.anisotropy=Math.min(8,app.renderer.capabilities.getMaxAnisotropy());
+    textures.set(k,tex); enCours=null; if(photoVoulue===k) poserCiel(nom,dir);
+  },undefined,e=>{ enCours=null; console.warn('Ciel en photo indisponible, dégradé peint gardé :',CIELS[k].f,e?.message||e); });
+}
+export const cielPhoto=()=>photoPosee;   // nom du ciel affiché (tests), null = dégradé peint
+
 export function creerCiel(){
   const g=new THREE.Group(); g.name='ciel'; g.visible=false;
-  const dome=new THREE.Mesh(new THREE.SphereGeometry(R_CIEL,48,24),new THREE.MeshBasicMaterial({map:texCiel(),side:THREE.BackSide,depthWrite:false}));
-  dome.position.set(C.x,-20,C.z); dome.renderOrder=-1;
+  peint=texCiel();
+  dome=new THREE.Mesh(new THREE.SphereGeometry(R_CIEL,64,32),new THREE.MeshBasicMaterial({map:peint,side:THREE.BackSide,depthWrite:false}));
+  dome.position.set(C.x,-20,C.z); dome.renderOrder=-1; dome.userData.photo=true;   // lumiere.js ne teinte pas la photo (les montagnes, si)
   g.add(dome,...montagnes(),pelouse(),...arbres(),cageEscalier());
   g.traverse(o=>{ o.raycast=()=>{}; });                // le dehors ne gêne ni la sélection ni la marche
   app.scene.add(g); app.ciel=g;
+  if(photoVoulue) poserCiel(Object.keys(CIEL_DE).find(n=>CIEL_DE[n]===photoVoulue)||'normale');
   return g;
 }

@@ -3,7 +3,7 @@ body{margin:0}
 /* Layout: plein écran 3D, barre d'outils flottante en haut, panneau mobilier à droite (feuille en bas sur téléphone) */
 :root{
   --bg:#e9ecee; --scene:#dfe3e6; --panel:#ffffff; --ink:#1c2227; --muted:#5b6670;
-  --line:#d3d9de; --accent:#2c5a86; --accent-soft:#e1eaf3; --danger:#a33a2c;
+  --line:#d3d9de; --accent:#2c5a86; --accent-soft:#e1eaf3; --danger:#a33a2c; --warn:#a3561d; --warn-soft:#f6e8d8;
   --photo:#2e8a4e; --photo-fonce:#226b3c;   /* « Photo réaliste » : bouton de la barre et appareils photo de la 3D (Mauro, 11 octobre 2026) */
   --font-ui:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
   --font-data:"IBM Plex Mono",ui-monospace,"Cascadia Mono",Consolas,monospace;
@@ -11,10 +11,10 @@ body{margin:0}
 }
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
   --bg:#14181b; --scene:#1b2024; --panel:#1f2529; --ink:#e5e9ec; --muted:#98a3ac;
-  --line:#2f373d; --accent:#82b2df; --accent-soft:#233444; --danger:#e48a7c; --photo:#3aa865; --photo-fonce:#55c07e; color-scheme:dark}}
+  --line:#2f373d; --accent:#82b2df; --accent-soft:#233444; --danger:#e48a7c; --warn:#e5a066; --warn-soft:#3d2e1e; --photo:#3aa865; --photo-fonce:#55c07e; color-scheme:dark}}
 :root[data-theme="dark"]{
   --bg:#14181b; --scene:#1b2024; --panel:#1f2529; --ink:#e5e9ec; --muted:#98a3ac;
-  --line:#2f373d; --accent:#82b2df; --accent-soft:#233444; --danger:#e48a7c; --photo:#3aa865; --photo-fonce:#55c07e; color-scheme:dark}
+  --line:#2f373d; --accent:#82b2df; --accent-soft:#233444; --danger:#e48a7c; --warn:#e5a066; --warn-soft:#3d2e1e; --photo:#3aa865; --photo-fonce:#55c07e; color-scheme:dark}
 html,body{height:100%}
 body{background:var(--bg);color:var(--ink);font-family:var(--font-ui);font-size:14px;overflow:hidden}
 #app{position:fixed;inset:env(safe-area-inset-top,0px) 0 env(safe-area-inset-bottom,0px) 0}
@@ -30,7 +30,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
 .brand span{font-family:var(--font-data);font-size:10px;color:var(--muted);letter-spacing:.02em}
 .seg{display:flex;background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:3px;gap:2px}
 .seg button{border:0;background:transparent;padding:6px 11px;border-radius:7px;font-weight:500;color:var(--muted)}
-.seg button[aria-pressed="true"]{background:var(--accent-soft);color:var(--accent)}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--panel)}
 .seg button:disabled{opacity:.35;cursor:default}
 .spacer{flex:1}
 /* boutons à icône de la barre (style A « trait fin ») : icône grise, bouton actif ou menu ouvert sur fond bleu clair */
@@ -40,7 +40,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
 .ib .ico .plein{fill:currentColor;fill-opacity:.9}
 .seg .ib{padding:0}
 .ib:hover:not(:disabled){color:var(--ink);background:color-mix(in srgb,var(--accent-soft) 60%,transparent)}
-.seg button.ib[aria-pressed="true"],.ib[aria-haspopup][aria-expanded="true"]{background:var(--accent-soft);color:var(--accent)}
+.seg button.ib[aria-pressed="true"],.ib[aria-haspopup][aria-expanded="true"]{background:var(--accent);color:var(--panel)}
 .ib.seul{width:46px;height:46px;background:var(--panel);border:1px solid var(--line);border-radius:var(--r)}
 .ib.seul:hover:not(:disabled){background:var(--accent-soft)}
 .ib.seul[aria-expanded="true"]{background:var(--accent-soft);color:var(--accent)}
@@ -59,8 +59,12 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
 /* nom sous l'icône dans la barre : sur PC seulement (souris), la tablette et le téléphone gardent l'icône seule (Mauro, 12 octobre 2026) */
 .ib-nom{display:none}
 @media (hover:hover) and (pointer:fine){
-  .bar .ib{width:auto;min-width:38px;height:auto;min-height:38px;padding:4px 6px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
-  .bar .ib .ib-nom{display:block;font-size:10.5px;line-height:1.15;white-space:nowrap;font-weight:500;pointer-events:none}
+  .bar .ib{width:auto;min-width:33px;height:auto;min-height:33px;padding:3px 5px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px}
+  .bar .ib .ico{width:18px;height:18px}
+  .bar .ib .ib-nom{display:block;font-size:9.5px;line-height:1.15;white-space:nowrap;font-weight:500;pointer-events:none}
+  .bar .seg{padding:2px}
+  .bar .seg button:not(.ib){padding:5px 9px}
+  .bar .brand{padding:2px 9px}
 }
 /* tablette en hauteur (800 px) : boutons un peu plus serrés, la barre tient sur une ligne en Visite */
 @media (max-width:900px){
@@ -112,9 +116,10 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
 .bar .menu-choix .ib[hidden]{display:none}
 .bar .menu-choix .ib .ico{width:20px;height:20px;flex:none}
 .bar .menu-choix .ib .ib-nom{display:block;font-size:14px;font-weight:500;white-space:nowrap}
-.bar .menu-choix .ib[aria-pressed="true"]{background:var(--accent-soft);color:var(--accent)}
-#infobulle{position:fixed;z-index:60;max-width:min(320px,calc(100vw - 16px));background:var(--ink);color:var(--panel);font-size:12.5px;font-weight:500;line-height:1.3;
-  padding:5px 9px;border-radius:7px;pointer-events:none;box-shadow:0 4px 14px rgba(0,0,0,.18)}
+.bar .menu-choix .ib[aria-pressed="true"]{background:var(--accent);color:var(--panel)}
+#infobulle{position:fixed;z-index:60;max-width:min(280px,calc(100vw - 16px));background:color-mix(in srgb,var(--ink) 94%,transparent);color:var(--panel);font-size:12px;font-weight:500;line-height:1.3;
+  padding:4px 9px;border-radius:8px;pointer-events:none;box-shadow:0 4px 14px rgba(0,0,0,.18)}
+#infobulle::before{content:"";position:absolute;left:50%;top:-4px;width:8px;height:8px;margin-left:-4px;background:inherit;transform:rotate(45deg);border-radius:1px}
 .btn{border:1px solid var(--line);background:var(--panel);border-radius:var(--r);padding:8px 12px;font-weight:500}
 .btn.primary{background:var(--accent);border-color:var(--accent);color:var(--panel)}
 .btn.danger{color:var(--danger)}
@@ -155,7 +160,7 @@ body.panneau-ouvert #toggle-panel.poignee{right:316px}
 .anglerow span{color:var(--muted)}
 .crans{grid-column:1 / -1;display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);padding:0 4px}
 .crans input{width:16px;height:16px;accent-color:var(--accent);margin:0}
-.btn[aria-pressed="true"]{background:var(--accent-soft);color:var(--accent);border-color:var(--accent)}
+.btn[aria-pressed="true"]{background:var(--accent);color:var(--panel);border-color:var(--accent)}
 .row{display:flex;align-items:center;gap:6px;border-radius:8px}
 .row:hover{background:var(--accent-soft)}
 .row .name{flex:1;min-width:0;text-align:left;border:0;background:none;padding:7px 8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -267,7 +272,7 @@ body.panneau-ouvert #toggle-panel.poignee{right:316px}
 /* menu « + » (14 octobre 2026) : une ligne par source avec icône, titre et description dessous ; formes simples repliées */
 #ajouter-menu{min-width:320px;max-width:min(380px,calc(100vw - 24px))}
 .menu button.aj-src{align-items:center;justify-content:flex-start;gap:12px;padding:9px 10px}
-.menu button.aj-src .ico{width:22px;height:22px;flex:none;color:var(--accent)}
+.menu button.aj-src .ico{width:20px;height:20px;flex:none;color:var(--accent)}
 .aj-txt{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}
 .aj-t{font-weight:600;font-size:14px;line-height:1.25}
 .aj-d{font-size:12px;color:var(--muted);line-height:1.3}
@@ -313,7 +318,7 @@ body.panneau-ouvert #toggle-panel.poignee{right:316px}
 .impr-ligne{display:grid;grid-template-columns:86px 1fr;align-items:center;gap:8px;padding:4px 10px}
 .impr-ligne>span{font-size:13px;color:var(--muted)}
 .menu .seg button{display:inline-block;width:auto;padding:5px 10px;border-radius:7px;text-align:center;font-weight:500;color:var(--muted)}
-.menu .seg button[aria-pressed="true"]{background:var(--accent-soft);color:var(--accent)}
+.menu .seg button[aria-pressed="true"]{background:var(--accent);color:var(--panel)}
 .menu .seg{flex-wrap:wrap;justify-self:start}
 .menu .btn.primary{justify-content:center;background:var(--accent);color:var(--panel);border:1px solid var(--accent)}
 .menu .btn.primary:hover,.menu .btn.primary:focus-visible{background:var(--accent);color:var(--panel);outline:2px solid var(--accent);outline-offset:2px}
@@ -972,10 +977,65 @@ body.panneau-ouvert #toggle-panel.poignee{right:316px}
 .bl-choix-piece select,.bl-choix-objet select{font:inherit;font-size:14px;padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--ink);max-width:62%}
 .bl-drive{color:var(--accent)}
 .bl-actions{display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end}
-#bandeau-blender{display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:var(--panel);border:1px solid var(--line);border-left:3px solid #e29a1c;border-radius:var(--r);padding:6px 6px 6px 12px;font-size:13px}
+#bandeau-blender{display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--warn);border-radius:var(--r);padding:6px 6px 6px 12px;font-size:13px}
 #bandeau-blender[hidden]{display:none}
 #bandeau-blender .ph-barre{width:120px;height:8px}
 #bandeau-blender .ph-barre[hidden]{display:none}
 #bandeau-blender .bt-temps{font-family:var(--font-data);color:var(--muted);font-size:12px}
 #bandeau-blender .actions{margin-left:auto;display:flex;gap:6px}
 @media (max-width:560px){.bl-liste li{grid-template-columns:44px 1fr}.bl-liste .bl-actions{grid-column:1/-1}.bl-apercu{width:44px;height:44px}}
+
+
+/* ===== Audit du 15 octobre 2026 : graphisme et design (réponses de Mauro) ===== */
+/* écran d'entrée : capture floutée de la maquette en fond, logo, deux champs, « Entrer » */
+#porte{background:var(--bg) url(../icones/entree.webp) center/cover no-repeat}
+#porte::before{content:"";position:absolute;inset:0;background:linear-gradient(180deg,color-mix(in srgb,var(--bg) 35%,transparent),color-mix(in srgb,var(--bg) 70%,transparent))}
+.porte-carte{position:relative;background:color-mix(in srgb,var(--panel) 90%,transparent);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);box-shadow:0 14px 40px rgba(0,0,0,.18)}
+.porte-titre{flex-direction:row;align-items:center;gap:12px;margin-bottom:6px}
+.porte-titre>div{display:flex;flex-direction:column;line-height:1.25}
+.porte-logo{width:56px;height:56px;border-radius:14px;flex:none;box-shadow:0 2px 8px rgba(0,0,0,.18)}
+/* chargement : la silhouette du plan du rez se remplit avec le pourcentage */
+#loading .plan-silhouette{width:84px;height:auto;margin-bottom:4px}
+#loading .plan-silhouette .fond rect{fill:var(--line)}
+#loading .plan-silhouette .rempli rect{fill:var(--accent)}
+#loading .plan-silhouette .rempli{transition:clip-path .25s}
+#loading .meter{display:none}
+#loading .num{font-size:15px;color:var(--ink)}
+/* bandeaux sous la barre : une seule ligne fine, légèrement transparente, couleur du liseré selon le type */
+#bandeaux>*{background:color-mix(in srgb,var(--panel) 86%,transparent);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:8px;font-size:12.5px}
+#bandeau-mesure,#bandeau-isole,#bandeau-comparer,#bandeau-remplacer,#bandeau-photo,#bandeau-tripo,#bandeau-blender{padding:2px 8px 2px 10px;min-height:30px;gap:8px}
+#bandeau-piece{border-left-color:var(--muted);padding:4px 10px}
+#bandeau-mesure{border-left-color:var(--mesure)}
+#bandeau-photo{border-left-color:var(--photo)}
+#bandeau-remplacer,#bandeau-blender{border-left-color:var(--warn)}
+#bandeau-calage{padding:4px 6px 4px 10px}
+#bandeaux .btn{padding:3px 9px;font-size:12.5px;border-radius:7px}
+#bandeaux .seg{padding:2px}
+#bandeaux .seg button{padding:3px 8px}
+/* liste des meubles : vignette de chaque meuble (vignettes.js) et pastilles par pièce */
+.row .vign{flex:none;width:44px;height:44px;border-radius:8px;background:var(--bg);display:grid;place-items:center;overflow:hidden}
+.row .vign img{width:40px;height:40px;object-fit:contain;display:block}
+.row .vign img:not([src]){visibility:hidden}
+.row.sel .vign,.row:hover .vign{background:var(--panel)}
+.row .name{padding:5px 6px}
+.filtres .pastilles{display:flex;flex-wrap:wrap;gap:4px;flex:1 1 100%}
+.filtres .pastilles:empty{display:none}
+.filtres .pastille{width:auto;height:auto;border:1px solid var(--line);background:var(--panel);border-radius:999px;padding:3px 9px;font-size:12px;color:var(--muted);font-weight:500;line-height:1.2}
+.filtres .pastille[aria-pressed="true"]{background:var(--accent);color:var(--panel);border-color:var(--accent)}
+/* menu « Affichage » en groupes repliables */
+.menu .menu-pli-titre{display:flex;width:100%;justify-content:space-between;align-items:center;gap:8px;padding:7px 10px 5px;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:600}
+.menu .menu-pli-titre:hover{color:var(--accent)}
+.menu .menu-pli-fleche{font-size:14px;line-height:1;color:var(--muted)}
+.menu-pli-corps[hidden]{display:none}
+/* points de vue des photos regroupés : le nombre sur l'icône */
+.ib.pv-photo[data-n]::after{content:attr(data-n);position:absolute;right:-7px;top:-7px;min-width:19px;height:19px;padding:0 4px;border-radius:10px;background:var(--panel);color:var(--photo);font-size:11px;font-weight:700;line-height:17px;text-align:center;border:1.5px solid var(--photo);box-sizing:border-box}
+/* tablette et téléphone : zones de toucher d'au moins 44 px (× des fenêtres, ✎ et × des menus, boutons des lignes) */
+@media (pointer:coarse){
+  .fenetre-tete .fermer{min-width:44px;min-height:44px;padding:4px 10px}
+  .menu .petit,.menu .vue .petit,#variantes-menu .petit{min-width:44px;min-height:40px}
+  .row .eye{min-height:44px;padding:6px 10px}
+  .menu .case{min-height:44px}
+  .menu button{min-height:44px}
+  .filtres .pastille{padding:6px 11px;min-height:32px}
+  .vis-b,#vis-fermer,#mi-fermer{width:44px;height:44px}
+}
