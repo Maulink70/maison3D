@@ -13,7 +13,11 @@ import * as THREE from 'three';
 import {app} from './app.js';
 import {uvMetres} from './matieres.js';
 
-export const PARQUET={nom:'Material_7', taille:1.99, dossier:'textures/', version:1, teinte:0xffffff, rugosite:1, normales:0.8};
+// sens : 0 = lames le long de x (est-ouest), 90 = le long de z (nord-sud, vers la baie ; Mauro, 15 octobre 2026 : « les lamelles
+// dans l'autre sens ») : les coordonnées sont tournées d'un quart de tour (u, v) → (v, −u), une vraie rotation (pas un miroir :
+// le relief de la carte de normales garde son sens)
+export const PARQUET={nom:'Material_7', taille:1.99, dossier:'textures/', version:1, teinte:0xffffff, rugosite:1, normales:0.8, sens:90};
+function tournerUv(geo){ const uv=geo.attributes.uv; for(let i=0;i<uv.count;i++){ const u=uv.getX(i), v=uv.getY(i); uv.setXY(i,v,-u); } uv.needsUpdate=true; }
 let etat='';   // '' | 'attente' | 'pose' | 'echec'
 export const parquetsPoses=()=>etat==='pose';
 
@@ -27,7 +31,7 @@ export function poserParquets(){
   const racine=app.model?.children[0]; if(!racine) return 0;
   const mats=new Set();
   racine.traverse(o=>{ if(!o.isMesh||o.userData.dos||!o.material||Array.isArray(o.material)||o.material.name!==PARQUET.nom) return;
-    uvMetres(o,PARQUET.taille);
+    uvMetres(o,PARQUET.taille); if(PARQUET.sens===90) tournerUv(o.geometry);
     for(const c of o.children) if(c.userData.dos) c.geometry=o.geometry;
     mats.add(o.material); });
   if(!mats.size) return 0;
