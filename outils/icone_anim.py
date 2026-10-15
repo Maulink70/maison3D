@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Animation de chargement (icones/chargement.webp) et, avec --icones, les anciennes icônes icone4-* d'après le GIF animé
+"""Animation de chargement (icones/chargement2.webp) et, avec --icones, les anciennes icônes icone4-* d'après le GIF animé
 de Mauro (15 octobre 2026 : cadre bleu arrondi en 3D, maison et cube blancs dedans, qui tourne sur un fond sombre avec son
 reflet au sol ; 600 × 600 px, 50 images, 2 s).
 
@@ -9,7 +9,7 @@ favicon4-64.png, apple-touch-icon4.png (180 px, opaque, fond sombre du GIF : iOS
 (fond sombre plein, icône sur 72 % de la largeur dans la zone sûre du lanceur Android). Nouveaux noms de fichiers à chaque
 changement d'icône (cache des icônes de sw.js, application installée).
 
-Animation : chargement.webp, WebP animé **transparent** (Mauro : « il faudrait qu'il soit en fond transparent lorsqu'il apparaît
+Animation : chargement2.webp (nouveau nom à chaque version : sw.js garde icones/ en cache sous son nom), WebP animé **transparent** (Mauro : « il faudrait qu'il soit en fond transparent lorsqu'il apparaît
 au centre de l'écran », puis « il y a un fond noir encore dans le gif animé ») : dans chaque image du GIF ne restent que le
 cadre bleu et les traits blancs de la maison (intérieur du cadre transparent, sans le fond ni le reflet au sol), une image sur deux (25 images de 80 ms : même vitesse), cadrage carré centré sur l'axe de rotation,
 256 px, qualité 80 et alpha 80 (≈ 385 Ko : la transparence des traits fins pèse ; 3,2 Mo pour le GIF) ; affichée au milieu de l'écran pendant le chargement des éléments
@@ -128,7 +128,7 @@ def main():
         poser(icone, 512, 0.72, fond=FOND).convert('RGB').save(ICONES / 'icone4-maskable-512.png', optimize=True)
         print('icônes :', icone.size, 'px découpés')
     if gif:
-        n, o, cadre = animation(gif, ICONES / 'chargement.webp')
+        n, o, cadre = animation(gif, ICONES / 'chargement2.webp')
         print('animation :', n, 'images,', round(o / 1024), 'Ko, cadre', cadre)
 
 
