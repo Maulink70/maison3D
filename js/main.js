@@ -29,6 +29,7 @@ import {initBlender} from './blender.js';
 import {majReflets} from './reflets.js';
 import {initRealiste, majRealiste, rendreReel} from './realiste.js';
 import {initCuisson, preparerStructure, appliquerCuisson, majCuisson} from './cuisson.js';
+import {initCurseurs} from './curseurs.js';
 import {initOmbres, majOmbres} from './ombres.js';
 import {initVignettes} from './vignettes.js';
 import {eclatActif, rendreEclate, suivreEclat} from './eclate.js';
@@ -48,12 +49,12 @@ import {initTableau, ouvrirTableau} from './tableau.js';
 import {cadrerObjet} from './aller.js';
 import {initCalage, majCalage, calageActif, fovCalage, zoomCalage, toucherCalage} from './calage.js';
 import {initPointsVue, majPointsVue} from './pointsvue.js';
-import {initJeu, majJeu, doubleClic, centreVue} from './jeu.js';
+import {initJeu, majJeu, doubleClic, centreVue, clicDroitJeu} from './jeu.js';
 import {initPointsListe} from './pointsliste.js';
 import {initCreer} from './creer.js';
 import {initAssistant} from './assistant.js';
 
-initIcones(); initBarre(); initCompte(); initSynchro(); initVariantes(); initComparer(); initVues(); initVisite(); initEdition(); initOuvrants3D(); initStores(); initSauvegarde(); initAller(); initPlan(); initCalques(); initRealiste(); initOmbres(); initCuisson(); initVignettes(); initMesure(); initImpression(); initIsoler(); initCameras(); initHistorique(); initPartage(); initAlertes(); initObjets(); initRevetements(); initGalerie(); initCalage(); initRecu(); initPointsVue(); initProduits(); initJeu(); initPointsListe(); initCreer(); initAssistant(); initBlender();
+initIcones(); initBarre(); initCompte(); initSynchro(); initVariantes(); initComparer(); initVues(); initVisite(); initEdition(); initOuvrants3D(); initStores(); initSauvegarde(); initAller(); initPlan(); initCalques(); initCurseurs(); initRealiste(); initOmbres(); initCuisson(); initVignettes(); initMesure(); initImpression(); initIsoler(); initCameras(); initHistorique(); initPartage(); initAlertes(); initObjets(); initRevetements(); initGalerie(); initCalage(); initRecu(); initPointsVue(); initProduits(); initJeu(); initPointsListe(); initCreer(); initAssistant(); initBlender();
 // tableau des meubles : toucher un nom le montre (sélectionné en Éditer) ; bouton du panneau
 initTableau(it=>{ if(app.edition&&!it.hidden) select(it.name); cadrerObjet(it); }); $('f-tableau').onclick=()=>ouvrirTableau(true);
 
@@ -95,6 +96,7 @@ canvas.addEventListener('contextmenu',e=>e.preventDefault());
 // mode jeu (jeu.js, souris capturée) : on vise au centre de la vue (viseur), le regard suit la souris (pas de glisser)
 const ou=e=>app.modeJeu?centreVue():[e.clientX,e.clientY];
 canvas.addEventListener('pointerdown',e=>{
+  if(e.button===2&&clicDroitJeu()) return;   // mode jeu : le clic droit rend la souris, sans pas ni sélection
   if(pd){ pd.multi=true; clearTimeout(pd.minuterie); marque.visible=false; pd.tele=null; return; }
   const [x,y]=ou(e);
   pd={x,y,lx:x,ly:y,t:performance.now(),id:e.pointerId};

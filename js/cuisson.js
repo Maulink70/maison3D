@@ -11,9 +11,13 @@
 import * as THREE from 'three';
 import {app} from './app.js';
 import {etat} from './calques.js';
+import {curseur, facteur, filtreLumiere} from './curseurs.js';
 
 const CLE='maison3d-cuisson', FICHE='cuisson/lumiere.json';
 export const FORCE={normale:1,matin:0.8,midi:1.15,soir:0.55,nuit:0.12};   // force de la lumière cuite selon la lumière du jour
+// curseur « Effet » sous la case (Mauro, 15 octobre 2026) : à droite, lumière cuite plus forte et ambiance plus basse (plus de
+// contraste entre les fenêtres et les coins), à gauche l'inverse ; 0 = réglage d'origine
+export const baisseAmbiance=()=>Math.min(1,BAISSE_AMBIANCE/facteur('cuisson'));
 export const BAISSE_AMBIANCE=0.6;   // lumière d'ambiance (hémisphère de lumiere.js) quand la cuisson éclaire déjà
 let actif=true, dispo=false, atlas=null, intensite=1, mats=[], posee='';
 try{ actif=JSON.parse(localStorage.getItem(CLE)??'true')!==false; }catch{}
@@ -86,11 +90,12 @@ export async function appliquerCuisson(){
 // À chaque image : atlas posé ou retiré, force selon la lumière du jour (rien à faire tant que rien ne change)
 export function majCuisson(){
   if(!dispo) return;
-  const on=actif, f=on?intensite*(FORCE[etat.lumiere]??1):0, cle=on+'|'+f.toFixed(3); if(cle===posee) return; posee=cle;
+  const on=actif, f=on?intensite*(FORCE[etat.lumiere]??1)*filtreLumiere(etat.lumiere)*facteur('cuisson'):0, cle=on+'|'+f.toFixed(4); if(cle===posee) return; posee=cle;
   for(const m of mats){ const avait=!!m.lightMap; m.lightMap=on?atlas:null; m.lightMapIntensity=f; if(avait!==on) m.needsUpdate=true; }
 }
 export function initCuisson(){
   const c=document.getElementById('cq-cuisson'), l=document.getElementById('cq-cuisson-l');
   if(c){ c.checked=actif; c.onchange=()=>{ actif=c.checked; try{ localStorage.setItem(CLE,JSON.stringify(actif)); }catch{} dispatchEvent(new CustomEvent('cuisson',{detail:{actif:cuissonActive()}})); }; }
-  addEventListener('cuisson',()=>{ if(l) l.hidden=!dispo; });
+  const lc=document.getElementById('cq-cuisson-curseur-l');
+  addEventListener('cuisson',()=>{ if(l) l.hidden=!dispo; if(lc) lc.hidden=!dispo||!actif; });
 }

@@ -88,8 +88,12 @@
         <div id="realiste-menu" class="menu menu-choix" role="dialog" aria-label="Rendu réaliste et ombres" hidden>
           <button class="ib" id="rendu-reel" data-icone="sparkles" aria-label="Rendu réaliste" aria-pressed="false"></button>
           <label class="case" id="cq-ao-l"><input type="checkbox" id="cq-ao"> Ombres de contact (plus lent sur tablette)</label>
+          <!-- curseurs (Mauro, 15 octobre 2026) : 0 = réglage d'origine, à droite l'effet s'accentue, à gauche il s'atténue (curseurs.js) -->
+          <label class="case eclat curseur sous" id="cq-ao-curseur-l" hidden title="Ombres de contact : à droite plus marquées, à gauche plus légères ; double-clic = réglage d’origine"><span>Effet</span><input type="range" id="cq-ao-curseur" data-curseur="ao" aria-label="Ombres de contact : à droite plus marquées, à gauche plus légères"><output>0</output></label>
           <label class="case" id="cq-soleil-l"><input type="checkbox" id="cq-soleil"> Ombres du soleil (plus lent)</label>
+          <label class="case eclat curseur sous" id="cq-soleil-curseur-l" hidden title="Ombres du soleil : à gauche plus pâles, à droite soleil plus fort ; double-clic = réglage d’origine"><span>Effet</span><input type="range" id="cq-soleil-curseur" data-curseur="soleil" aria-label="Ombres du soleil : à gauche plus pâles, à droite soleil plus fort"><output>0</output></label>
           <label class="case" id="cq-cuisson-l" hidden><input type="checkbox" id="cq-cuisson"> Lumière précalculée (ciel cuit dans Blender)</label>
+          <label class="case eclat curseur sous" id="cq-cuisson-curseur-l" hidden title="Lumière précalculée : à droite plus de contraste (fenêtres plus claires, coins plus sombres), à gauche moins ; double-clic = réglage d’origine"><span>Effet</span><input type="range" id="cq-cuisson-curseur" data-curseur="cuisson" aria-label="Lumière précalculée : à droite plus de contraste, à gauche moins"><output>0</output></label>
           <p class="cq-note" id="cq-rendu-note"></p>
         </div>
       </div>
@@ -101,6 +105,8 @@
           <button class="ib" data-lumiere="midi" data-icone="sun" aria-label="Midi" aria-pressed="false"></button>
           <button class="ib" data-lumiere="soir" data-icone="sunset" aria-label="Soir" aria-pressed="false"></button>
           <button class="ib" data-lumiere="nuit" data-icone="moon" aria-label="Nuit" aria-pressed="false"></button>
+          <!-- filtre de la lumière choisie (Mauro, 15 octobre 2026 : « un peu clair le mode soir et nuit ») : un réglage par lumière (curseurs.js, lumiere.js) -->
+          <label class="case eclat curseur" id="cq-filtre-l" title="Filtre de la lumière choisie : à droite plus sombre, à gauche plus clair ; un réglage par lumière ; double-clic = réglage d’origine"><span>Filtre</span><input type="range" id="cq-filtre" aria-label="Filtre de la lumière choisie : à droite plus sombre, à gauche plus clair"><output id="cq-filtre-val">0</output></label>
         </div>
       </div>
       <button class="ib" id="mesurer" data-nom="Règle" data-icone="ruler" aria-label="Mesurer (règle)" aria-pressed="false"></button>

@@ -3,7 +3,8 @@
 // marque le centre ; bouger la souris tourne le regard, W A S D (Z Q S D) avancent là où l'on regarde, Maj = courir (× 2).
 // Un clic agit sur ce qui est sous le viseur : Visite = ouvrir ou fermer une porte ou une fenêtre, allumer une lampe le
 // soir, faire un pas ; Éditer = choisir le meuble (Échap pour se servir du panneau) ; règle = poser un point ; clic gardé
-// = téléportation. Échap rend la souris. Sensibilité : curseur « Souris » sous « Vitesse » (vues.js, mémorisée).
+// = téléportation. Le clic droit (Mauro, 15 octobre 2026 : « au lieu de Échap ») ou Échap rendent la souris. Sensibilité :
+// curseur « Souris » sous « Vitesse » (vues.js, mémorisée).
 // Tablette et téléphone : rien ne change (ni bouton ni curseur).
 import {app, $} from './app.js';
 import {regarder, arreter} from './visite.js';
@@ -24,6 +25,10 @@ export function entrerJeu(){
   catch{ dire('Mode jeu indisponible dans ce navigateur.'); }
 }
 export function quitterJeu(){ if(document.pointerLockElement) document.exitPointerLock(); }
+// clic droit dans la vue en mode jeu (main.js, pointerdown, bouton 2) : rend la souris sans faire de pas ni choisir ; le
+// menu du navigateur, que le clic droit ouvre une fois la souris rendue, est bloqué un instant où que le curseur réapparaisse
+let sortie=0;
+export function clicDroitJeu(){ if(!app.modeJeu) return false; sortie=performance.now(); quitterJeu(); return true; }
 // double-clic dans la vue (souris, 1re personne) : le premier clic a déjà fait un pas, il est annulé
 let dernier=null;
 export function doubleClic(e){
@@ -45,10 +50,11 @@ export function initJeu(){
   document.addEventListener('pointerlockchange',()=>{
     app.modeJeu=document.pointerLockElement===app.canvas; depuis=performance.now();
     document.body.classList.toggle('jeu',app.modeJeu); $('viseur').hidden=!app.modeJeu;
-    if(b.isConnected){ b.setAttribute('aria-pressed',String(app.modeJeu)); nommer(b,app.modeJeu?'Mode jeu : Échap pour rendre la souris':'Mode jeu (souris capturée, comme un jeu vidéo) : aussi par double-clic dans la vue'); }
-    if(app.modeJeu){ placerViseur(); dire('Mode jeu : la souris tourne le regard · W A S D (Z Q S D) pour marcher · Maj pour courir · clic = ouvrir, choisir, faire un pas · Échap pour rendre la souris'); }
+    if(b.isConnected){ b.setAttribute('aria-pressed',String(app.modeJeu)); nommer(b,app.modeJeu?'Mode jeu : clic droit ou Échap pour rendre la souris':'Mode jeu (souris capturée, comme un jeu vidéo) : aussi par double-clic dans la vue'); }
+    if(app.modeJeu){ placerViseur(); dire('Mode jeu : la souris tourne le regard · W A S D (Z Q S D) pour marcher · Maj pour courir · clic = ouvrir, choisir, faire un pas · clic droit ou Échap pour rendre la souris'); }
     else dire('');
   });
+  document.addEventListener('contextmenu',e=>{ if(app.modeJeu||performance.now()-sortie<600) e.preventDefault(); },true);
   document.addEventListener('pointerlockerror',()=>dire('La souris n’a pas pu être capturée : cliquez de nouveau dans la vue (double-clic).'));
   addEventListener('resize',()=>{ if(app.modeJeu) placerViseur(); });
   // souris capturée : les mouvements tournent le regard ; les sauts (plus de 300 px d'un coup, ou dans les 80 ms qui

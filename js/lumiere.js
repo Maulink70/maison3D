@@ -8,7 +8,9 @@ import {etat, choisirLumiere} from './calques.js';
 import {poserIcone, nommer} from './icones.js';
 import {renduReel, BAISSE} from './realiste.js';
 import {poserCiel} from './ciel.js';
-import {cuissonActive, BAISSE_AMBIANCE} from './cuisson.js';
+import {cuissonActive, baisseAmbiance} from './cuisson.js';
+import {ombresSoleil} from './ombres.js';
+import {curseur, filtreLumiere, lierCurseur, majCurseurs} from './curseurs.js';
 
 export const LUMIERES=[['normale','Normale'],['matin','Matin'],['midi','Midi'],['soir','Soir'],['nuit','Nuit']];
 const R={
@@ -17,8 +19,12 @@ const R={
   midi:{ciel:[0xffffff,0xe2ddd2,2.25],soleil:[0xfffaf0,1.6,[6,50,22]],appoint:0.4,teinte:0xffffff},
   soir:{ciel:[0xffd9bc,0xb39a88,1.45],soleil:[0xff9d55,1.45,[-40,11,6]],appoint:0.28,teinte:0xffc9a0},
   nuit:{ciel:[0x5a6c94,0x231f1c,0.55],soleil:[0x9db2e0,0.18,[-10,40,-20]],appoint:0.06,teinte:0x2a3352}};   // lune, lampes allumées (lampes.js)
-let posee=null, cielTeinte=null, reelPose=null, bouton=null;
-addEventListener('cuisson',()=>{ posee=null; });   // cuisson posée, cochée ou décochée : lumières réglées de nouveau
+let posee=null, cielTeinte=null, clePosee='', bouton=null;
+// curseur « Filtre » du menu (Mauro, 15 octobre 2026 : « un peu clair le mode soir et nuit ») : un réglage par lumière, à droite
+// plus sombre (÷4 au bout), à gauche plus clair ; il baisse le ciel, le soleil, l'appoint, l'ambiance du rendu réaliste, la
+// lumière précalculée et les reflets, et assombrit le dehors ; les lampes allumées ne bougent pas (elles ressortent davantage)
+const nomLumiere=()=>R[etat.lumiere]?etat.lumiere:'normale';
+lierCurseur(document.getElementById('cq-filtre'),()=>'filtre_'+nomLumiere());
 // bouton « Lumière » de la barre (Mauro, 14 octobre 2026 : « une icône à part ») : son icône dit la lumière choisie
 const ICONE={normale:'sun-dim',matin:'sunrise',midi:'sun',soir:'sunset',nuit:'moon'};
 // 4 choix (Mauro, 14 octobre 2026) : retoucher le choix allumé rend la lumière normale ; seul réglage depuis le 15 octobre
@@ -28,16 +34,20 @@ function majBouton(nom){
   const b=document.getElementById('lumiere'); bouton=nom; if(!b) return;
   poserIcone(b,ICONE[nom]); nommer(b,'Lumière : '+LUMIERES.find(l=>l[0]===nom)[1].toLowerCase()); b.setAttribute('aria-pressed',String(nom!=='normale'));
   for(const x of document.querySelectorAll('#lumiere-menu [data-lumiere]')) x.setAttribute('aria-pressed',String(x.dataset.lumiere===nom));
+  majCurseurs();   // le curseur « Filtre » montre le réglage de la lumière choisie
 }
 export function majLumiere(){
   const nom=R[etat.lumiere]?etat.lumiere:'normale', reel=renduReel();
   if(nom!==bouton) majBouton(nom);
   // rendu réaliste (realiste.js) : l'éclairage d'ambiance éclaire déjà, les lumières sont baissées d'autant
-  if(nom!==posee||reel!==reelPose){ posee=nom; reelPose=reel; const r=R[nom], {hemi,sun,fill}=app.lumieres, k=reel?BAISSE:{ciel:1,soleil:1,appoint:1};
-    hemi.color.set(r.ciel[0]); hemi.groundColor.set(r.ciel[1]); hemi.intensity=r.ciel[2]*k.ciel*(cuissonActive()?BAISSE_AMBIANCE:1);   // lumière précalculée (cuisson.js) : le ciel cuit éclaire déjà
-    sun.color.set(r.soleil[0]); sun.intensity=r.soleil[1]*k.soleil; sun.position.set(...r.soleil[2]); fill.intensity=r.appoint*k.appoint; cielTeinte=null; }
-  // ciel et montagnes (peints, sans éclairage) : teintés une fois qu'ils existent
-  if(app.ciel&&cielTeinte!==posee){ cielTeinte=posee;
-    app.ciel.traverse(o=>{ if(o.isMesh&&o.material?.isMeshBasicMaterial&&o.material.map&&!o.userData.photo){ o.material.color.set(R[posee].teinte); } });
+  // filtre du menu, ambiance de la cuisson, soleil renforcé par le curseur des ombres du soleil (ombres.js, à droite de 0)
+  const F=filtreLumiere(nom), amb=cuissonActive()?baisseAmbiance():1, plus=ombresSoleil()?Math.max(1,1+curseur('soleil')/100):1;
+  const cle=nom+'|'+reel+'|'+F.toFixed(4)+'|'+amb.toFixed(3)+'|'+plus;
+  if(cle!==clePosee){ clePosee=cle; posee=nom; const r=R[nom], {hemi,sun,fill}=app.lumieres, k=reel?BAISSE:{ciel:1,soleil:1,appoint:1};
+    hemi.color.set(r.ciel[0]); hemi.groundColor.set(r.ciel[1]); hemi.intensity=r.ciel[2]*k.ciel*amb*F;   // lumière précalculée (cuisson.js) : le ciel cuit éclaire déjà
+    sun.color.set(r.soleil[0]); sun.intensity=r.soleil[1]*k.soleil*F*plus; sun.position.set(...r.soleil[2]); fill.intensity=r.appoint*k.appoint*F; cielTeinte=null; }
+  // ciel et montagnes (peints, sans éclairage) : teintés une fois qu'ils existent ; le filtre assombrit aussi le dehors
+  if(app.ciel&&cielTeinte!==posee+'|'+F){ cielTeinte=posee+'|'+F; const s=Math.min(1,F);
+    app.ciel.traverse(o=>{ if(o.isMesh&&o.material?.isMeshBasicMaterial&&o.material.map){ if(o.userData.photo) o.material.color.setScalar(s); else o.material.color.set(R[posee].teinte).multiplyScalar(s); } });
     poserCiel(posee,R[posee].soleil[2]); }   // vraie photo de ciel (ciel.js, 15 octobre 2026), soleil dans la direction du soleil
 }

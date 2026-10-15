@@ -14,6 +14,7 @@
 import * as THREE from 'three';
 import {RoomEnvironment} from 'three/addons/environments/RoomEnvironment.js';
 import {app, $} from './app.js';
+import {facteur, filtreLumiere} from './curseurs.js';
 import {etat as calques} from './calques.js';
 import {lesVariantes, varianteCourante, groupeDe} from './synchro.js';
 import {nommer} from './icones.js';
@@ -47,7 +48,7 @@ export const BAISSE={ciel:0.4,soleil:0.85,appoint:0.4};   // lumières de lumier
 let pose=null;
 // à chaque image : rien à faire tant que ni le rendu ni la lumière du jour ne changent
 export function majRealiste(){
-  const reel=renduReel(), f=FORCE[calques.lumiere]??1, k=reel+'|'+f; if(k===pose) return;
+  const reel=renduReel(), f=(FORCE[calques.lumiere]??1)*filtreLumiere(calques.lumiere), k=reel+'|'+f.toFixed(4); if(k===pose) return;   // filtre du menu « Lumière » (curseurs.js)
   const change=!pose||pose.split('|')[0]!==String(reel); pose=k;
   const r=app.renderer, s=app.scene;
   r.toneMapping=reel?THREE.NeutralToneMapping:THREE.NoToneMapping; r.toneMappingExposure=reel?REGLAGES.exposition:1;
@@ -81,7 +82,9 @@ async function preparer(){
   comp=c; gtao=g; reglerOmbres();
 }
 function reglerOmbres(){ if(!gtao) return;
-  gtao.updateGtaoMaterial({radius:REGLAGES.aoRayon,distanceExponent:1,thickness:1,scale:REGLAGES.aoEchelle,samples:tablette?8:16}); gtao.blendIntensity=REGLAGES.aoMelange; }
+  // curseur « Effet » sous la case (Mauro, 15 octobre 2026) : à droite ombres plus marquées (échelle × 2 au bout), à gauche plus légères
+  gtao.updateGtaoMaterial({radius:REGLAGES.aoRayon,distanceExponent:1,thickness:1,scale:REGLAGES.aoEchelle*facteur('ao'),samples:tablette?8:16}); gtao.blendIntensity=REGLAGES.aoMelange; }
+addEventListener('curseur',e=>{ if(e.detail.nom==='ao') reglerOmbres(); });
 export function regler(r){ Object.assign(REGLAGES,r); pose=null; reglerOmbres(); }
 function taille(){
   const r=app.renderer, t=r.getSize(new THREE.Vector2()), k=t.x+'x'+t.y+'@'+r.getPixelRatio(); if(k===vu) return; vu=k;
@@ -101,7 +104,7 @@ function majBoutons(){
   majBoutonBarre();
   const t=$('rendu-reel'); if(!t) return; const reel=renduReel();
   t.setAttribute('aria-pressed',String(reel));
-  $('cq-ao-l').hidden=!reel; $('cq-ao').checked=!!choix.ao;
+  $('cq-ao-l').hidden=!reel; $('cq-ao').checked=!!choix.ao; $('cq-ao-curseur-l').hidden=!reel||!choix.ao;
   $('cq-rendu-note').textContent=dansRealisme()?'Base « Réalisme » : « Réaliste » d’office.':'« Réaliste » : lumière d’ambiance, reflets, couleurs « appareil photo ».';
 }
 // bouton « Réaliste » de la barre, à côté de « Affichage » (Mauro, 14 octobre 2026) : enfoncé en rendu réaliste ; il ouvre le menu (barre.js)
@@ -113,7 +116,7 @@ const basculer=()=>{ choix[cle()]=renduReel()?'normal':'realiste'; garder(); maj
 export function initRealiste(){
   $('rendu-reel')?.addEventListener('click',basculer);
   $('realiste')?.addEventListener('click',()=>majBoutons());   // le menu s'ouvre (barre.js) : état à jour
-  $('cq-ao')?.addEventListener('change',e=>{ choix.ao=e.target.checked; garder(); });
+  $('cq-ao')?.addEventListener('change',e=>{ choix.ao=e.target.checked; garder(); majBoutons(); });
   addEventListener('rendu',()=>majBoutonBarre());
   addEventListener('variantes',()=>majBoutons());
   majBoutons();

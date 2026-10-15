@@ -7,6 +7,7 @@
 // décochée : les matériaux ne sont recompilés qu'à la première activation. Choix gardé sur l'appareil (clé maison3d-ombres).
 import * as THREE from 'three';
 import {app} from './app.js';
+import {curseur} from './curseurs.js';
 
 const CLE='maison3d-ombres';
 let actif=false, prepare=false, sale=true;
@@ -27,13 +28,19 @@ function estDehors(o){ for(let p=o.parent;p;p=p.parent) if(p.name==='ciel') retu
 function regler(){
   const r=app.renderer, sun=app.lumieres.sun;
   r.shadowMap.enabled=actif; r.shadowMap.type=THREE.PCFSoftShadowMap; sun.castShadow=actif;
+  const lc=document.getElementById('cq-soleil-curseur-l'); if(lc) lc.hidden=!actif;
   if(!actif){ app.scene.traverse(o=>{ if(o.isMesh&&o.material){ [].concat(o.material).forEach(m=>{ m.needsUpdate=true; }); } }); return; }
+  reglerForce();
   if(!prepare){ prepare=true;
     sun.shadow.mapSize.set(2048,2048); sun.shadow.bias=-0.0004; sun.shadow.normalBias=0.03;
     const c=sun.shadow.camera; c.left=-11; c.right=11; c.top=11; c.bottom=-11; c.near=1; c.far=DIST*2.5; c.updateProjectionMatrix();
     sun.target.position.copy(CENTRE); app.scene.add(sun.target); }
   sale=true;
 }
+// curseur « Effet » sous la case (Mauro, 15 octobre 2026) : à gauche de 0, ombres plus pâles (shadow.intensity de 1 à 0) ; à droite,
+// soleil plus fort (lumiere.js lit le curseur : × 2 au bout), donc ombres plus contrastées
+function reglerForce(){ app.lumieres.sun.shadow.intensity=Math.min(1,1+curseur('soleil')/100); }
+addEventListener('curseur',e=>{ if(e.detail.nom==='soleil'&&actif) reglerForce(); });
 export const ombresSoleil=()=>actif;
 // appelé à chaque image par main.js : garde le soleil pointé sur la maison et marque les nouveaux maillages.
 // lumiere.js pose le soleil à une position absolue (direction depuis l'origine, cible à l'origine) ; une fois la cible

@@ -10,12 +10,13 @@ import * as THREE from 'three';
 import {app} from './app.js';
 import {etat} from './calques.js';
 import {environnement as carte, FORCE, renduReel} from './realiste.js';
+import {filtreLumiere} from './curseurs.js';
 
 let force=null;
 const DEFAUT=THREE.Material.prototype.onBeforeCompile;
 const CHUNK=THREE.ShaderChunk.lights_fragment_maps.replace('iblIrradiance += getIBLIrradiance( geometryNormal );','');
 function sansDiffus(shader){ shader.fragmentShader=shader.fragmentShader.replace('#include <lights_fragment_maps>',CHUNK); }
-const forceDu=()=>FORCE[etat.lumiere]??1;
+const forceDu=()=>(FORCE[etat.lumiere]??1)*filtreLumiere(etat.lumiere);   // filtre du menu « Lumière » (curseurs.js)
 export const estImporte=it=>it?.ajout?.t==='glb';
 export const RUGOSITE_MIN=0.35;
 
