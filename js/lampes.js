@@ -10,12 +10,13 @@
 import * as THREE from 'three';
 import {app, $} from './app.js';
 import {etat} from './calques.js';
+import {obstaclesPortes} from './portes.js';
 import {nommer, poserIcone} from './icones.js';
 
 const CLE='maison3d-lampes', CHAUD=new THREE.Color(0xffd29a), MAX=6, FORCE={soir:1.8,nuit:2.6};
 // spots (plusieurs disques lumineux dans une même partie « spot » : les 5 spots sous les meubles hauts de la cuisine) : une source
 // dirigée vers le bas par disque, en plus des 6 sources ponctuelles ; cône large et bord très doux (spots encastrés sans cache)
-export const NB_SPOTS=5, SPOT={angle:THREE.MathUtils.degToRad(52), penumbre:1, decroit:2, portee:4, force:{soir:0.8,nuit:1.2}, dessous:0.015};
+export const NB_SPOTS=5, SPOT={angle:THREE.MathUtils.degToRad(52), penumbre:1, decroit:2, portee:4, force:{soir:1.6,nuit:2.4}, dessous:0.015};   // ×2 le 17 octobre 2026 : à 0,8 / 1,2 les spots n'éclairaient presque pas le granit noir (reflets seuls)
 let spotsL=null;   // les sources des spots (créées au premier soir où une lampe à plusieurs spots est allumée)
 let eclairees=new Set();   // lampes qui portent une source (gardées de préférence : pas de halo qui saute d'une lampe à l'autre)
 let choix={}, sources=null, dernier=0, allume=null;
@@ -58,6 +59,13 @@ function briller(it,oui){
   }
 }
 function centre(it){ const b=new THREE.Box3(); for(const o of parties(it)) b.expandByObject(o); return b.isEmpty()?new THREE.Box3().setFromObject(it.g).getCenter(new THREE.Vector3()):b.getCenter(new THREE.Vector3()); }
+// un mur (plafond, plancher) ou une porte fermée entre le point de vue et la lampe ? (murs de la visite, app.colliders, et battants
+// visibles des portes ; le garde-corps vitré et les vitres ne comptent pas ; 15 cm de marge au bout : une applique touche son mur,
+// un plafonnier son plafond)
+const rc=new THREE.Raycaster(), dv=new THREE.Vector3();
+function cachee(p,vue){ dv.copy(p).sub(vue); const L=dv.length(); if(L<0.3) return false;
+  rc.set(vue,dv.normalize()); rc.near=0.05; rc.far=L-0.15;
+  return rc.intersectObjects([...(app.colliders||[]),...obstaclesPortes()],false).some(h=>!h.object.material?.transparent); }
 
 // Spots d'une lampe : une même partie « spot » peut porter plusieurs disques lumineux séparés (les 5 spots de la cuisine, Mauro,
 // 15 octobre 2026 : « les reflets donnent pas bien du tout » et « il faudrait que ça allume les 5 en même temps » : une seule source
@@ -116,15 +124,19 @@ export function majLampes(){
   // reflet sur la table au profit des éclairages de la cuisine) ; une lampe déjà éclairée garde un avantage (hystérésis)
   const vue=app.mode==='orbit'?app.orbit.target:app.camera.position, dir=new THREE.Vector3(), v=new THREE.Vector3();
   app.camera.getWorldDirection(dir); const marche=app.mode==='walk', champ=Math.cos(THREE.MathUtils.degToRad(Math.min(app.camera.fov*Math.max(1,app.camera.aspect)/2+12,80)));
-  const score=(it,p)=>{ let d=p.distanceTo(vue);
+  // une lampe derrière un mur, un plafond ou un plancher (rayon de la vue à la lampe contre les murs de la visite) n'éclaire pas la pièce
+  // (16 octobre 2026, Mauro : « des reflets très mal placés » : dans la cuisine, le lustre et les lampes de la chambre, le plafonnier
+  // de la salle de bain et une applique de la mezzanine, tous derrière un mur ou le plafond, prenaient 5 des 6 sources et se reflétaient
+  // dans le granit à travers les murs ; sans ombres, une source traverse tout)
+  const score=(it,p)=>{ let d=p.distanceTo(vue); if(cachee(p,vue)) return Infinity;
     if(marche){ const c=v.copy(p).sub(vue).normalize().dot(dir); d*=c>=champ?1:c>0?2.2:3.5; }
     return eclairees.has(it.name)?d*0.8:d; };
   const allumees=soir?Object.values(app.items).filter(it=>estAllumee(it)&&!it.hidden):[];
-  const lampes=allumees.filter(it=>!plusieursSpots(it)).map(it=>{ const p=centre(it); return {it,p,s:score(it,p)}; }).sort((a,b)=>a.s-b.s).slice(0,MAX);
+  const lampes=allumees.filter(it=>!plusieursSpots(it)).map(it=>{ const p=centre(it); return {it,p,s:score(it,p)}; }).filter(q=>isFinite(q.s)).sort((a,b)=>a.s-b.s).slice(0,MAX);
   eclairees=new Set(lampes.map(q=>q.it.name));
   sources.forEach((l,k)=>{ const q=lampes[k]; l.intensity=q?FORCE[etat.lumiere]:0; if(q) l.position.copy(q.p); });
   // la lampe à plusieurs spots la plus proche : une source par spot (les NB_SPOTS plus proches de la vue s'il y en a davantage)
-  const multi=allumees.filter(plusieursSpots).map(it=>({it,s:score(it,centre(it))})).sort((a,b)=>a.s-b.s)[0];
+  const multi=allumees.filter(plusieursSpots).map(it=>({it,s:score(it,centre(it))})).filter(q=>isFinite(q.s)).sort((a,b)=>a.s-b.s)[0];
   if(multi&&!spotsL){ spotsL=[]; for(let k=0;k<NB_SPOTS;k++){ const l=new THREE.SpotLight(CHAUD,0,SPOT.portee,SPOT.angle,SPOT.penumbre,SPOT.decroit); app.scene.add(l,l.target); spotsL.push(l); } }
   if(!spotsL) return;
   const pts=multi?spotsDe(multi.it).map(p=>multi.it.g.localToWorld(p.clone())).sort((a,b)=>a.distanceTo(vue)-b.distanceTo(vue)).slice(0,NB_SPOTS):[];
