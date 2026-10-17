@@ -8,7 +8,7 @@ import {basculerPorte, basculerElement, ouvrantsDe} from './portes.js';
 import {rideauDe, basculerRideau} from './etage_pieces.js';
 import {storeDe, basculerStore, texteStore, majPanneauStore} from './stores.js';
 import {dansIsolement} from './isoler.js';
-import {estLampe, soirOuNuit, basculerLampe, marquerLampe, majPanneauLampe} from './lampes.js';
+import {estLampe, soirOuNuit, basculerLampe, marquerLampe, majPanneauLampe, toucheLampe} from './lampes.js';
 import {majApparence, appliquerEtat, origineDe} from './etats.js';
 import {surfaceChoisie, surfaceEn, choisirSurface} from './revetements.js';
 import {matieresOuvertes, choisirPartie} from './objets.js';
@@ -56,7 +56,7 @@ export function toucher(e){
     else if(h?.object.userData.porte) basculerPorte(h.object.userData.porte);
     else if(h?.object.userData.rideau) basculerRideau(h.object.userData.rideau);   // rideau de douche : tiré ou replié
     else if(storeDe(lampe)) basculerStore(storeDe(lampe));   // store : remonté ou baissé (rideau : ouvert ou tiré)
-    else if(lampe&&estLampe(lampe)&&soirOuNuit()) basculerLampe(lampe);   // le soir, toucher une lampe l'allume ou l'éteint
+    else if(lampe&&estLampe(lampe)&&soirOuNuit()&&toucheLampe(lampe,h)) basculerLampe(lampe);   // le soir, toucher une lampe l'allume ou l'éteint (un meuble à éclairage intégré : sur ses spots, sa réglette)
     else if(h&&app.mode==='walk') glisserVers(h.point);
     return;
   }

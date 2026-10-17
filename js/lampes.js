@@ -33,6 +33,24 @@ const lumineuseImport=o=>LUMIERE_IMPORT.test(base(o)?.userData?.nom||'');
 const parNature=it=>it.mats.some(o=>LUMINEUX.includes(base(o)?.name))||(!!it.ajout&&it.mats.some(lumineuseImport))||/lustre|lampe|lampadaire|suspension|plafonnier|applique/i.test(it.name)||(!!it.ajout&&/lustre|lampe|lampadaire|suspension|plafonnier|applique/i.test(it.meta?.l||''))
   ||['lampe','lampadaire'].includes(it.ajout?.f);   // formes « Lampe à poser » et « Lampadaire » (étape 4)
 export const estLampe=it=>!!it&&(choix[it.name]?.lampe??parNature(it));
+// Meuble à éclairage intégré (17 octobre 2026, Mauro : « tout le meuble est considéré comme une lampe… ce point est à changer ») : un objet
+// importé qui n'est pas une lampe par son nom et dont les parties lumineuses (les 5 spots de la cuisine, la réglette d'un meuble vasque,
+// le bandeau d'une douche) sont toutes petites par rapport à lui (moins de 5 % de son volume, objet de plus de 50 cm). Il reste
+// « une lampe » pour l'allumage, les sources et « tous les éclairages », mais seules ses parties lumineuses se touchent (à moins de
+// 35 cm) : toucher une porte de la cuisine fait un pas vers elle, comme pour tout meuble ; le panneau parle d'« éclairage du meuble ».
+const NOM_LAMPE=/lustre|lampe|lampadaire|suspension|plafonnier|applique/i;
+export function eclairageIntegre(it){
+  if(!it?.ajout||!it.mats) return false; if(it.integre!==undefined) return it.integre;
+  if(NOM_LAMPE.test(it.name)||NOM_LAMPE.test(it.meta?.l||'')||['lampe','lampadaire'].includes(it.ajout.f)) return it.integre=false;
+  const l=it.mats.filter(lumineuseImport); if(!l.length) return it.integre=false;
+  const so=new THREE.Box3().setFromObject(it.g).getSize(new THREE.Vector3()), bp=new THREE.Box3(); for(const o of l) bp.expandByObject(o);
+  const sp=bp.getSize(new THREE.Vector3()), vo=so.x*so.y*so.z, vp=sp.x*sp.y*sp.z;
+  return it.integre=Math.max(so.x,so.y,so.z)>0.5&&vo>0&&vp/vo<0.05;
+}
+// toucher en Visite : une lampe se touche n'importe où ; un meuble à éclairage intégré seulement sur ses parties lumineuses ou tout près
+const bt=new THREE.Box3();
+export function toucheLampe(it,h){ if(!eclairageIntegre(it)) return true; const l=parties(it); if(l.includes(h.object)) return true;
+  for(const o of l){ bt.setFromObject(o); if(bt.distanceToPoint(h.point)<0.35) return true; } return false; }
 export const estAllumee=it=>estLampe(it)&&choix[it.name]?.allumee!==false;
 export const soirOuNuit=()=>etat.lumiere==='soir'||etat.lumiere==='nuit';
 // parties qui brillent : matière « lumiere », sinon les parties claires et non métalliques
@@ -92,11 +110,12 @@ const plusieursSpots=it=>spotsDe(it).length>1;
 // matériau d'une partie changé (bibliothèque de matières, étape 4) : la lampe garde son état allumé ou éteint
 addEventListener('apparence',e=>{ const it=e.detail.it; if(estLampe(it)||it.parties) briller(it,soirOuNuit()&&estAllumee(it)&&!it.hidden); });
 export function basculerLampe(it,oui=!estAllumee(it)){ if(!estLampe(it)) return; choix[it.name]={...choix[it.name],allumee:oui}; garder(); dernier=0; allume=null; majPanneauLampe(); }
-export function marquerLampe(it,oui){ choix[it.name]={...choix[it.name],lampe:oui}; if(!oui) briller(it,false); it.parties=null; it.spotsPos=undefined; garder(); dernier=0; allume=null; majPanneauLampe(); }
+export function marquerLampe(it,oui){ choix[it.name]={...choix[it.name],lampe:oui}; if(!oui) briller(it,false); it.parties=null; it.integre=undefined; it.spotsPos=undefined; garder(); dernier=0; allume=null; majPanneauLampe(); }
 export function majPanneauLampe(){
   const it=app.selected, c=$('t-lampe'), b=$('t-allumer'); if(!c) return;
-  if(!it){ return; } c.checked=estLampe(it); b.hidden=!estLampe(it);
-  b.textContent=estAllumee(it)?'Éteindre la lampe (le soir)':'Allumer la lampe (le soir)'; b.setAttribute('aria-pressed',String(estAllumee(it)));
+  if(!it){ return; } c.checked=estLampe(it); b.hidden=!estLampe(it); const integ=eclairageIntegre(it);
+  b.textContent=(estAllumee(it)?'Éteindre':'Allumer')+(integ?' l’éclairage du meuble (le soir)':' la lampe (le soir)'); b.setAttribute('aria-pressed',String(estAllumee(it)));
+  const t=c.parentElement?.lastChild; if(t?.nodeType===3) t.textContent=integ?' Éclairage intégré au meuble (s’allume le soir et la nuit)':' C’est une lampe (s’allume le soir et la nuit)';
 }
 // menu « Ouvrir » de la barre : tous les éclairages d'un coup (Mauro, 14 octobre 2026 : « éteindre / allumer tous les
 // éclairages ») ; comme une lampe seule, ils brillent le soir et la nuit, d'où « (le soir) » de jour
