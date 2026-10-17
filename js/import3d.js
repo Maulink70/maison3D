@@ -36,13 +36,31 @@ function modele(f){
     try{ const s=await lire(await b.arrayBuffer()); poids.set(f.id,{octets:b.size,triangles:nbTriangles(s)}); return s; }catch{ modeles.delete(f.id); return null; } })());
   return modeles.get(f.id);
 }
+// Décor posé sur une surface (17 octobre 2026, Mauro, vue maquette : « les plaques de cuisson scintillent ») : dans le fichier Blender de la
+// cuisine, les traits blancs des foyers (matière « Plaque_Traits ») sont 0,4 mm SOUS le verre noir de la plaque (dans Blender, verre
+// transparent ; ici, opaque) : invisibles en vrai, ils ne se voyaient que par le combat de profondeur avec le verre, vus de loin. Un
+// maillage dont la matière d'origine dit un décor posé (traits, sérigraphie, logo, marquage…) est examiné : s'il est recouvert d'une
+// surface tournée vers le haut juste au-dessus de lui (moins de 2 mm, dans son emprise), il est caché (plus rien à disputer) ; sinon,
+// il est relevé de 0,5 mm pour passer franchement au-dessus de la surface qui le porte. Rien ne change dans le fichier ; à refaire
+// proprement dans Blender (traits posés 1 mm au-dessus du verre, sans fond blanc dessous) : ils réapparaîtront d'eux-mêmes.
+const DECOR_POSE=/trait|d[ée]cal|s[ée]rigraph|logo|marquage|inscription|grav/i, DECOR_LEVEE=0.0005, DECOR_COUVERT=0.002;
+const _v0=new THREE.Vector3(), _v1=new THREE.Vector3(), _n=new THREE.Vector3(), _nm=new THREE.Matrix3(), _bo=new THREE.Box3(), _ba=new THREE.Box3();
+export function decorPose(o,racine){ const m=o.material; if(!m||!DECOR_POSE.test(m.userData?.nom||m.name||'')) return false;
+  racine.updateMatrixWorld(true); _bo.setFromObject(o); const haut=_bo.max.y; let couvert=false;
+  racine.traverse(a=>{ if(couvert||a===o||!a.isMesh||!a.geometry?.attributes?.normal) return; _ba.setFromObject(a);
+    if(_ba.max.y<=haut||_ba.min.y>haut+DECOR_COUVERT||_ba.max.x<_bo.min.x||_ba.min.x>_bo.max.x||_ba.max.z<_bo.min.z||_ba.min.z>_bo.max.z) return;
+    const pos=a.geometry.attributes.position, nrm=a.geometry.attributes.normal; _nm.getNormalMatrix(a.matrixWorld);
+    for(let i=0;i<pos.count&&!couvert;i++){ _n.fromBufferAttribute(nrm,i).applyMatrix3(_nm).normalize(); if(_n.y<0.9) continue;
+      _v0.fromBufferAttribute(pos,i).applyMatrix4(a.matrixWorld); if(_v0.y>haut&&_v0.y<haut+DECOR_COUVERT&&_v0.x>=_bo.min.x&&_v0.x<=_bo.max.x&&_v0.z>=_bo.min.z&&_v0.z<=_bo.max.z) couvert=true; } });
+  if(couvert){ o.visible=false; o.userData.decorCache=true; return true; }
+  o.parent.worldToLocal(_v0.set(0,0,0)); o.parent.worldToLocal(_v1.set(0,DECOR_LEVEE,0)); o.position.add(_v1.sub(_v0)); return true; }
 export function construireGLB(a){
   const {L,P,H}=a.p, g=new THREE.Group();
   const att=new THREE.Mesh(new THREE.BoxGeometry(L,H,P).translate(0,H/2,0),new THREE.MeshStandardMaterial({color:0xc9ced3,transparent:true,opacity:0.45,depthWrite:false}));
   att.userData.attente=true; att.raycast=()=>{}; g.add(att);
   const pret=a.fic?.id?modele(a.fic).then(m=>{ if(!m) return false;
     const c=m.clone(true), d=a.d||[1,1,1]; c.scale.set(L/d[0],H/d[1],P/d[2]); g.remove(att); att.geometry.dispose(); g.add(c);
-    const noms={}; c.traverse(o=>{ if(o.isMesh&&!Array.isArray(o.material)) noms[o.material.name]=o.material.name; }); g.userData.noms=noms; return true; }):null;
+    const noms={}; c.traverse(o=>{ if(o.isMesh&&!Array.isArray(o.material)){ noms[o.material.name]=o.material.name; decorPose(o,c); } }); g.userData.noms=noms; return true; }):null;
   return {g,noms:{},taille:new THREE.Vector3(L,H,P),pret};
 }
 
