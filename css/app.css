@@ -963,6 +963,21 @@ body.panneau-ouvert #toggle-panel.poignee{right:316px}
   .assistant{top:auto!important;left:0;right:0;bottom:0;width:auto;max-width:none;max-height:62%;border-radius:14px 14px 0 0;border-left:0;border-right:0;border-bottom:0;padding-bottom:env(safe-area-inset-bottom,0px)}
   .as-buste{width:96px;height:96px}
 }
+/* Apparition du personnage, une fois par jour (assistant.js, 17 octobre 2026) : vidéo du carton MAISON3D sur fond vert détourée en direct,
+   à côté du panneau (au-dessus de la feuille sur téléphone) ; à la fin il file vers le visage de l'en-tête et le panneau s'illumine */
+#as-carton{position:fixed;inset:0;z-index:60;cursor:pointer;background:radial-gradient(42% 42% at calc(var(--x) + var(--s) / 2) calc(var(--y) + var(--s) / 2),rgba(12,20,40,.26),transparent 72%)}
+#as-carton .scene{position:absolute;left:var(--x);top:var(--y);width:var(--s);height:var(--s);animation:as-carton-entre .5s cubic-bezier(.2,1.4,.4,1) both}
+@keyframes as-carton-entre{from{opacity:0;transform:translateY(40px) scale(.6)}to{opacity:1;transform:none}}
+#as-carton canvas{position:absolute;inset:0;width:100%;height:100%;filter:drop-shadow(0 12px 18px rgba(0,0,0,.3))}
+#as-carton .passer{position:absolute;left:calc(var(--x) + var(--s) / 2);transform:translateX(-50%);top:calc(var(--y) + var(--s) + 6px);font:inherit;font-size:12.5px;color:#fff;background:rgba(10,18,40,.6);border:1px solid rgba(255,255,255,.35);border-radius:999px;padding:5px 14px;cursor:pointer}
+#as-carton.fin canvas{transition:transform .55s cubic-bezier(.5,0,.85,.45),opacity .5s ease-in;transform:translate(var(--vx,0px),var(--vy,0px)) scale(.08);opacity:0}
+#as-carton.fin{transition:background .5s;background:transparent}
+#as-carton.fin .passer{opacity:0;transition:opacity .3s}
+.assistant.as-montre{animation:as-montre 1.1s ease-in-out 3}
+@keyframes as-montre{0%,100%{box-shadow:0 8px 28px rgba(0,0,0,.18)}50%{box-shadow:0 0 0 4px var(--accent),0 0 34px 8px rgba(77,163,255,.55)}}
+.as-accueil.as-parti .as-buste{animation:as-part .45s ease-in forwards}
+@keyframes as-part{to{opacity:0;height:0;margin:0;transform:scale(.5) translateY(12px)}}
+@media (prefers-reduced-motion:reduce){#as-carton .scene,.assistant.as-montre{animation:none} .as-accueil.as-parti .as-buste{display:none}}
 /* « Créer avec Blender » (pont Blender, 14 octobre 2026) */
 #blender-fenetre{z-index:58}
 #blender-fenetre .fenetre-carte{display:grid;gap:10px}

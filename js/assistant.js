@@ -99,7 +99,7 @@ const texteAspect=a=>a?[a.i?matiere(a.i)?.n:null,a.c?(COULEURS.find(x=>x[1]===a.
 
 // ---------- moteur du parcours : questions, rejeu pour « Retour » ----------
 class Stop extends Error{}
-let debutFait=0, pan=null, fil=null, carte=null, gen=0, attente=null, reponses=[], rejeu=[], flux=null, debut=0, conclusion=null, nettoyages=[], jointe=null, voix=false;
+let debutFait=0, pan=null, fil=null, carte=null, gen=0, attente=null, reponses=[], rejeu=[], flux=null, debut=0, conclusion=null, nettoyages=[], jointe=null, voix=false, silence=false;
 function demander(cle,c){
   if(rejeu.length){ if(rejeu[0].cle===cle){ const r=rejeu.shift(); reponses.push(r); tracer(c,r.rep); return Promise.resolve(r.rep); } rejeu=[]; }
   const g=gen, pos=positionJournal();
@@ -148,6 +148,7 @@ function msg(qui,t,lignes){
 function dire(t,lignes){ msg('lui',t,lignes); parler(t); }
 function tracer(c,rep){
   carte?.remove(); carte=null;
+  fil.querySelector('.as-accueil:not(.as-parti)')?.classList.add('as-parti');   // première question posée : le buste s'en va (il revient à chaque ouverture)
   if(c.titre) msg('lui',c.titre,c.lignes);
   const t=rep?.texte??rep?.l; if(t) msg('moi',t);
 }
@@ -180,7 +181,7 @@ function dessiner(c){
   $('as-retour').disabled=!reponses.length;
 }
 function parler(t){
-  if(!voix||!t||!('speechSynthesis' in window)) return;
+  if(!voix||silence||!t||!('speechSynthesis' in window)) return;
   try{ speechSynthesis.cancel(); const u=new SpeechSynthesisUtterance(t); u.lang='fr-FR'; speechSynthesis.speak(u); }catch{}
 }
 const ch=(l,v,o={})=>({l,v,...o});
@@ -727,12 +728,107 @@ async function libre(texte,pj){
   await brancher(r.branche==='K'?'X':r.branche,o);
 }
 
+// ---------- apparition du personnage : une fois par jour (17 octobre 2026, idée de Mauro) ----------
+// Au premier « ouvrir » de la journée sur cet appareil (clé maison3d-assistant, champ carton = date), un carton MAISON3D sautille
+// à côté du panneau, le personnage en jaillit, salue, dit « Ciao ! Je vais t'aider à modifier ce que tu veux » (voix Gemini
+// « Charon », celle de la vidéo de présentation) et désigne le panneau, qui s'illumine ; puis il file dans le panneau.
+// Vidéo Seedance 2.5 sur fond vert (CARTON, .mp4 + .webm pour les navigateurs sans H.264), détourée en direct par WebGL (repli 2D).
+// « ?ciao » dans l'adresse (maison3d.vercel.app/?ciao) : à chaque ouverture, pour l'essayer (la date du jour est notée quand même).
+// Toucher l'écran, « Passer » ou Échap : fin tout de suite. Coupée si « réduire les animations » ou si la vidéo ne se lance pas.
+// Pendant l'animation, la lecture à voix haute du panneau se tait (silence) : une seule voix à la fois.
+const CARTON='icones/assistant-carton-1';
+const CARTON_ESSAI=/[?&]ciao\b/.test(location.search);   // lu dès le chargement du module (recu.js nettoie l'adresse ensuite)
+const aujourdhui=()=>new Date().toLocaleDateString('fr-CA');
+const reglages=()=>{ try{ return JSON.parse(localStorage.getItem('maison3d-assistant')||'{}')||{}; }catch{ return {}; } };
+const regler=o=>{ try{ localStorage.setItem('maison3d-assistant',JSON.stringify({...reglages(),...o})); }catch{} };
+const cartonDu=()=>(CARTON_ESSAI||reglages().carton!==aujourdhui())&&!matchMedia('(prefers-reduced-motion:reduce)').matches;
+let cartonVid=null;
+function precharger(){
+  if(cartonVid||!cartonDu()) return;
+  cartonVid=el('video',{preload:'auto',playsinline:''}); cartonVid.playsInline=true;
+  cartonVid.append(el('source',{src:CARTON+'.mp4',type:'video/mp4'}),el('source',{src:CARTON+'.webm',type:'video/webm'}));
+  try{ cartonVid.load(); }catch{}
+  // Chrome ne charge pas une vidéo hors de la page avant play() : le fichier est mis d'avance dans le cache (service worker et cache HTTP)
+  for(const ext of ['.mp4','.webm']) fetch(CARTON+ext).then(r=>r.ok&&r.arrayBuffer()).catch(()=>{});
+}
+// détourage du fond vert : WebGL (couleurs prémultipliées), sinon pixel par pixel
+function detoureur(canvas,video){
+  const gl=canvas.getContext('webgl',{alpha:true,premultipliedAlpha:true});
+  if(!gl){
+    const c=canvas.getContext('2d',{willReadFrequently:true});
+    return ()=>{
+      c.drawImage(video,0,0,canvas.width,canvas.height);
+      const im=c.getImageData(0,0,canvas.width,canvas.height), d=im.data;
+      for(let i=0;i<d.length;i+=4){
+        const r=d[i]/255, g=d[i+1]/255, b=d[i+2]/255, k=g-Math.max(r,b);
+        d[i+3]=255*(1-Math.min(1,Math.max(0,(k-.06)/.12)));
+        if(k>-.02) d[i+1]=255*Math.min(g,Math.max(r,b)+.01);
+      }
+      c.putImageData(im,0,0);
+    };
+  }
+  const sh=(type,src)=>{ const x=gl.createShader(type); gl.shaderSource(x,src); gl.compileShader(x); return x; };
+  const pr=gl.createProgram();
+  gl.attachShader(pr,sh(gl.VERTEX_SHADER,'attribute vec2 p; varying vec2 v; void main(){ v=vec2((p.x+1.)/2.,1.-(p.y+1.)/2.); gl_Position=vec4(p,0.,1.); }'));
+  // fond vert : g nettement au-dessus de r et b ; le personnage et le carton ne sont jamais verts ; le vert des bords est retiré
+  gl.attachShader(pr,sh(gl.FRAGMENT_SHADER,'precision mediump float; varying vec2 v; uniform sampler2D t; void main(){ vec4 c=texture2D(t,v); float k=c.g-max(c.r,c.b);'+
+    ' float a=1.-smoothstep(.06,.18,k); if(k>-.02) c.g=min(c.g,max(c.r,c.b)+.01); gl_FragColor=vec4(c.rgb*a,a); }'));
+  gl.linkProgram(pr); gl.useProgram(pr);
+  gl.bindBuffer(gl.ARRAY_BUFFER,gl.createBuffer());
+  gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,1,1]),gl.STATIC_DRAW);
+  const loc=gl.getAttribLocation(pr,'p'); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc,2,gl.FLOAT,false,0,0);
+  gl.bindTexture(gl.TEXTURE_2D,gl.createTexture());
+  for(const w of [gl.TEXTURE_WRAP_S,gl.TEXTURE_WRAP_T]) gl.texParameteri(gl.TEXTURE_2D,w,gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);
+  gl.enable(gl.BLEND); gl.blendFunc(gl.ONE,gl.ONE_MINUS_SRC_ALPHA);
+  return ()=>{
+    gl.viewport(0,0,canvas.width,canvas.height); gl.clearColor(0,0,0,0); gl.clear(gl.COLOR_BUFFER_BIT);
+    gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,video);
+    gl.drawArrays(gl.TRIANGLE_STRIP,0,4);
+  };
+}
+// Lance l'apparition si elle est due ; renvoie false sinon. Le panneau est déjà ouvert (le personnage le montre).
+function apparition(){
+  if(!cartonDu()||$('as-carton')) return false;
+  precharger(); regler({carton:aujourdhui()});
+  const v=cartonVid, tel=innerWidth<=760;
+  // place : à droite du panneau sur grand écran (le personnage désigne la gauche), au-dessus de la feuille sur téléphone
+  const s=Math.round(tel?Math.min(innerWidth*.9,innerHeight*.38-92,420):Math.min(innerWidth-392-24,innerHeight*.64,540));   // téléphone : au-dessus de la feuille (62 % de l'écran), « Passer » compris
+  const x=tel?Math.round((innerWidth-s)/2):392+Math.max(0,Math.round((innerWidth-392-s)/2-innerWidth*.06));
+  const y=tel?56:Math.round(Math.max(76,innerHeight*.5-s*.5));
+  const box=el('div',{id:'as-carton',role:'presentation'});
+  box.style.setProperty('--s',s+'px'); box.style.setProperty('--x',x+'px'); box.style.setProperty('--y',y+'px');
+  const scene=el('div',{class:'scene'}), cv=el('canvas'), passer=el('button',{type:'button',class:'passer'},'Passer ›');
+  cv.width=cv.height=Math.min(720,Math.round(s*(devicePixelRatio||1)));
+  v.hidden=true; scene.append(v,cv); box.append(scene,passer); document.body.append(box);   // la vidéo (cachée) sert de source au canevas
+  // il file vers le visage de l'en-tête du panneau en rapetissant
+  const cible=()=>{ const r=pan.querySelector('.as-avatar')?.getBoundingClientRect(); if(!r) return; box.style.setProperty('--vx',Math.round(r.left+r.width/2-(x+s/2))+'px'); box.style.setProperty('--vy',Math.round(r.top+r.height/2-(y+s/2))+'px'); };
+  let fini=false, raf=0, montre=false; silence=true;
+  const dessiner=detoureur(cv,v);
+  const boucle=()=>{ if(v.readyState>=2) dessiner(); if(!montre&&v.duration&&v.currentTime>v.duration-2.2){ montre=true; pan.classList.add('as-montre'); } raf=requestAnimationFrame(boucle); };
+  const fin=(vite,raison)=>{
+    if(fini) return; fini=true; pan.dataset.cartonFin=raison||''; cancelAnimationFrame(raf); removeEventListener('keydown',esc,true);   // raison gardée (diagnostic)
+    const finir=()=>{ box.remove(); try{ v.pause(); v.currentTime=0; }catch{} silence=false; setTimeout(()=>pan.classList.remove('as-montre'),1800); if(!pan.hidden) $('as-texte').focus({preventScroll:true}); };
+    if(vite) finir(); else { cible(); box.classList.add('fin'); setTimeout(finir,560); }
+  };
+  const esc=e=>{ if(e.key==='Escape'){ e.stopPropagation(); e.preventDefault(); fin(true,'echap'); } };
+  addEventListener('keydown',esc,true);
+  box.onclick=()=>fin(true,'toucher');
+  v.onended=()=>fin(false,'fin'); v.onerror=()=>fin(true,'erreur');
+  v.currentTime=0; v.muted=false;
+  const p=v.play(); if(p) p.catch(e=>{ if(e?.name==='AbortError') return; v.muted=true; v.play().catch(()=>fin(true,'lecture')); });   // son bloqué : sans le son ; vidéo impossible : rien ; mise en pause (essais) : on n'insiste pas
+  boucle();
+  setTimeout(()=>{ if(!fini&&v.readyState<1) fin(true,'delai'); },6000);   // rien ne s'est lancé (réseau) : on n'attend pas
+  setTimeout(()=>{ if(!fini&&v.currentTime===0) fin(true,'delai'); },14000);   // chargée mais jamais partie : pareil
+  return true;
+}
+
 // ---------- panneau ----------
 function ouvrir(oui){
   if(!pan) construire();
   pan.hidden=!oui; $('assistant').setAttribute('aria-expanded',String(oui));
   document.body.classList.toggle('assistant-ouvert',oui);
-  if(oui){ if(!flux) demarrer(accueil); setTimeout(()=>$('as-texte').focus({preventScroll:true}),50); }
+  if(oui){ const anim=apparition(); if(!flux) demarrer(accueil); if(!anim) setTimeout(()=>$('as-texte').focus({preventScroll:true}),50); }
   else { conclure(); for(const n of nettoyages.splice(0)) try{ n(); }catch{} if(attente){ const k=attente.ko; attente=null; k(new Stop()); } gen++; flux=null; try{ speechSynthesis.cancel(); }catch{} }
 }
 function envoyer(){
@@ -765,7 +861,7 @@ function construire(){
   const tete=el('header',{class:'as-tete'});
   tete.append(el('img',{src:'icones/assistant-tete.webp',alt:'',class:'as-avatar'}),el('div',{class:'as-nom'},el('b',{},'Mauro'),el('span',{},'ton assistant')));
   const bv=el('button',{type:'button',class:'as-mini',id:'as-voix','aria-pressed':String(voix),title:'Lire les réponses à voix haute'},'🔈');
-  bv.onclick=()=>{ voix=!voix; bv.setAttribute('aria-pressed',String(voix)); bv.textContent=voix?'🔊':'🔈'; try{ localStorage.setItem('maison3d-assistant',JSON.stringify({voix})); }catch{} if(!voix) try{ speechSynthesis.cancel(); }catch{} };
+  bv.onclick=()=>{ voix=!voix; bv.setAttribute('aria-pressed',String(voix)); bv.textContent=voix?'🔊':'🔈'; regler({voix}); if(!voix) try{ speechSynthesis.cancel(); }catch{} };
   const br=el('button',{type:'button',class:'as-mini',id:'as-recommencer',title:'Recommencer','aria-label':'Recommencer'},'↺'); br.onclick=()=>demarrer(accueil);
   const bf=el('button',{type:'button',class:'as-mini',id:'as-fermer','aria-label':'Fermer'},'×'); bf.onclick=()=>ouvrir(false);
   tete.append(bv,br,bf);
@@ -794,7 +890,8 @@ function construire(){
 }
 export const assistantOuvert=()=>!!pan&&!pan.hidden;
 export function initAssistant(){
-  try{ voix=!!JSON.parse(localStorage.getItem('maison3d-assistant')||'{}').voix; }catch{}
+  voix=!!reglages().voix;
   const b=$('assistant'); if(!b) return;
   b.onclick=e=>{ e.stopPropagation(); ouvrir(!assistantOuvert()); };
+  setTimeout(precharger,4000);   // la vidéo du carton se charge en avance si elle est due aujourd'hui
 }
