@@ -2,6 +2,7 @@
 import * as THREE from 'three';
 import {MAT, boite, cylindre, sphere, groupe, lignes, copier, prisme, enFlottants} from './formes.js';
 import {texturesCarreauPierre} from './matieres.js';
+import {habillerCarreaux, CARREAUX_SDB} from './carreaux_sdb.js';
 import {couper} from './buanderie.js';
 import {ENTREE, percer} from './corrections.js';
 import {app} from './app.js';
@@ -157,7 +158,7 @@ function penteDouche(rez){
 }
 export function carrelerMursSdb(root){
   const rez=root.getObjectByName('structure_rez'); if(!rez) return;
-  const {map,bump}=texturesCarreauPierre(), lots={};
+  const {map,bump}=texturesCarreauPierre(), lots={}, {L:LU,H:HV}=CARREAUX_SDB, photo=[];
   const peinture=penteDouche(rez);
   const n=new THREE.Vector3(), e=new THREE.Vector3(), c=new THREE.Vector3(), M=0.02;
   const v=[0,1,2].map(()=>new THREE.Vector3());
@@ -181,14 +182,14 @@ export function carrelerMursSdb(root){
           const l=lots[t]||(lots[t]={pos:[],nor:[],uv:[]}), lat=Math.abs(n.x)>Math.abs(n.z);
           for(let k=1;k+1<poly.length;k++) for(const q of sg>0?[poly[0],poly[k],poly[k+1]]:[poly[0],poly[k+1],poly[k]]){
             l.pos.push(q.x+ni.x*0.002,q.y+ni.y*0.002,q.z+ni.z*0.002); l.nor.push(ni.x,ni.y,ni.z);
-            l.uv.push((lat?q.z:q.x)/0.60,q.y/0.30); } }
+            l.uv.push((lat?q.z:q.x)/LU,q.y/HV); } }
       } } });
   // pente de la douche, carrelée en gris foncé, rangées le long de la pente
   const {x0,x1,zMur,yGenou,zPlafond}=DOUCHE, L=Math.hypot(2.40-yGenou,zPlafond-zMur), ny=-(zPlafond-zMur)/L, nz=(2.40-yGenou)/L;
   // mur nord de la douche plat du sol au genou, 2 mm devant le mur (le modèle y avait un retrait de 20 cm jusqu'à 0,89 m,
   // coin blanc vu par Mauro), puis la pente : joints alignés
   const fo=lots.fonce||(lots.fonce={pos:[],nor:[],uv:[]}), z=zMur+0.002;
-  const quad=(coin,n)=>{ for(const k of [0,1,2,0,2,3]){ const [x,y,zz,v]=coin[k]; fo.pos.push(x,y,zz); fo.nor.push(...n); fo.uv.push(x/0.60,v/0.30); } };
+  const quad=(coin,n)=>{ for(const k of [0,1,2,0,2,3]){ const [x,y,zz,v]=coin[k]; fo.pos.push(x,y,zz); fo.nor.push(...n); fo.uv.push(x/LU,v/HV); } };
   quad([[x0,0,z,0],[x1,0,z,0],[x1,yGenou,z,yGenou],[x0,yGenou,z,yGenou]],[0,0,1]);
   quad([[x0,yGenou,z,yGenou],[x1,yGenou,z,yGenou],[x1,2.40,zPlafond,yGenou+L],[x0,2.40,zPlafond,yGenou+L]],[0,ny,nz]);
   rez.updateMatrixWorld(true); const inv=rez.matrixWorld.clone().invert();
@@ -198,8 +199,10 @@ export function carrelerMursSdb(root){
     g.setAttribute('position',new THREE.Float32BufferAttribute(l.pos,3)); g.setAttribute('normal',new THREE.Float32BufferAttribute(l.nor,3));
     g.setAttribute('uv',new THREE.Float32BufferAttribute(l.uv,2));
     const mat=new THREE.MeshStandardMaterial({color:TEINTES_SDB[t],map,bumpMap:bump,bumpScale:1.2,roughness:0.35}); mat.name='carrelage_sdb_'+t;
+    photo.push([mat,TEINTES_SDB[t]]);
     const m=new THREE.Mesh(g,mat); m.name='rez__carrelage_sdb_'+t; m.applyMatrix4(inv); rez.add(m);
   }
+  habillerCarreaux(photo,'mur');      // carreaux en photo (carreaux_sdb.js) dès que les images sont là
 }
 // Meuble vasque en chêne suspendu contre le mur ouest (x = 11,31), collé au mur sud (sèche-serviettes), à 18 cm de la
 // baignoire ; grande vasque blanche, miroir et réglette centrés sur le meuble. 160 × 56 cm, dessus à 69 cm, miroir de 84 cm
