@@ -23,14 +23,16 @@ export const nomBase=()=>base?.nom||'Appart Base';
 export const estRetire=n=>!!base&&base.retires.includes(n);
 export const estCoulisses=n=>!!base&&base.coulisses.includes(n);
 // les objets de la base : [{n, e}] (e : état complet, avec sa définition a)
-export const objetsDeBase=()=>base?Object.entries(base.objets).map(([n,e])=>({n,e})):[];
+// (sans le décor fixe : plinthes, hors de « Mes objets 3D »)
+export const objetsDeBase=()=>base?Object.entries(base.objets).filter(([,e])=>!e.decor).map(([n,e])=>({n,e})):[];
 // après le mobilier de la maquette (modele.js) : portes et fenêtres de la maquette en coulisses, puis les objets de la base
 export function installerBase(){
   if(!base||!app.mobilier) return 0; let n=0;
   for(const nom of base.coulisses){ const it=app.items[nom]; if(!it) continue; it.coulisses=true; setHidden(it,true); }
   for(const [nom,e] of Object.entries(base.objets)){
     if(app.items[nom]) continue;
-    const e0=normaliser(nom,e), it=creerAjout(nom,e0); if(!it) continue;
+    // decor : élément fixe (plinthes, 21 octobre 2026), ni sélectionnable ni dans la liste (creerAjout)
+    const e0=normaliser(nom,e), it=creerAjout(nom,e0,!!e.decor); if(!it) continue;
     it.base=true; it.etat0=e0; n++;
   }
   return n;

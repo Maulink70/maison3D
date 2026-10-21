@@ -19,7 +19,8 @@ const construire=a=>a.t==='photo'?construirePhoto(a):a.t==='glb'?construireGLB(a
 export const sorteConnue=a=>!!a&&(a.t==='photo'||a.t==='glb'||!!FORMES[a.f]);
 export const nomDe=a=>a.n||FORMES[a.f]?.nom||(a.t==='glb'?'Objet 3D':'Objet');
 // parties de l'objet (sans les voiles des alertes ni l'éclairage d'une partie touchée, posés en enfants des maillages)
-const recueillir=(it,g)=>{ it.mats=[]; g.traverse(o=>{ if(o.isMesh&&!o.userData.attente&&o.name!=='alerte'&&!o.userData.eclat){ o.userData.item=it.name; it.mats.push(o); } }); };
+// un décor fixe de la base (plinthes : base.js) ne se touche pas : ses maillages ne portent pas le nom de l'élément
+const recueillir=(it,g)=>{ it.mats=[]; g.traverse(o=>{ if(o.isMesh&&!o.userData.attente&&o.name!=='alerte'&&!o.userData.eclat){ if(!it.decor) o.userData.item=it.name; it.mats.push(o); } }); };
 // contenu 3D d'un objet ajouté, dans son groupe (repère propre : origine au centre du dessous). Une photo ou un fichier
 // 3D arrivent ensuite (pret) : on reprend alors les parties, l'apparence, le plan
 function remplir(it,a){
@@ -36,11 +37,12 @@ function vider(it){
 }
 const oublier=it=>{ it.plan=it.empreinte=it.cellules=it.planCoins=it.parties=it.partiesInfo=it.voiles=null; it.cleApparence=undefined; };
 
-// e : état normalisé (etats.js), avec sa définition e.a
-export function creerAjout(nom,e){
+// e : état normalisé (etats.js), avec sa définition e.a ; decor : élément fixe de la base (catégorie « fixe » : hors liste,
+// tableau, alertes, plan et collisions de la marche, ni sélectionnable ni couvert aux coupes)
+export function creerAjout(nom,e,decor=false){
   const a=e.a; if(!sorteConnue(a)||!app.mobilier) return null;
   const g=new THREE.Group(); g.name=nom; app.mobilier.add(g);
-  const it={g,name:nom,meta:{l:nomDe(a),c:'meuble'},lvl:niveauDe(a),hidden:false,color:null,mats:[],ajout:a,matieres:{}};
+  const it={g,name:nom,meta:{l:nomDe(a),c:decor?'fixe':'meuble'},lvl:niveauDe(a),hidden:false,color:null,mats:[],ajout:a,matieres:{},decor};
   remplir(it,a);
   g.position.set(e.x,(+a.y||0)+(+a.e||0),e.z); it.home=g.position.clone();
   app.items[nom]=it; appliquerEtat(it,e); invaliderPlan();

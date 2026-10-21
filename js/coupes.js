@@ -94,6 +94,7 @@ export function poserCouvercles(){
 }
 // objet ajouté prêt ou refait (ajouts.js, après la collecte de ses parties) : l'ancien couvercle est retiré, un nouveau calculé
 export function poserCouvercleAjout(it){
+  if(it.decor) return;   // plinthes (décor fixe de la base) : 6 cm, rien à couvrir
   for(const c of it.g.children.filter(c=>c.name===it.name+'__couvercle')){ it.g.remove(c); c.geometry.dispose(); const k=couvercles.indexOf(c); if(k>=0) couvercles.splice(k,1); }
   it.mats=it.mats.filter(o=>o.name!==it.name+'__couvercle');
   poser(it.g,it,it.ajout?.v==='etage');

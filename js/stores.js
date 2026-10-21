@@ -98,7 +98,7 @@ function rattacher(s){
 // ---------- liste des stores (à chaque changement des meubles) ----------
 // un store ou rideau ajouté est rangé avec les portes et fenêtres (liste ; ni alertes ni contour de meuble sur le plan : les
 // stores extérieurs sont contre le mur)
-function ranger(it,oui){ const c=oui?'ouverture':'meuble'; if(!it.ajout||it.meta.c===c) return false; it.meta={...it.meta,c}; return true; }
+function ranger(it,oui){ const c=oui?'ouverture':'meuble'; if(!it.ajout||it.decor||it.meta.c===c) return false; it.meta={...it.meta,c}; return true; }
 export function majListeStores(){
   let change=false;
   for(const it of Object.values(app.items)) if(it.ajout&&!it.g.userData.portesBlender&&ranger(it,estStore(it))) change=true;
