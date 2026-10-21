@@ -213,7 +213,7 @@ export function poserCoordonnees(racine){
 const PAR_NOM={cuir:'cuir', cuirClair:'cuir', etage_cuirNoir:'cuir',
   tissuBleu:'tissu', lingeBleu:'tissu', lingeMarine:'tissu', drap:'tissu', tissuBeige:'tissu', etage_gris:'tissu', etage_tissuNoir:'tissu',
   boisCuisine:'bois', chene:'bois', erable:'bois', boisBrunClair:'bois', etage_hetre:'bois',
-  pierre:'pierre', inox:'inox', briqueSombre:'plaquettes', pierreClaire:'pierre'};
+  pierre:'pierre', escMarche:'pierre', escContre:'pierre', inox:'inox', briqueSombre:'plaquettes', pierreClaire:'pierre'};
 export function habillerConstruits(racine){
   racine.traverse(o=>{ if(!o.isMesh) return; const m=o.material;
     if(!Array.isArray(m)&&!m.userData.motif&&PAR_NOM[m.name]) habiller(m,PAR_NOM[m.name]); });

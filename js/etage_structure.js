@@ -97,6 +97,7 @@ export function ouvrirPorteDouche(root){
 
 // Murs de la douche + WC : la texture « marbre » du modèle devient le carrelage des photos, carreaux gris clair
 // de 25 cm et frise sombre à 1,80 m (texture de 0,50 × 2,50 m posée en coordonnées monde, depuis le plancher)
+// (depuis le 21 octobre 2026, l'image est refaite avec les photos de la faïence et de la frise : escalier_douche.js)
 export function carrelerDouche(root){
   const c=document.createElement('canvas'); c.width=256; c.height=1280; const x=c.getContext('2d'), px=512;
   x.fillStyle='#e6e6e3'; x.fillRect(0,0,256,1280);
@@ -105,7 +106,7 @@ export function carrelerDouche(root){
   x.fillStyle='#22262b'; x.fillRect(0,y0,256,h); x.strokeStyle='#d8dadc'; x.lineWidth=3; x.beginPath();
   for(let u=0;u<=256;u+=16){ x.lineTo(u,y0+(u/16%2?h*0.25:h*0.75)); } x.stroke();
   const tex=textureDe(c); tex.wrapS=THREE.RepeatWrapping; tex.wrapT=THREE.ClampToEdgeWrapping; tex.colorSpace=THREE.SRGBColorSpace;
-  const mat=new THREE.MeshStandardMaterial({map:tex,roughness:0.35}), v=new THREE.Vector3(), n=new THREE.Vector3(), nm=new THREE.Matrix3();
+  const mat=new THREE.MeshStandardMaterial({map:tex,roughness:0.35,name:'douche_faience'}), v=new THREE.Vector3(), n=new THREE.Vector3(), nm=new THREE.Matrix3();
   root.traverse(o=>{ if(!o.isMesh||o.material.name!=='Material_364') return;
     o.updateMatrixWorld(true); nm.getNormalMatrix(o.matrixWorld);
     const geo=o.geometry.clone(), p=geo.attributes.position, no=geo.attributes.normal, uv=[];

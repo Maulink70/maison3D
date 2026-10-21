@@ -9,15 +9,20 @@ export const ESC={x0:12.868, x1:13.768, zBas:-17.148, giron:0.2829, haut:0.18267
 // Remplace un élément du modèle par un groupe vide du même nom (l'élément peut être un simple maillage)
 function remplacer(node,root){ const g=new THREE.Group(); g.name=node.name; node.removeFromParent(); root.add(g); return g; }
 
+// Marches et contremarches : deux pierres (photos du 21 octobre 2026, escalier_douche.js), motif « pierre » en attendant ;
+// carreaux d'environ 60 cm sur les marches, joint fin gris clair décalé d'une marche à l'autre
+const ESC_MARCHE=MAT.pierre.clone(), ESC_CONTRE=MAT.pierre.clone(), ESC_JOINT=new THREE.MeshStandardMaterial({color:0xb9bab6,roughness:0.9,name:'escJoint'});
+ESC_MARCHE.name='escMarche'; ESC_CONTRE.name='escContre';
 export function remplacerEscalier(node,root){
   const g=remplacer(node,root), {x0,x1,zBas,giron,haut,n}=ESC;
   for(let i=0;i<n;i++){
-    const zf=zBas-i*giron, zb=zf-giron, y=(i+1)*haut;
-    boite(g,x0,x1,y-0.03,y,zb,zf+0.02,MAT.pierre);                 // marche (débord de 2 cm)
-    boite(g,x0,x1,i*haut,y-0.03,zf-0.02,zf,MAT.pierre);             // contremarche
+    const zf=zBas-i*giron, zb=zf-giron, y=(i+1)*haut, xj=x0+(i%2?0.30:0.60);
+    boite(g,x0,x1,y-0.03,y,zb,zf+0.02,ESC_MARCHE);                 // marche (débord de 2 cm)
+    boite(g,xj-0.0015,xj+0.0015,y-0.0295,y+0.0004,zb,zf+0.02,ESC_JOINT);   // joint des carreaux
+    boite(g,x0,x1,i*haut,y-0.03,zf-0.02,zf,ESC_CONTRE);             // contremarche
     boite(g,x0,x1,y-0.012,y,zf+0.02,zf+0.026,MAT.inox);             // nez de marche alu
   }
-  boite(g,x0,x1,n*haut,15*haut,ESC.zHaut,ESC.zHaut+0.02,MAT.pierre); // dernière contremarche jusqu'à l'étage
+  boite(g,x0,x1,n*haut,15*haut,ESC.zHaut,ESC.zHaut+0.02,ESC_CONTRE); // dernière contremarche jusqu'à l'étage
   // sous-face rampante : plafond du réduit
   const pente=(15*haut)/(ESC.zHaut-zBas), yS=z=>Math.max(0,(z-zBas)*pente-0.30);
   const zPied=zBas+0.30/pente, sous=new THREE.MeshStandardMaterial({color:0xf0ede6,roughness:0.8,side:THREE.DoubleSide});

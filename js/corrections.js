@@ -141,6 +141,24 @@ function fenetreSalleDeBain(rez,mur,carrelage){
 // battant de 94,5 × 211 cm (mesuré par Mauro le 12 octobre 2026), dormant de 4 cm : ouverture de 1,025 m, même centre
 export const ENTREE={x0:11.5975, x1:12.6225, h:2.15, zInt:-21.108, zExt:-20.908};
 
+// Fenêtre du coin bureau de l'étage (mur z = -21,11, au-dessus de la porte d'entrée) : dans le modèle, l'appui était à 86 cm
+// du sol, sous le plateau du bureau haut (1,01 m) ; sur les photos de Mauro, il est juste au-dessus (21 octobre 2026, relevé
+// de la session BLENDER) : l'ouverture (11,458 → 12,533 ; 3,60 → 4,32) monte de 17 cm, appui à 1,03 m (fenetres.js et les
+// objets de la fenêtre et du store dans base.json suivent)
+export const FEN_BUREAU={x0:11.458, x1:12.533, y0:3.60, y1:4.32, montee:0.17};
+function monterFenetreBureau(rez){
+  const F=FEN_BUREAU, q=new THREE.Vector3(), dans=q=>(Math.abs(q.x-F.x0)<0.003||Math.abs(q.x-F.x1)<0.003)&&q.z>-21.115&&q.z<-20.90&&
+    (Math.abs(q.y-F.y0)<0.003||Math.abs(q.y-F.y1)<0.003);
+  let n=0;
+  rez.traverse(o=>{ if(!o.isMesh) return; o.updateMatrixWorld(true);
+    const p=o.geometry.attributes.position, inv=o.matrixWorld.clone().invert(); let geo=null;
+    for(let i=0;i<p.count;i++){ q.fromBufferAttribute(p,i).applyMatrix4(o.matrixWorld); if(!dans(q)) continue;
+      if(!geo) geo=o.geometry=enFlottants(o.geometry);
+      q.y+=F.montee; q.applyMatrix4(inv); geo.attributes.position.setXYZ(i,q.x,q.y,q.z); n++; }
+    if(geo){ geo.computeBoundingBox(); geo.computeBoundingSphere(); } });
+  return n;
+}
+
 // Ouverture des Velux dans le pan nord (87,5 × 133 cm, épaisseur du toit comprise) : ses sommets sont montés avec les Velux
 // (bas du cadre à 85 cm du sol, mesuré par Mauro ; fenetres.js monte le cadre et la doublure d'autant)
 function monterVelux(etage){
@@ -193,16 +211,19 @@ export function corrigerStructure(root){
   if(mur) rez.traverse(o=>{ if(o.isMesh&&o.material===mur) neutraliser(o,pts=>pts.every(q=>q.x>12.6&&q.x<18.60&&q.y>-0.005&&q.y<0.085&&q.z>-14.35&&q.z<-14.13)); });
   // 4 bis. Fenêtre de la salle de bain remontée au-dessus du carrelage (photos calées)
   if(rez&&mur) fenetreSalleDeBain(rez,mur,carrelageSdb);
+  // 4 ter. Fenêtre du coin bureau de l'étage montée de 17 cm (appui juste au-dessus du plateau du bureau)
+  if(rez) ajouts.userData.fenBureau=monterFenetreBureau(rez);
   // 5. Porte d'entrée : on perce le mur (ses deux faces) et on les refait autour de l'ouverture
   if(rez&&mur){
     const E=ENTREE, dans=(pts,z,xa,xb,yb)=>pts.every(q=>Math.abs(q.z-z)<0.004&&q.x>xa-0.005&&q.x<xb+0.005&&q.y>-0.005&&q.y<yb+0.005);
     // face intérieure : rectangle 11,45 → 12,87 sur 2,40 m ; face extérieure : 11,11 → 12,67 sur 4,64 m, percée
-    // aussi de la fenêtre à store de l'étage (11,46 → 12,53, de 3,60 à 4,32 m)
+    // aussi de la fenêtre à store de l'étage (11,46 → 12,53, de 3,77 à 4,49 m depuis le 21 octobre 2026 : FEN_BUREAU)
     let n=0; rez.traverse(o=>{ if(o.isMesh&&o.material===mur) n+=neutraliser(o,pts=>dans(pts,E.zInt,11.448,12.869,2.40)||dans(pts,E.zExt,11.108,12.668,4.642)); });
     if(n){
       ajouts.add(faceMur([[11.448,0],[E.x0,0],[E.x0,E.h],[E.x1,E.h],[E.x1,0],[12.869,0],[12.869,2.40],[11.448,2.40]],E.zInt,mur));
       ajouts.add(faceMur([[11.108,0],[E.x0,0],[E.x0,E.h],[E.x1,E.h],[E.x1,0],[12.668,0],[12.668,4.642],[11.108,4.642]],E.zExt,mur,
-        [[[11.458,3.60],[12.533,3.60],[12.533,4.32],[11.458,4.32]]]));
+        [[[FEN_BUREAU.x0,FEN_BUREAU.y0+FEN_BUREAU.montee],[FEN_BUREAU.x1,FEN_BUREAU.y0+FEN_BUREAU.montee],
+          [FEN_BUREAU.x1,FEN_BUREAU.y1+FEN_BUREAU.montee],[FEN_BUREAU.x0,FEN_BUREAU.y1+FEN_BUREAU.montee]]]));
     }
   }
   // 6. Velux montés de 7,6 cm (bas du cadre à 85 cm du sol, mesuré par Mauro le 12 octobre 2026) : leur ouverture dans le toit aussi

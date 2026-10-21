@@ -28,8 +28,9 @@ export const FENETRES=[
   // corrections.js), cadre et ouvrant en bois comme sur la photo ; le store du modèle (vers) est agrandi à la nouvelle vitre
   {nom:'rez__Fenetre_salle_de_bain', axe:'z', int:-27.799, ext:-27.998, a:[11.738,13.093], y:[1.26,1.87], d:[0.05,0.05,0.05,0.05],
     ouvrants:[{a:[11.788,13.043], y:[1.31,1.82], p:0.06, type:'bas', part:0.3, poignee:[12.415,1.795]}], store:{a:[11.77,13.06],y:[0.915,1.215],vers:[1.375,1.775]}},
-  {nom:'rez__store_fenetre', axe:'z', int:-21.128, ext:-20.908, a:[11.458,12.533], y:[3.60,4.32], d:[0.06,0.06,0.06,0.06], bois:'Material_13',
-    ouvrants:[{a:[11.518,12.473], y:[3.66,4.26], p:0.08, type:'bas', part:0.3, poignee:[11.965,4.215]}], store:{a:[11.59,12.40],y:[3.67,4.18]}},
+  // fenêtre du coin bureau : montée de 17 cm le 21 octobre 2026 (FEN_BUREAU de corrections.js), store du modèle déplacé d'autant
+  {nom:'rez__store_fenetre', axe:'z', int:-21.128, ext:-20.908, a:[11.458,12.533], y:[3.77,4.49], d:[0.06,0.06,0.06,0.06], bois:'Material_13',
+    ouvrants:[{a:[11.518,12.473], y:[3.83,4.43], p:0.08, type:'bas', part:0.3, poignee:[11.965,4.385]}], store:{a:[11.59,12.40],y:[3.67,4.18],vers:[3.84,4.35]}},
   {nom:'etage__Fenetre_chambre_etage', axe:'x', int:19.418, ext:19.538, a:[-25.423,-24.248], y:[3.76,5.185], d:[0.06,0.06,0.06,0.325],
     ouvrants:[{a:[-25.363,-24.308], y:[3.82,4.86], p:0.07, type:'battant', charniere:-24.308, part:1, poignee:[-25.31,4.26]}]},
   {nom:'etage__fenetre_douche_etage', axe:'x', int:19.418, ext:19.538, a:[-22.748,-22.078], y:[4.06,4.72], d:[0.06,0.06,0.06,0.06],
