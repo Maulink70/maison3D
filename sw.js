@@ -4,7 +4,7 @@
 //   Si le modèle change un jour, changer MODELE ci-dessous (le cache est alors refait).
 // - Page, code et styles : toujours pris sur le réseau (dernière version publiée), le cache ne sert que hors connexion.
 // Pas de mode hors ligne complet (choix de Mauro) : sans réseau, la page déjà vue s'ouvre avec ce qui est en cache.
-const MODELE='maison3d-modele-2', CODE='maison3d-code-1';
+const MODELE='maison3d-modele-3', CODE='maison3d-code-1';
 self.addEventListener('install',()=>self.skipWaiting());
 self.addEventListener('activate',e=>e.waitUntil((async()=>{
   for(const k of await caches.keys()) if(k!==MODELE&&k!==CODE&&k!=='maison3d-fichiers') await caches.delete(k);   // fichiers des objets ajoutés (fichiers.js) : gardés
