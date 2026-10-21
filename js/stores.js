@@ -89,6 +89,11 @@ function rattacher(s){
     q.pivot.updateWorldMatrix(true,true); const b=new THREE.Box3().setFromObject(q.pivot).expandByScalar(0.06); if(!b.containsPoint(c)) continue;
     const N0=q.pivot.parent.matrixWorld.clone().multiply(q.L0), F0=s.forme.matrix.clone();
     s.suit=q; q.suiveurs.push(s);
+    // un store intérieur s'arrête au bas de la vitre de l'ouvrant, pas au bas du cadre (Mauro, 21 octobre 2026 : coin bureau)
+    if(s.sorte==='store'&&Math.abs(q.angle||0)<1e-3){ const v=new THREE.Box3();
+      q.pivot.traverse(o=>{ const m=o.material; if(o.isMesh&&m&&(m.transparent||/verre|vitre|glass/i.test(m.userData?.nom||m.name||''))) v.expandByObject(o); });
+      if(!v.isEmpty()){ const repere=s.corps.parent, y0=repere.matrixWorld.elements[13], H=s.b.max.y-s.b.min.y||0.01;
+        s.kBas=Math.max(1,(s.b.max.y-(v.min.y-y0))/H); s.kHaut=Math.min(0.5,Math.max(0.06,0.07*H*s.kBas)/H); poser(s); } }
     s.suivre=()=>{ if(!s.forme.parent) return; q.pivot.updateWorldMatrix(true,false); const P=s.it.g.matrixWorld;
       const D=q.pivot.matrixWorld.clone().multiply(N0.clone().invert());
       s.forme.matrix.copy(P.clone().invert().multiply(D).multiply(P).multiply(F0)); s.forme.matrix.decompose(s.forme.position,s.forme.quaternion,s.forme.scale); };

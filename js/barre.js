@@ -5,6 +5,7 @@
 // n4 et n5 : boutons étroits puis très étroits ; n6 (téléphone) : la ligne défile au doigt, toujours une seule ligne, les menus restent entiers.
 // Les boutons sont rangés dans .bar-ligne (display:contents tant qu'elle ne défile pas : rien ne change pour le reste).
 import {caler} from './calques.js';
+import {poserIcone, nommer} from './icones.js';
 const PALIERS=['n1','n2','n3','n4','n5','n6'];
 let bar=null, ligne=null, enCours=false;
 
@@ -49,9 +50,20 @@ function fenetreEchap(e){
   const dessus=ouvertes.reduce((a,d)=>z(d)>=z(a)?d:a);   // la plus haute (dernière du document à égalité)
   const b=dessus.querySelector('.fenetre-tete .fermer, #vis-fermer, #mi-fermer'); if(b){ e.preventDefault(); b.click(); }
 }
+// bouton « Plein écran » en bout de barre (Mauro, 21 octobre 2026) : le même bouton y entre et en sort
+function pleinEcran(){
+  const b=document.getElementById('plein-ecran'), d=document.documentElement;
+  if(!b||!document.fullscreenEnabled||!d.requestFullscreen) return;
+  b.hidden=false;
+  const maj=()=>{ const oui=!!document.fullscreenElement; poserIcone(b,oui?'minimize':'maximize'); nommer(b,oui?'Quitter le plein écran':'Plein écran'); b.setAttribute('aria-pressed',oui); };
+  b.addEventListener('click',()=>{ (document.fullscreenElement?document.exitFullscreen():d.requestFullscreen({navigationUI:'hide'})).catch(()=>{}); });
+  document.addEventListener('fullscreenchange',()=>{ maj(); setTimeout(ajusterBarre,50); });
+  maj();
+}
 export function initBarre(){
   menuBarre('ouvertures','ouvertures-menu'); menuBarre('lumiere','lumiere-menu',true); menuBarre('realiste','realiste-menu');
   addEventListener('keydown',fenetreEchap);
+  pleinEcran();
   bar=document.querySelector('header.bar'); if(!bar) return;
   ligne=document.createElement('div'); ligne.className='bar-ligne';
   ligne.append(...bar.childNodes); bar.append(ligne);
