@@ -6,15 +6,15 @@
 //   et joints fins gris clair, frise de 25 × 7 cm à 1,80 m (avec relief) : l'image de carrelerDouche (etage_structure.js,
 //   0,50 × 2,50 m de mur) est refaite avec les photos, joints et frise compris.
 // Tant que les images ne sont pas arrivées, les motifs dessinés en code restent. Les cartes de relief des marches et de la
-// faïence n'ont pas pu être relues depuis le Drive (trop lourdes pour le connecteur) : sans relief pour elles.
+// faïence (refaites en 1024 px par la session BLENDER, version 2) sont posées aussi.
 import * as THREE from 'three';
 import {app} from './app.js';
 import {textureDe} from './matieres.js';
 
-export const ESC_TEX={dossier:'textures/', version:1,
-  marche:{fichier:'esc_marche', L:0.361, H:0.237, rugosite:0.75},
+export const ESC_TEX={dossier:'textures/', version:2,
+  marche:{fichier:'esc_marche', L:0.361, H:0.237, rugosite:0.75, relief:true, normales:0.7},
   contre:{fichier:'esc_contre', L:0.525, H:0.171, rugosite:0.75, relief:true, normales:0.7}};
-export const DOUCHE_TEX={dossier:'textures/', version:1, faience:0.33, carreau:[0.25,0.33], frise:{y:1.80, h:0.07, l:0.25},
+export const DOUCHE_TEX={dossier:'textures/', version:2, faience:0.33, carreau:[0.25,0.33], frise:{y:1.80, h:0.07, l:0.25},
   joint:0.002, couleurJoint:'#c9cac7', rugosite:0.10, pxm:1280};
 
 const image=src=>new Promise((ok,non)=>{ const i=new Image(); i.onload=()=>ok(i); i.onerror=non; i.src=src; });
@@ -38,12 +38,11 @@ async function escalier(){
 }
 
 // Image de la douche : 0,50 m de large (deux carreaux) sur 2,50 m de haut depuis le sol de l'étage (v = 0 en bas)
-function dessin(faience,frise,relief){
+function dessin(faience,frise,relief){   // relief : faience = carte de relief de la faïence
   const D=DOUCHE_TEX, px=D.pxm, W=Math.round(0.50*px), H=Math.round(2.50*px), [cl,ch]=D.carreau, f=D.frise;
   const c=document.createElement('canvas'); c.width=W; c.height=H; const x=c.getContext('2d');
   const yc=y=>H-y*px;                                                     // hauteur au-dessus du sol → ligne de l'image
-  if(relief){ x.fillStyle='rgb(128,128,255)'; x.fillRect(0,0,W,H); }
-  else{ const s=Math.round(D.faience*px); for(let u=0;u<W;u+=s) for(let w=0;w<H;w+=s) x.drawImage(faience,u,w,s,s); }
+  const s=Math.round(D.faience*px); for(let u=0;u<W;u+=s) for(let w=0;w<H;w+=s) x.drawImage(faience,u,w,s,s);
   // joints : verticaux tous les 25 cm, horizontaux tous les 33 cm de part et d'autre de la frise
   const j=Math.max(2,Math.round(D.joint*px)); x.fillStyle=relief?'rgb(128,128,240)':D.couleurJoint;
   for(let u=0;u<=W;u+=Math.round(cl*px)) x.fillRect(u-j/2,0,j,H);
@@ -56,8 +55,8 @@ function dessin(faience,frise,relief){
 }
 async function douche(){
   const D=DOUCHE_TEX, v='?v='+D.version, mats=materiaux('douche_faience'); if(!mats.length) return 0;
-  const [fa,fr,fn]=await Promise.all(['douche_faience_couleur','douche_frise_couleur','douche_frise_relief'].map(f=>image(D.dossier+f+'.webp'+v)));
-  const couleur=textureDe(dessin(fa,fr,false)), normales=textureDe(dessin(null,fn,true),false);
+  const [fa,fr,fan,fn]=await Promise.all(['douche_faience_couleur','douche_frise_couleur','douche_faience_relief','douche_frise_relief'].map(f=>image(D.dossier+f+'.webp'+v)));
+  const couleur=textureDe(dessin(fa,fr,false)), normales=textureDe(dessin(fan,fn,true),false);
   for(const t of [couleur,normales]){ t.wrapS=THREE.RepeatWrapping; t.wrapT=THREE.ClampToEdgeWrapping; t.anisotropy=Math.min(8,app.renderer?.capabilities.getMaxAnisotropy()||1); }
   couleur.colorSpace=THREE.SRGBColorSpace;
   for(const m of mats){ m.map=couleur; m.normalMap=normales; m.normalScale.set(0.6,0.6); m.roughness=D.rugosite; m.color.set(0xffffff);
