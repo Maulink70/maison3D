@@ -11,6 +11,7 @@ import {app} from './app.js';
 import {etat} from './calques.js';
 import {environnement as carte, FORCE, renduReel} from './realiste.js';
 import {filtreLumiere} from './curseurs.js';
+import {estEcran} from './ecrans.js';
 
 let force=null;
 const DEFAUT=THREE.Material.prototype.onBeforeCompile;
@@ -25,7 +26,9 @@ export const RUGOSITE_MIN=0.35;
 // 0,35 : le 16 octobre 2026, un plancher de 0,12 posé sur toutes les matières importées faisait briller chaque source en point net sur
 // les vitres des fenêtres, les chromes, la vitre du four, les miroirs, les écrans (Mauro : « des reflets très mal placés »).
 export const PIERRE_POLIE=/granit|granite|marbre|marble|quartz|pierre/i, RUGOSITE_PIERRE={soir:0.22,nuit:0.18};
-const rugositeMin=m=>(PIERRE_POLIE.test(m.userData?.nom||'')&&RUGOSITE_PIERRE[etat.lumiere])||RUGOSITE_MIN;
+// écrans éteints (ecrans.js, 21 octobre 2026) : verre lisse, le reflet de la pièce s'y voit ; allumés, 0,35 comme le reste
+const rugositeMin=m=>(PIERRE_POLIE.test(m.userData?.nom||'')&&RUGOSITE_PIERRE[etat.lumiere])||(estEcran(m)&&!m.userData.ecranAllume&&RUGOSITE_ECRAN)||RUGOSITE_MIN;
+export const RUGOSITE_ECRAN=0.12;
 let rugoDernier=null;
 
 // matériaux affichés d'un objet importé (une copie de matériau perd onBeforeCompile : on le remet)

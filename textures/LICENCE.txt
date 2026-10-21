@@ -8,3 +8,8 @@ enduit_couleur.webp, enduit_normales.webp, enduit_rugosite.webp :
   « white_stucco » de Poly Haven (https://polyhaven.com/a/white_stucco), licence CC0 (domaine public),
   motif de 2,00 m × 2,00 m ; images 1K (jpg) converties en WebP 1024 px par outils/textures/convertir.py --blanchir
   (couleur ramenée au blanc : seul le grain de l'enduit est gardé, la teinte des murs vient du matériau).
+
+ecran_tv.webp, ecran_pc.webp :
+  images des panoramas « alps_field » (https://polyhaven.com/a/alps_field) et « lakeside_sunrise »
+  (https://polyhaven.com/a/lakeside_sunrise) de Poly Haven, licence CC0 (domaine public), recadrées en 16:9 (1024 × 576) :
+  écrans allumés le soir et la nuit (js/ecrans.js).
