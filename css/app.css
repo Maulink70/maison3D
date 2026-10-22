@@ -722,6 +722,7 @@ body.panneau-ouvert #toggle-panel.poignee{right:316px}
 .mi-boutiques .cat-idee{background:#1b2024;color:#eef1f3;border-color:#3a4248}
 .mi-objets{display:grid;gap:6px}
 .mi-objet{display:flex;flex-wrap:wrap;align-items:center;gap:8px;background:#151a1e;border:1px solid #2c3338;border-radius:10px;padding:6px 8px}
+.mi-ambiance{flex:1 1 100%;margin:0;font-size:12.5px;line-height:1.35;color:#ffc98a}
 .mi-objet img{width:44px;height:44px;object-fit:contain;background:#fff;border-radius:6px}
 .mi-objet input[type=text]{flex:1 1 140px;font:inherit;padding:6px 8px;border:1px solid #3a4248;border-radius:8px;background:#1b2024;color:#eef1f3;min-width:0}
 .mi-dims{display:inline-flex;align-items:center;gap:4px;color:#a9b3bb;font-size:12.5px}

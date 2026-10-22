@@ -32,6 +32,16 @@ async function reduire(src,max=1024,type='image/jpeg'){
   const g=c.getContext('2d'); if(type==='image/jpeg'){ g.fillStyle='#fff'; g.fillRect(0,0,c.width,c.height); } g.drawImage(i,0,0,c.width,c.height);
   return {url:c.toDataURL(type,0.88),w:c.width,h:c.height};
 }
+// photo d'ambiance ? (22 octobre 2026 : un canapé collé avec toute la pièce du catalogue autour, Nano Banana Pro a refait
+// tout le salon) : bord de l'image non uni = le produit n'est pas seul ; part des pixels du bord proches de la couleur médiane
+async function fondUni(src){
+  const i=await charger(src), n=64, c=el('canvas'); c.width=c.height=n; const g=c.getContext('2d');
+  g.fillStyle='#fff'; g.fillRect(0,0,n,n); g.drawImage(i,0,0,n,n); const d=g.getImageData(0,0,n,n).data, px=[];
+  for(let k=0;k<n;k++) for(const [x,y] of [[k,0],[k,n-1],[0,k],[n-1,k]]){ const o=(y*n+x)*4; px.push([d[o],d[o+1],d[o+2]]); }
+  const med=[0,1,2].map(j=>px.map(p=>p[j]).sort((a,b)=>a-b)[px.length>>1]);
+  return px.filter(p=>Math.hypot(p[0]-med[0],p[1]-med[1],p[2]-med[2])<40).length/px.length>=0.75;
+}
+const AMBIANCE='Cette image montre toute une pièce autour du produit : l’IA risque de refaire votre pièce. Prenez plutôt une image du produit seul sur fond blanc (souvent la 2e ou 3e photo de la boutique), ou retirez le fond d’abord (« + » → photo → Options avancées → Nettoyer (IA)).';
 
 // ---------- état : la base (photo ou rendu), les objets posés, les zones à effacer ----------
 let fen=null, mi=null, sel=null, prep=null;
@@ -90,8 +100,10 @@ async function ajouterProduit({image,nom,dims,lien,site}){
   const ap=mi.base.image.w/mi.base.image.h, lw=0.3, lh=Math.min(0.7,lw*ap*r.h/r.w);
   const o={id:'o'+Date.now().toString(36),nom:(nom||'Objet '+(mi.objets.length+1)).slice(0,60),L:dims?.L||null,P:dims?.P||null,H:dims?.H||null,img:r.url,w:r.w,h:r.h,lien:lien||null,site:site||null,
     x:0.5-lw/2+0.04*mi.objets.length,y:0.55-lh/2,lw,lh};
+  try{ o.ambiance=!(await fondUni(r.url)); }catch{}
   mi.objets.push(o); sel=o.id; dessiner(); majListe();
-  dire('Objet ajouté : faites-le glisser à sa place sur la photo (coin en bas à droite pour sa taille), et vérifiez ses dimensions.');
+  if(o.ambiance) dire(AMBIANCE,true);
+  else dire('Objet ajouté : faites-le glisser à sa place sur la photo (coin en bas à droite pour sa taille), et vérifiez ses dimensions.');
 }
 function ajouterZone(){ if(!mi) return; const z={id:'z'+Date.now().toString(36),x:0.38,y:0.38,lw:0.24,lh:0.24}; mi.zones.push(z); sel=z.id; dessiner(); dire('Zone rouge : placez-la sur ce qu’il faut effacer de la photo.'); }
 
@@ -134,7 +146,9 @@ function majListe(){
     t.onclick=async()=>{ if(!app.edition){ dire('Passez en « Éditer » pour ajouter un objet à la maquette.',true); return; }
       const b=await (await fetch(o.img)).blob(), place=placeDansMaquette(o); fermer(); ouvrirPhotoAvec(b,{nom:o.nom,L:o.L,P:o.P,H:o.H,origine:o.lien?{produit:true,site:o.site||'boutique',titre:o.nom,lien:o.lien}:null},false,place); };
     const x=el('button',{type:'button',class:'btn petit-b danger','aria-label':'Retirer '+o.nom},'×'); x.onclick=()=>{ mi.objets=mi.objets.filter(q=>q!==o); dessiner(); majListe(); };
-    li.append(el('span',{class:'mi-num'},String(k+1)),i,n,d,t,x); l.append(li);
+    li.append(el('span',{class:'mi-num'},String(k+1)),i,n,d,t,x);
+    if(o.ambiance) li.append(el('p',{class:'mi-ambiance'},'⚠ '+AMBIANCE));
+    l.append(li);
   });
 }
 // ---------- où poser dans la maquette un meuble du montage (photo calée) ----------
@@ -217,7 +231,9 @@ function consigne(precisions,nRef=6){   // nRef : images des objets envoyées (l
     'Image 1 is a photo of the room on which pictures of products are pasted where the new furniture should go (the position is approximate and the pasted size is only indicative), and RED areas mark what must be removed.',
     'Image 2 is the original photo of the room, only as a reference for the real materials and light.'];
   const dimsTexte=o=>o.L&&o.P&&o.H?`${o.L} × ${o.P} × ${o.H} cm (width × depth × height)`:o.L||o.H?`${o.L?'width '+o.L+' cm':''}${o.L&&o.H?', ':''}${o.H?'height '+o.H+' cm':''}`:'real size unknown: use a plausible size';
-  if(mi.objets.length&&nRef){ L.push('Reference pictures of the new furniture:'); mi.objets.slice(0,nRef).forEach((o,k)=>L.push(`- image ${k+3}: "${o.nom}" (${dimsTexte(o)}).`)); }
+  if(mi.objets.length&&nRef){ L.push('Reference pictures of the new furniture:'); mi.objets.slice(0,nRef).forEach((o,k)=>L.push(`- image ${k+3}: "${o.nom}" (${dimsTexte(o)}).${o.ambiance?` Image ${k+3} is a catalogue photo of a whole room: use ONLY the "${o.nom}" from it.`:''}`)); }
+  // 22 octobre 2026 : une photo de catalogue avec sa pièce, collée en grand, faisait refaire toute la pièce
+  L.push('The reference pictures and the pasted pictures may be catalogue photos showing a whole room: take ONLY the named piece of furniture from them and ignore everything around it (their walls, floor, windows, rug, lamps, decoration and other furniture). Never copy their room: the room, its architecture, staircase, windows, floor and existing furniture must stay exactly those of image 2.');
   L.push('Changes:');
   mi.objets.forEach((o,k)=>L.push(k<nRef?`- Replace the pasted picture of "${o.nom}" by the real piece of furniture of image ${k+3}, at the correct real-world scale for its dimensions and for this room, standing on the floor or against the wall as appropriate, with the right perspective and orientation. It must look exactly like image ${k+3} (shape, colors, materials).`
     :`- Replace the pasted picture of "${o.nom}" (${dimsTexte(o)}) by the real piece of furniture it shows, at the correct real-world scale for this room, with the right perspective and orientation, looking exactly like the pasted picture.`));
@@ -231,6 +247,7 @@ async function preparer(){
   if(mi.mode==='decrire'&&!mi.zones.length&&!fen.querySelector('#mi-precisions').value.trim()){ dire('Écrivez votre demande (par exemple « ajoute de la décoration dans cette chambre »), ou touchez un exemple.',true); fen.querySelector('#mi-precisions').focus(); return; }
   if(mi.mode!=='decrire'&&!mi.objets.length&&!mi.zones.length){ dire('Ajoutez d’abord un produit : collez son image ou son lien, ou choisissez une image.',true); return; }
   const z=fen.querySelector('.mi-confirmer'), ok=z.querySelector('#mi-ok'); z.hidden=false; ok.disabled=true;
+  if(mi.mode!=='decrire'&&mi.objets.some(o=>o.ambiance)) dire(AMBIANCE,true);
   z.querySelector('.mi-cout').textContent='Préparation…';
   try{ prep={composee:await composer()}; z.querySelector('img').src=prep.composee; }catch(e){ z.querySelector('.mi-cout').textContent='Préparation impossible : '+(e.message||e); return; }
   prep.solde=await soldeKie(); remplirModeles(); choisirNombre(1); majCout();
