@@ -86,7 +86,8 @@ function choisirMode(m){
   if(m==='decrire') champ.focus();
 }
 function fermer(){ if(fen) fen.hidden=true; }
-function dire(t,erreur=false){ const m=fen.querySelector('.ph-message'); m.textContent=t||''; m.classList.toggle('cx-erreur',erreur); }
+function dire(t,erreur=false){ direMsg(t,erreur); }
+function direMsg(t,erreur=false){ const m=fen.querySelector('.ph-message'); m.textContent=t||''; m.classList.toggle('cx-erreur',erreur); }
 // le cadre de la photo dans la zone (proportions de la photo)
 function caler(){
   if(!mi) return; const z=fen.querySelector('.mi-zone').getBoundingClientRect(), ap=mi.base.image.w/mi.base.image.h;
@@ -136,6 +137,7 @@ function glisser(d,o,poignee){
 // ---------- la liste des objets : nom, dimensions, « Mettre en 3D » ----------
 function majListe(){
   const l=fen.querySelector('.mi-objets'); l.replaceChildren(); if(!mi) return;
+  fen.querySelector('#mi-autres').hidden=!mi.objets.length; majSuite();
   mi.objets.forEach((o,k)=>{
     const li=el('div',{class:'mi-objet'}), i=el('img',{src:o.img,alt:''}), n=el('input',{type:'text',value:o.nom,maxlength:'60','aria-label':'Nom de l’objet '+(k+1)});
     n.onchange=()=>{ o.nom=n.value.trim()||o.nom; };
@@ -150,6 +152,47 @@ function majListe(){
     if(o.ambiance) li.append(el('p',{class:'mi-ambiance'},'⚠ '+AMBIANCE));
     l.append(li);
   });
+}
+// ---------- le même produit sur d'autres photos de la pièce (Mauro, 22 octobre 2026 : « trois angles de vue ») ----------
+// on coche les autres photos ; après « Lancer le rendu » sur celle-ci, la suivante s'ouvre avec les mêmes produits
+// (nom, dimensions, lien, précisions) à la même place sur l'image : on les replace, puis on relance
+async function autresPhotos(){
+  const z=fen.querySelector('.mi-autres-liste'), b=fen.querySelector('#mi-autres');
+  if(!z.hidden){ z.hidden=true; b.setAttribute('aria-expanded','false'); return; }
+  z.hidden=false; b.setAttribute('aria-expanded','true'); z.replaceChildren(el('p',{class:'mat-aide'},'Lecture des photos de la pièce…'));
+  let l; try{ const g=await import('./galerie.js'); if(!g.lesPhotos().length) await g.chargerPhotos(); l=g.lesPhotos(); }
+  catch(e){ z.replaceChildren(el('p',{class:'mat-aide'},e.message||'Les photos n’ont pas pu être lues.')); return; }
+  l=l.filter(p=>p.piece===mi.base.piece&&p.id!==mi.base.photo&&p.image?.id);
+  if(!l.length){ z.replaceChildren(el('p',{class:'mat-aide'},`Pas d’autre photo de « ${nomPiece(mi.base.piece)} » : ajoutez-en dans « Photo réaliste » → « Préparer ».`)); return; }
+  const deja=new Set(mi.serie?.photos||[]);
+  const cases=l.map(p=>{ const c=el('input',{type:'checkbox',value:p.id}); c.checked=deja.has(p.id);
+    const t=el('label',{class:'mi-produit mi-autre'}); t.append(c,p.vignette?el('img',{src:p.vignette,alt:''}):el('span',{class:'mi-produit-vide'},'photo'),el('strong',{},p.nom),el('span',{},p.calage?'maquette calée':'')); return t; });
+  const ok=el('button',{type:'button',class:'btn primary'},'Continuer'), aide=el('p',{class:'mat-aide'},
+    `Cochez les autres photos de « ${nomPiece(mi.base.piece)} » : lancez d’abord le rendu de celle-ci, puis chaque photo cochée s’ouvre à son tour avec les mêmes produits ; replacez-les et relancez (un rendu par photo, avec sa confirmation).`);
+  const maj=()=>{ const n=z.querySelectorAll('input:checked').length; ok.textContent=n?`Continuer avec ${n} photo${n>1?'s':''} de plus`:'Aucune autre photo'; };
+  z.onchange=maj; ok.onclick=()=>{
+    const ids=[...z.querySelectorAll('input:checked')].map(c=>c.value);
+    mi.serie=ids.length?{photos:ids,noms:Object.fromEntries(l.map(p=>[p.id,p.nom])),n:1,total:ids.length+1}:null;
+    z.hidden=true; b.setAttribute('aria-expanded','false'); majSuite();
+    if(ids.length) dire(`Série de ${ids.length+1} photos : placez les produits ici, puis « Lancer le rendu… » ; la photo suivante s’ouvrira ensuite.`); };
+  z.replaceChildren(aide,...cases,ok); maj();
+}
+function majSuite(){
+  const z=fen.querySelector('.mi-suite'), s=mi?.serie; z.replaceChildren(); z.hidden=!s||mi.mode!=='produit'; if(z.hidden) return;
+  z.append(el('span',{},`📷 Photo ${s.n} sur ${s.total}`+(s.photos.length?` · ensuite : ${s.photos.map(id=>s.noms[id]).join(', ')}`:' · dernière photo de la série')));
+  if(s.photos.length){ const p=el('button',{type:'button',class:'btn petit-b'},'Passer à la suivante'); p.onclick=suivante; z.append(p); }
+  const x=el('button',{type:'button',class:'btn petit-b'},'Arrêter la série'); x.onclick=()=>{ mi.serie=null; majSuite(); }; z.append(x);
+}
+async function suivante(){
+  const s=mi?.serie; if(!s?.photos.length) return;
+  const objets=mi.objets.map(o=>({...o})), texte=fen.querySelector('#mi-precisions').value, id=s.photos.shift();
+  const g=await import('./galerie.js'), p=g.lesPhotos().find(x=>x.id===id);
+  if(!p){ s.total--; majSuite(); return s.photos.length?suivante():undefined; }
+  await g.faireMontage(p); s.n++;
+  mi.serie=s; choisirMode('produit');
+  mi.objets=objets.map((o,k)=>({...o,id:'o'+Date.now().toString(36)+k})); mi.texte.produit=texte; fen.querySelector('#mi-precisions').value=texte;
+  sel=null; dessiner(); majListe();
+  dire(`Photo ${s.n} sur ${s.total} : replacez ${objets.length>1?'les produits':'« '+objets[0].nom+' »'} sur cette photo (glisser, coin pour la taille), puis « Lancer le rendu… ».`);
 }
 // ---------- où poser dans la maquette un meuble du montage (photo calée) ----------
 // le pied de l'image posée (bas de l'image, contenue dans son rectangle) est le devant du meuble, au sol de la pièce :
@@ -288,14 +331,16 @@ async function lancer(){
       champs:{piece:b.piece,photo:b.photo||'',avant:b.image,variante:'',mode:'image',detail}});
     if(!r.id){ dire(r.erreur,true); ok.disabled=false; return; }
     z.hidden=true; prep=null;
+    const moi=mi, dl=(t,e)=>{ if(mi===moi) direMsg(t,e); };
+    if(mi.serie?.photos.length) setTimeout(()=>{ if(mi===moi) suivante(); },1500);
     const lot=r.lot||[r], N=lot.length, refus=r.refusees?` (${r.refusees} refusé${r.refusees>1?'s':''} par kie.ai)`:'';
-    dire((N>1?`${N} rendus en cours chez kie.ai${refus}…`:'Rendu en cours chez kie.ai…')+' (environ 1 minute ; vous pouvez fermer : '+(N>1?'ils arriveront':'il arrivera')+' dans les rendus de la pièce)');
+    dl((N>1?`${N} rendus en cours chez kie.ai${refus}…`:'Rendu en cours chez kie.ai…')+' (environ 1 minute ; vous pouvez fermer : '+(N>1?'ils arriveront':'il arrivera')+' dans les rendus de la pièce)');
     let dernier=0; const etat=()=>{ const f=lot.filter(x=>x.etat==='fini').length; return N>1?`${N} rendus en cours chez kie.ai… ${f} / ${N} prêt${f>1?'s':''} · ${dernier} s`:`Rendu en cours chez kie.ai… ${dernier} s`; };
-    await Promise.all(lot.map(x=>suivre(x,s=>{ dernier=Math.max(dernier,s); if(!fen.hidden) dire(etat()); }).then(()=>{ if(!fen.hidden&&N>1) dire(etat()); })));
+    await Promise.all(lot.map(x=>suivre(x,s=>{ dernier=Math.max(dernier,s); if(!fen.hidden) dl(etat()); }).then(()=>{ if(!fen.hidden&&N>1) dl(etat()); })));
     const prets=lot.filter(x=>x.etat==='fini').length;
-    if(prets===N) dire(N>1?`${N} rendus prêts : « Photo réaliste », onglet « Rendus », pour les voir en avant / après.`:'Rendu prêt : « Photo réaliste », onglet « Rendus », pour le voir en avant / après.');
-    else if(prets) dire(`${prets} rendu${prets>1?'s':''} prêt${prets>1?'s':''} sur ${N} (« Photo réaliste », onglet « Rendus ») ; les autres ont échoué : ${lot.find(x=>x.etat!=='fini')?.erreur||'raison inconnue'}`,true);
-    else dire((N>1?'Les rendus ont échoué : ':'Le rendu a échoué : ')+(r.erreur||'raison inconnue'),true);
+    if(prets===N) dl(N>1?`${N} rendus prêts : « Photo réaliste », onglet « Rendus », pour les voir en avant / après.`:'Rendu prêt : « Photo réaliste », onglet « Rendus », pour le voir en avant / après.');
+    else if(prets) dl(`${prets} rendu${prets>1?'s':''} prêt${prets>1?'s':''} sur ${N} (« Photo réaliste », onglet « Rendus ») ; les autres ont échoué : ${lot.find(x=>x.etat!=='fini')?.erreur||'raison inconnue'}`,true);
+    else dl((N>1?'Les rendus ont échoué : ':'Le rendu a échoué : ')+(r.erreur||'raison inconnue'),true);
   }catch(e){ dire('Rendu impossible : '+(e.message||e),true); ok.disabled=false; }
 }
 
@@ -322,8 +367,11 @@ function construire(){
         <p class="mat-aide">Sur la page du produit : copiez son lien (ou l’image : appui long ou clic droit, « Copier l’image »), revenez ici et collez-le. Sur PC, Ctrl+V marche aussi.</p>
       </div>
       <div class="mi-objets"></div>
+      <div class="mi-autres-liste" hidden></div>
+      <div class="mi-suite" hidden></div>
       <div class="mi-outils">
         <input type="text" id="mi-precisions" maxlength="600" placeholder="" aria-label="Votre demande pour le rendu">
+        <button type="button" class="btn" id="mi-autres" aria-expanded="false" hidden>📷 Aussi sur d’autres photos…</button>
         <button type="button" class="btn primary" id="mi-rendu">Lancer le rendu…</button>
       </div>
       <div class="mi-confirmer" hidden><img alt="Photo avec les objets posés"><div class="mi-conf">
@@ -348,7 +396,7 @@ function construire(){
     ouvrirCreer({retour:(image,i)=>ajouterProduit({image,nom:i.nom,dims:i.dims}),texteRetour:'Poser sur la photo',piece:mi?.base.piece}); }; q('#mi-choisir').onclick=()=>q('#mi-fichier').click();
   q('#mi-fichier').onchange=e=>{ const f=e.target.files[0]; e.target.value=''; depuisFichier(f); };
   q('#mi-lien-lire').onclick=lien;
-  q('#mi-rendu').onclick=preparer; q('#mi-modele').onchange=majCout;
+  q('#mi-rendu').onclick=preparer; q('#mi-autres').onclick=autresPhotos; q('#mi-modele').onchange=majCout;
   for(const b of fen.querySelectorAll('.mi-nombre button')) b.onclick=()=>{ for(const x of fen.querySelectorAll('.mi-nombre button')) x.setAttribute('aria-pressed',String(x===b)); majCout(); }; q('#mi-ok').onclick=lancer; q('#mi-non').onclick=()=>{ q('.mi-confirmer').hidden=true; prep=null; };
   for(const b of BOUTIQUES){ const x=el('button',{type:'button',class:'cat-idee',title:'Lien : '+b.lien},b.nom);
     x.onclick=()=>{ const t=q('#mi-q').value.trim(); open(lienRecherche(b,t),'_blank','noopener'); dire(`${b.nom} s’ouvre dans un nouvel onglet${b.recherche&&t?' sur votre recherche':''} : choisissez le produit, copiez son lien${b.lien==='copier l’image'?' ou plutôt son image (ce site refuse la lecture automatique)':''}, puis revenez ici et collez-le.`); };
