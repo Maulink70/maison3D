@@ -200,10 +200,14 @@ function construireFenetre(){
   fen.addEventListener('dragover',e=>{ if(app.edition&&onglet==='preparer'){ e.preventDefault(); } });
   fen.addEventListener('drop',e=>{ if(!app.edition||onglet!=='preparer') return; e.preventDefault(); ajouter(e.dataTransfer.files); });
   addEventListener('edition',()=>{ if(!fen.hidden){ majMode(); majPieces(); majGrille(); } });
-  for(const b of fen.querySelectorAll('[data-onglet]')) b.onclick=()=>{ onglet=b.dataset.onglet; majMode(); majPieces(); majGrille(); };
+  for(const b of fen.querySelectorAll('[data-onglet]')) b.onclick=()=>{ onglet=b.dataset.onglet; garderOnglet(); majMode(); majPieces(); majGrille(); };
   addEventListener('rendus',()=>{ if(!fen.hidden){ majPieces(); majGrille(); } });
 }
 // quoi : 'photos', 'rendus' ou 'preparer' (Éditer)
+// le bouton de la barre rouvre le dernier onglet choisi, « Photos » ou « Rendus » (Mauro, 22 octobre 2026 : aller aux rendus d'un coup)
+const CLE_ONGLET='maison3d-galerie-onglet';
+function garderOnglet(){ if(choix||!['photos','rendus'].includes(onglet)) return; try{ localStorage.setItem(CLE_ONGLET,onglet); }catch{} }
+function dernierOnglet(){ try{ return localStorage.getItem(CLE_ONGLET)==='rendus'?'rendus':'photos'; }catch{ return 'photos'; } }
 export async function ouvrirGalerie(oui=true,piece,quoi){
   if(oui&&!fen) construireFenetre(); if(!fen) return; fen.hidden=!oui; $('photos').setAttribute('aria-expanded',String(oui));
   if(!oui){ choix=null; return; }
@@ -211,7 +215,9 @@ export async function ouvrirGalerie(oui=true,piece,quoi){
   fen.querySelector('#gal-piece').value=filtre||pieceIci()||'salon';
   majMode(); majPieces(); majGrille();
   if(!photos) dire('Chargement des photos…');
-  try{ await chargerPhotos(); await chargerRendus(); dire(''); majMode(); majPieces(); majGrille(); }catch(e){ dire(e.message,true); }
+  try{ await chargerPhotos(); await chargerRendus(); dire('');
+    if(onglet==='rendus'&&filtre&&!rendusVisibles().length) filtre=null;   // aucun rendu de cette pièce : tous les rendus
+    majMode(); majPieces(); majGrille(); }catch(e){ dire(e.message,true); }
 }
 
 // ---------- la visionneuse : en grand, flèches, glisser, diaporama, plein écran ----------
@@ -390,5 +396,5 @@ export function voirPhoto(p,l=[p]){ ouvrirVisionneuse(l,Math.max(0,l.indexOf(p))
 
 export function initGalerie(){
   // le bouton ouvre les photos de la pièce où l'on est (1re personne) ou que l'on regarde (maquette, plan) ; toutes sinon
-  $('photos').onclick=e=>{ e.stopPropagation(); if(fen&&!fen.hidden){ ouvrirGalerie(false); return; } ouvrirGalerie(true,pieceIci(),'photos'); };
+  $('photos').onclick=e=>{ e.stopPropagation(); if(fen&&!fen.hidden){ ouvrirGalerie(false); return; } ouvrirGalerie(true,pieceIci(),dernierOnglet()); };
 }
