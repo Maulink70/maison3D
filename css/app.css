@@ -1088,3 +1088,5 @@ body.panneau-ouvert #toggle-panel.poignee{right:316px}
 .gal-photo.choisie{position:relative;border-color:var(--photo,#3a9a5b);box-shadow:0 0 0 3px var(--photo,#3a9a5b)}
 .gal-numero{position:absolute;top:10px;left:10px;min-width:26px;height:26px;border-radius:13px;background:var(--photo,#3a9a5b);color:#fff;font-weight:700;display:grid;place-items:center}
 .gal-aide .btn{vertical-align:middle}
+.gal-aide .gal-plusieurs{margin-top:8px;background:var(--photo,#3a9a5b);border-color:var(--photo,#3a9a5b);color:#fff;font-weight:600;padding:8px 14px}
+.gal-aide .gal-plusieurs:hover{background:var(--photo-fonce,#2d7a47)}

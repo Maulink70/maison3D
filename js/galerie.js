@@ -119,9 +119,9 @@ async function finirChoix(ids){
 }
 function aideChoix(aide){
   const m=choix.multi; aide.replaceChildren();
-  if(!m){ const b=el('button',{type:'button',class:'btn petit-b',id:'gal-plusieurs'},'Choisir plusieurs photos');
+  if(!m){ const b=el('button',{type:'button',class:'btn gal-plusieurs',id:'gal-plusieurs'},'📷📷 Choisir plusieurs photos (plusieurs angles)');
     b.onclick=()=>{ choix.multi=[]; majMode(); majGrille(); };
-    aide.append(choix.texte+' Une photo : touchez-la. Plusieurs (autres angles de vue) : ',b); return; }
+    aide.append(choix.texte+' Une seule photo : touchez-la.',el('br'),b); return; }
   const ok=el('button',{type:'button',class:'btn primary petit-b',id:'gal-plusieurs-ok'},m.length?`Continuer avec ${m.length} photo${m.length>1?'s':''}`:'Touchez des photos');
   ok.disabled=!m.length; ok.onclick=()=>finirChoix(m);
   const un=el('button',{type:'button',class:'btn petit-b'},'Une seule photo'); un.onclick=()=>{ choix.multi=null; majMode(); majGrille(); };

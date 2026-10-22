@@ -263,8 +263,13 @@ async function composer(){
   const b=mi.base.image, base=await charger(mi.url), c=el('canvas'); c.width=b.w||base.width; c.height=b.h||base.height;
   const g=c.getContext('2d'); g.drawImage(base,0,0,c.width,c.height);
   g.fillStyle='rgba(255,31,31,0.72)'; for(const z of mi.zones) g.fillRect(z.x*c.width,z.y*c.height,z.lw*c.width,z.lh*c.height);
-  for(const o of mi.objets){ const i=await charger(o.img), rw=o.lw*c.width, rh=o.lh*c.height, k=Math.min(rw/i.width,rh/i.height), w=i.width*k, h=i.height*k;
-    g.drawImage(i,o.x*c.width+(rw-w)/2,o.y*c.height+(rh-h)/2,w,h); }
+  for(const o of mi.objets){ const i=await charger(o.img), rw=o.lw*c.width, rh=o.lh*c.height, k=Math.min(rw/i.width,rh/i.height), w=i.width*k, h=i.height*k,
+      x=o.x*c.width+(rw-w)/2, y=o.y*c.height+(rh-h)/2;
+    // photo d'ambiance (22 octobre 2026, Mauro : « il me change complètement la pièce ») : collée telle quelle, sa pièce de
+    // catalogue entrait dans l'image à modifier ; à la place, un rectangle bleu marque l'endroit, la photo part seulement en référence
+    if(o.ambiance){ const e=Math.max(4,Math.round(c.width/300)); g.fillStyle='rgba(30,110,255,0.22)'; g.fillRect(x,y,w,h);
+      g.strokeStyle='rgb(30,110,255)'; g.lineWidth=e; g.strokeRect(x+e/2,y+e/2,w-e,h-e); continue; }
+    g.drawImage(i,x,y,w,h); }
   return c.toDataURL('image/jpeg',0.9);
 }
 function consigne(precisions,nRef=6){   // nRef : images des objets envoyées (le modèle en accepte parfois moins)
@@ -280,12 +285,14 @@ function consigne(precisions,nRef=6){   // nRef : images des objets envoyées (l
   const L=[`Edit image 1 into a photorealistic photograph of this room (${nomPiece(mi.base.piece)} of an apartment).`,
     'Image 1 is a photo of the room on which pictures of products are pasted where the new furniture should go (the position is approximate and the pasted size is only indicative), and RED areas mark what must be removed.',
     'Image 2 is the original photo of the room, only as a reference for the real materials and light.'];
+  if(mi.objets.some(o=>o.ambiance)) L.push('A BLUE rectangle in image 1 marks the place of a new piece of furniture whose picture was not pasted (its reference picture shows a whole room). Inside the blue rectangle, put only that piece of furniture; outside of it, change nothing.');
   const dimsTexte=o=>o.L&&o.P&&o.H?`${o.L} × ${o.P} × ${o.H} cm (width × depth × height)`:o.L||o.H?`${o.L?'width '+o.L+' cm':''}${o.L&&o.H?', ':''}${o.H?'height '+o.H+' cm':''}`:'real size unknown: use a plausible size';
   if(mi.objets.length&&nRef){ L.push('Reference pictures of the new furniture:'); mi.objets.slice(0,nRef).forEach((o,k)=>L.push(`- image ${k+3}: "${o.nom}" (${dimsTexte(o)}).${o.ambiance?` Image ${k+3} is a catalogue photo of a whole room: use ONLY the "${o.nom}" from it.`:''}`)); }
   // 22 octobre 2026 : une photo de catalogue avec sa pièce, collée en grand, faisait refaire toute la pièce
   L.push('The reference pictures and the pasted pictures may be catalogue photos showing a whole room: take ONLY the named piece of furniture from them and ignore everything around it (their walls, floor, windows, rug, lamps, decoration and other furniture). Never copy their room: the room, its architecture, staircase, windows, floor and existing furniture must stay exactly those of image 2.');
   L.push('Changes:');
-  mi.objets.forEach((o,k)=>L.push(k<nRef?`- Replace the pasted picture of "${o.nom}" by the real piece of furniture of image ${k+3}, at the correct real-world scale for its dimensions and for this room, standing on the floor or against the wall as appropriate, with the right perspective and orientation. It must look exactly like image ${k+3} (shape, colors, materials).`
+  mi.objets.forEach((o,k)=>L.push(o.ambiance?`- In the BLUE rectangle, place the real "${o.nom}" exactly as it looks in image ${k+3} (only the "${o.nom}", nothing else from image ${k+3}), at the correct real-world scale for this room, standing on the floor, with the right perspective and orientation. No blue must remain.`
+    :k<nRef?`- Replace the pasted picture of "${o.nom}" by the real piece of furniture of image ${k+3}, at the correct real-world scale for its dimensions and for this room, standing on the floor or against the wall as appropriate, with the right perspective and orientation. It must look exactly like image ${k+3} (shape, colors, materials).`
     :`- Replace the pasted picture of "${o.nom}" (${dimsTexte(o)}) by the real piece of furniture it shows, at the correct real-world scale for this room, with the right perspective and orientation, looking exactly like the pasted picture.`));
   if(mi.zones.length) L.push(`- Remove completely what is inside the ${mi.zones.length>1?mi.zones.length+' red areas':'red area'} and rebuild what is behind it (wall, floor, skirting board), so that nothing of it remains.`);
   L.push('Keep everything else exactly as in image 2: framing, perspective, lens, light, white balance, walls, floor and every other object. Add realistic contact shadows and reflections. The result must not show any red tint, pasted-picture edge, text or watermark, and must not contain any furniture that is not asked for.');
