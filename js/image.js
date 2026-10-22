@@ -160,10 +160,11 @@ async function autresPhotos(){
   const z=fen.querySelector('.mi-autres-liste'), b=fen.querySelector('#mi-autres');
   if(!z.hidden){ z.hidden=true; b.setAttribute('aria-expanded','false'); return; }
   z.hidden=false; b.setAttribute('aria-expanded','true'); z.replaceChildren(el('p',{class:'mat-aide'},'Lecture des photos de la pièce…'));
+  const voir=()=>z.scrollIntoView({block:'nearest'}); voir();
   let l; try{ const g=await import('./galerie.js'); if(!g.lesPhotos().length) await g.chargerPhotos(); l=g.lesPhotos(); }
-  catch(e){ z.replaceChildren(el('p',{class:'mat-aide'},e.message||'Les photos n’ont pas pu être lues.')); return; }
+  catch(e){ z.replaceChildren(el('p',{class:'mat-aide'},e.message||'Les photos n’ont pas pu être lues.')); voir(); return; }
   l=l.filter(p=>p.piece===mi.base.piece&&p.id!==mi.base.photo&&p.image?.id);
-  if(!l.length){ z.replaceChildren(el('p',{class:'mat-aide'},`Pas d’autre photo de « ${nomPiece(mi.base.piece)} » : ajoutez-en dans « Photo réaliste » → « Préparer ».`)); return; }
+  if(!l.length){ z.replaceChildren(el('p',{class:'mat-aide'},`Pas d’autre photo de « ${nomPiece(mi.base.piece)} » : ajoutez-en dans « Photo réaliste » → « Préparer ».`)); voir(); return; }
   const deja=new Set(mi.serie?.photos||[]);
   const cases=l.map(p=>{ const c=el('input',{type:'checkbox',value:p.id}); c.checked=deja.has(p.id);
     const t=el('label',{class:'mi-produit mi-autre'}); t.append(c,p.vignette?el('img',{src:p.vignette,alt:''}):el('span',{class:'mi-produit-vide'},'photo'),el('strong',{},p.nom),el('span',{},p.calage?'maquette calée':'')); return t; });
@@ -175,7 +176,13 @@ async function autresPhotos(){
     mi.serie=ids.length?{photos:ids,noms:Object.fromEntries(l.map(p=>[p.id,p.nom])),n:1,total:ids.length+1}:null;
     z.hidden=true; b.setAttribute('aria-expanded','false'); majSuite();
     if(ids.length) dire(`Série de ${ids.length+1} photos : placez les produits ici, puis « Lancer le rendu… » ; la photo suivante s’ouvrira ensuite.`); };
-  z.replaceChildren(aide,...cases,ok); maj();
+  z.replaceChildren(aide,...cases,ok); maj(); voir();
+}
+// série commencée depuis le choix de plusieurs photos (galerie.js) : l : les photos suivantes
+export function commencerSerie(l){
+  if(!mi||!l.length) return;
+  mi.serie={photos:l.map(p=>p.id),noms:Object.fromEntries(l.map(p=>[p.id,p.nom])),n:1,total:l.length+1}; majSuite();
+  dire(`Série de ${l.length+1} photos : placez le produit ici, puis « Lancer le rendu… » ; la photo suivante s’ouvrira ensuite.`);
 }
 function majSuite(){
   const z=fen.querySelector('.mi-suite'), s=mi?.serie; z.replaceChildren(); z.hidden=!s||mi.mode!=='produit'; if(z.hidden) return;
@@ -367,13 +374,13 @@ function construire(){
         <p class="mat-aide">Sur la page du produit : copiez son lien (ou l’image : appui long ou clic droit, « Copier l’image »), revenez ici et collez-le. Sur PC, Ctrl+V marche aussi.</p>
       </div>
       <div class="mi-objets"></div>
-      <div class="mi-autres-liste" hidden></div>
       <div class="mi-suite" hidden></div>
       <div class="mi-outils">
         <input type="text" id="mi-precisions" maxlength="600" placeholder="" aria-label="Votre demande pour le rendu">
         <button type="button" class="btn" id="mi-autres" aria-expanded="false" hidden>📷 Aussi sur d’autres photos…</button>
         <button type="button" class="btn primary" id="mi-rendu">Lancer le rendu…</button>
       </div>
+      <div class="mi-autres-liste" hidden></div>
       <div class="mi-confirmer" hidden><img alt="Photo avec les objets posés"><div class="mi-conf">
         <h3 class="mi-conf-titre">Lancer le rendu réaliste</h3>
         <div class="mi-conf-ligne"><span class="mi-conf-lib">Modèle</span><select id="mi-modele" aria-label="Modèle de kie.ai pour le rendu"></select></div>

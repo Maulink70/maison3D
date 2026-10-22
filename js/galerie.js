@@ -110,7 +110,23 @@ async function ajouter(fichiers){
 // ---------- la galerie ----------
 let fen=null, filtre=null, onglet='photos', choix=null;
 // la galerie sert aussi à choisir une photo (produit reçu par « Partager » → montage sur cette photo)
-export function choisirPhoto(rappel,texte,piece){ onglet='photos'; ouvrirGalerie(true,piece).then(()=>{}); choix={rappel,texte}; majMode(); }
+// plusieurs photos (Mauro, 22 octobre 2026) : la 1re ouvre le montage, les autres suivent en série (image.js, commencerSerie)
+export function choisirPhoto(rappel,texte,piece){ onglet='photos'; ouvrirGalerie(true,piece).then(()=>{}); choix={rappel,texte,multi:null}; majMode(); }
+async function finirChoix(ids){
+  const c=choix, l=ids.map(id=>lesPhotos().find(p=>p.id===id)).filter(Boolean); if(!c||!l.length) return;
+  choix=null; ouvrirGalerie(false); await c.rappel(l[0]);
+  if(l.length>1){ const {commencerSerie}=await import('./image.js'); commencerSerie(l.slice(1)); }
+}
+function aideChoix(aide){
+  const m=choix.multi; aide.replaceChildren();
+  if(!m){ const b=el('button',{type:'button',class:'btn petit-b',id:'gal-plusieurs'},'Choisir plusieurs photos');
+    b.onclick=()=>{ choix.multi=[]; majMode(); majGrille(); };
+    aide.append(choix.texte+' Une photo : touchez-la. Plusieurs (autres angles de vue) : ',b); return; }
+  const ok=el('button',{type:'button',class:'btn primary petit-b',id:'gal-plusieurs-ok'},m.length?`Continuer avec ${m.length} photo${m.length>1?'s':''}`:'Touchez des photos');
+  ok.disabled=!m.length; ok.onclick=()=>finirChoix(m);
+  const un=el('button',{type:'button',class:'btn petit-b'},'Une seule photo'); un.onclick=()=>{ choix.multi=null; majMode(); majGrille(); };
+  aide.append('Touchez les photos à essayer, dans l’ordre voulu (un rendu par photo : la 1re s’ouvre, les autres suivent après chaque rendu). ',ok,' ',un);
+}
 const estRendu=x=>!!x&&'etat' in x;
 const date=t=>{ const d=new Date(t); return isNaN(d)?'':d.toLocaleDateString('fr-CH',{day:'2-digit',month:'2-digit'})+' '+d.toLocaleTimeString('fr-CH',{hour:'2-digit',minute:'2-digit'}); };
 const ETATS={attente:'en cours…',echec:'échec'};
@@ -138,8 +154,10 @@ function carte(p,i){
   // (Mauro, 12 octobre 2026 : un seul bouton « Photo réaliste », plus d'écran à part dans la barre)
   if(onglet==='photos'&&!choix&&calee(p)){ const y=el('span',{class:'pv-yaller',title:'Aller à l’endroit d’où la photo a été prise'},'📍 Y aller');
     y.onclick=e=>{ e.stopPropagation(); ouvrirGalerie(false); allerAuPoint(p); }; b.append(y); }
-  const ctx=onglet;
-  b.onclick=()=>{ if(choix){ const c=choix; choix=null; ouvrirGalerie(false); c.rappel(p); return; } ouvrirVisionneuse(visibles(),i,ctx); }; return b;
+  const ctx=onglet, k=choix?.multi?choix.multi.indexOf(p.id):-1;
+  if(k>=0){ b.classList.add('choisie'); b.append(el('span',{class:'gal-numero'},String(k+1))); }
+  b.onclick=()=>{ if(choix?.multi){ const m=choix.multi, j=m.indexOf(p.id); if(j>=0) m.splice(j,1); else m.push(p.id); majMode(); majGrille(); return; }
+    if(choix){ finirChoix([p.id]); return; } ouvrirVisionneuse(visibles(),i,ctx); }; return b;
 }
 function carteRendu(r,i,l){
   const b=el('button',{type:'button',class:'gal-photo','data-rendu':r.id,'aria-label':r.titre}), cadre=el('span',{class:'gal-image'});
@@ -164,7 +182,7 @@ function majMode(){
   fen.querySelector('[data-onglet="preparer"]').hidden=!app.edition||!!choix;
   fen.querySelector('.gal-ajout').hidden=!app.edition||onglet!=='preparer';
   const aide=fen.querySelector('.gal-aide');
-  if(choix){ aide.textContent=choix.texte; return; }
+  if(choix){ aideChoix(aide); return; }
   if(onglet==='rendus'){ aide.textContent='Les rendus réalistes de chaque pièce, les plus récents d’abord : touchez-en un pour le voir en grand, en avant / après.'; return; }
   if(onglet==='preparer'){ const n=lesPhotos().length, c=lesPhotos().filter(p=>p.calage).length;
     aide.textContent=`À faire une fois pour toutes : ajouter les photos de chaque pièce et caler la maquette dessus (${c} calée${c>1?'s':''} sur ${n}). Une photo calée apparaît dans la visite 3D (icône d’appareil photo) et place à l’endroit voulu les meubles mis en 3D depuis un montage. Une photo nommée par pièce (« salon 3.jpg », « salle de bain 1.jpg ») va d’elle-même dans sa pièce, avec son numéro : on peut les envoyer toutes d’un coup.`; return; }

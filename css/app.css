@@ -1085,3 +1085,6 @@ body.panneau-ouvert #toggle-panel.poignee{right:316px}
   .filtres .pastille{padding:6px 11px;min-height:32px}
   .vis-b,#vis-fermer,#mi-fermer{width:44px;height:44px}
 }
+.gal-photo.choisie{position:relative;border-color:var(--photo,#3a9a5b);box-shadow:0 0 0 3px var(--photo,#3a9a5b)}
+.gal-numero{position:absolute;top:10px;left:10px;min-width:26px;height:26px;border-radius:13px;background:var(--photo,#3a9a5b);color:#fff;font-weight:700;display:grid;place-items:center}
+.gal-aide .btn{vertical-align:middle}
